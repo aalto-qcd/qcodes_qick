@@ -2,6 +2,13 @@ import qcodes as qc
 from qick import *
 import numpy as np
 
+print("hello")
+print("hello")
+print("hello")
+print("hello")
+print("hello")
+
+
 class SweepProgram(RAveragerProgram):
 
     def __init__(self, soccfg, cfg, sweep_param):
