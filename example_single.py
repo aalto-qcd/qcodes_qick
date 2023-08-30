@@ -4,20 +4,6 @@ import numpy as np
 
 class SweepProgram(RAveragerProgram):
 
-    def __init__(self, soccfg, cfg, sweep_param):
-        """
-        Constructor for the RAveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
-        """
-        super().__init__(soccfg)
-        self.cfg = cfg
-        self.make_program()
-        self.reps = cfg['reps']
-        self.expts = cfg['expts']
-        self.sweep_param = sweep_param
-
-        if "rounds" in cfg:
-            self.rounds = cfg['rounds']
-
     #Hardware loop sweep
     def initialize(self):
         cfg=self.cfg   
@@ -27,7 +13,7 @@ class SweepProgram(RAveragerProgram):
 
         self.r_rp=self.ch_page(self.cfg["res_ch"])     # get register page for res_ch
         self.r_gain=self.sreg(cfg["res_ch"], "gain")   # Get gain register for res_ch
-        self.r_freq=self.sreg(cfg["res_ch"], "freq")   # Get gain register for res_ch
+        self.r_freq=self.sreg(cfg["res_ch"], "freq")   # Get freq register for res_ch
 
 
         self.sweepable_registers = [self.r_gain, self.r_freq]
@@ -37,7 +23,7 @@ class SweepProgram(RAveragerProgram):
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["res_ch"])
         
         freq=self.freq2reg(cfg["pulse_freq"], gen_ch=cfg["res_ch"], ro_ch=cfg["ro_ch"])  # convert frequency to dac frequency (ensuring it is an available adc frequency)
-        self.set_pulse_registers(ch=cfg["res_ch"], style="const", freq=freq, phase=0, gain=cfg["start"], 
+        self.set_pulse_registers(ch=cfg["res_ch"], style="const", freq=freq, phase=0, gain=cfg["pulse_gain"], 
                                  length=cfg["length"])
         self.synci(200)  # give processor some time to configure pulses
 
@@ -49,46 +35,48 @@ class SweepProgram(RAveragerProgram):
              syncdelay=self.us2cycles(self.cfg["relax_delay"]))        
         
     def update(self):
-        if self.sweep_param == "pulse_gain":
+        if self.cfg["sweep_param"] == "pulse_gain":
             self.mathi(self.r_rp, self.r_gain, self.r_gain, '+', self.cfg["step"]) # update gain of the pulse
-        elif self.sweep_param == "pulse_freq":
-            self.mathi(self.r_rp, self.r_freq, self.r_freq, '+', self.cfg["step"]) # update gain of the pulse
+
+        elif self.cfg["sweep_param"] == "pulse_freq":
+            self.mathi(self.r_rp, self.r_freq, self.r_freq, '+', self.cfg["step"]) # update freq of the pulse
 
 
-def single_sweep(sweep_param, sweep_range, soc, experiment, soccfg): 
+def single_sweep(sweep_param, sweep_range, soc, soccfg): 
     #Runs the SingleToneSpectroscopyProgram with frequencies defined in freqs
     possible_sweep_params = ["pulse_freq", "pulse_gain"]
     
     #Configure qick config
     config={"res_ch":6, # --Fixed
         "ro_ch":0, # --Fixed
-        "relax_delay":1, # --Fixed
+        "relax_delay":0.01, # --Fixed
         "res_phase":0, # --Fixed
         "pulse_style": "const", # --Fixed
-        "length":100, # [Clock ticks]        
-        "readout_length":200, # [Clock ticks]
-        "pulse_gain":0, # [DAC units]
+        "length":10, # [Clock ticks]        
+        "readout_length":1000, # [Clock ticks]
+        #Defaults, one of which will be overwritten
+        "pulse_gain": 10000, # [DAC units]
         "pulse_freq": 100, # [MHz]
-        "adc_trig_offset": 100, # [Clock ticks]
-        "reps":50, 
+
+        "adc_trig_offset": 170, # [Clock ticks]
+        "reps": 1, 
         # New variables
-        "expts": 20,
-        "start":0, # [DAC units]
-        "step":100 
+        "expts": len(sweep_range),
        }
 
     if sweep_param not in possible_sweep_params:
         print("Invalid sweep parameter")
         return
-    else
+    else:
         #Problematic currently, as there is not a way to fully configure other
         #parameters
 
         #Here is another place where we need a more comprehensive input validation
-        config[sweep_param] = sweep_range[0]
+        config[sweep_param] = round(sweep_range[0])
+        config["start"] = round(sweep_range[0])
+        config["sweep_param"] = sweep_param
         try:
-            config[step] = (sweep_range[-1] - sweep_range[0] )/len(sweep_range)
-            config[start] = sweep_range[0]
+            config['step'] = round((sweep_range[-1] - sweep_range[0] )/len(sweep_range))
         except:
             print("Invalid sweep parameter")
 
@@ -109,13 +97,15 @@ def single_sweep(sweep_param, sweep_range, soc, experiment, soccfg):
     with meas.run() as datasaver:
 
         #Problem with getting this param
-        prog = SweepProgram(soccfg, config, sweep_param)
+        prog = SweepProgram(soccfg, config)
 
-        #The actual qick measurement happens here, as defined by SingleToneSpectroscopyProgram
-        avg_i, avg_q = prog.acquire(soc, load_pulses=True)
+        #The actual qick measurement happens here, as defined by the program
+        expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True)
 
         #Compile data in QCoDeS style.
-        datasaver.add_result((sweep_param_object, f), ("avg_i", avg_i), ("avg_q", avg_q))
+        print(config)
+        print(expt_pts)
+        datasaver.add_result((sweep_param_object, expt_pts), ("avg_i", np.reshape(avg_i, len(sweep_range))), ("avg_q", np.reshape(avg_q, len(sweep_range))))
     
     run_id = datasaver.dataset.captured_run_id
     dataset = datasaver.dataset
@@ -131,4 +121,4 @@ soccfg = soc
 qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 #Run the experiment -- frequency is in megaherz (see qick example)
-output = single_sweep("pulse_freq", np.linspace(4800, 6300, 40), soc, experiment, soccfg)
+output = single_sweep("pulse_freq", np.linspace(200, 500, 10), soc, soccfg)
