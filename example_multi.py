@@ -1,6 +1,7 @@
 import qcodes as qc
 from qcodes.instrument import Instrument
 from qick import *
+from qick.averager_program import QickSweep
 import numpy as np
 
 class SweepProgram(RAveragerProgram):
@@ -68,6 +69,8 @@ class MultiVariableSweepProgram(NDAveragerProgram):
         #self.res_r_phase = self.get_gen_reg(cfg["res_ch"], "phase")
         #self.res_r_freq = self.get_gen_reg(cfg["res_ch"], "freq")
 
+        sweep_variables = cfg["sweep_variables"]
+
         # add desired sweeps
         for sweep_variable in sweep_variables:
             sweep_settings = sweep_variables[sweep_variable]
@@ -111,27 +114,31 @@ class ZCU216MetaInstrument(Instrument):
         ...
 
     def add_paramteter(self, ):
+        ...
 
 
 def multi_sweep(sweep_configuration, soc, soccfg):
 
 
-    possible_sweep_params = {"freq":"MHz", "gain":"DAC", "phase":"deg"]
+    possible_sweep_params = {"freq":"MHz", "gain":"DAC", "phase":"deg"}
 
     #Configure qick config
     config = {"res_ch": 6,  # --Fixed
           "ro_chs": [0],  # --Fixed
           "reps": 1,  # --Fixed
-          "relax_delay": 1.0,  # --us
-          "length": 50,  # [Clock ticks]
+          "relax_delay": 1000000,  # --us
+          "length": 20,  # [Clock ticks]
           "readout_length": 100,  # [Clock ticks]
           "pulse_freq": 100,  # [MHz]
-          "pulse_gain": 100,  # [MHz]
+          "pulse_gain": 1000,  # [MHz]
           "pulse_phase": 0,  # [MHz]
           "adc_trig_offset": 150,  # [Clock ticks]
           "soft_avgs": 1,
+          "sweep_variables": sweep_configuration
           }
 
+    data_points = 1
+    dimension = 0
     sweep_param_objects = []
 
     #Set up the qc experiment setup
@@ -142,21 +149,23 @@ def multi_sweep(sweep_configuration, soc, soccfg):
     #Create manual parameters for data gathering
     for sweepable_variable in sweep_configuration:
 
-        if sweep_param not in possible_sweep_params:
+        if sweepable_variable  not in possible_sweep_params.keys():
             print("Invalid sweep parameter")
             return
 
-        sweep_param_object = qc.ManualParameter(sweepable_variable, instrument = None, unit=possible_sweep_params[sweepable_variable],
-                initial_value = sweep_configuaration[sweepable_variable][0])
+        sweep_param_object = qc.ManualParameter(sweepable_variable, 
+                instrument = None, unit=possible_sweep_params[sweepable_variable],
+                initial_value = sweep_configuration[sweepable_variable][0])
 
+        dimension += 1
+        data_points = data_points*sweep_configuration[sweepable_variable][2]
         sweep_param_objects.append(sweep_param_object)
-
         meas.register_parameter(sweep_param_object)
     
 
-    meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
-    meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
-    
+    meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects.reverse())
+    meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects.reverse())
+    param_values = []    
     
     #Run the experiment
     with meas.run() as datasaver:
@@ -167,12 +176,18 @@ def multi_sweep(sweep_configuration, soc, soccfg):
         #The actual qick measurement happens here, as defined by the program
         expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True)
 
-        print(config)
-        print(expt_pts)
+
+        for i in range(dimension):
+            param_values.append((sweep_param_objects[i], expt_pts[i]))
+
         #Compile data in QCoDeS style.
-        datasaver.add_result((sweep_param_object, expt_pts), 
-                ("avg_i", np.reshape(avg_i, len(sweep_range))),
-                ("avg_q", np.reshape(avg_q, len(sweep_range))))
+        for i in range(avg_i.ndim-dimension):
+            avg_i = np.squeeze(avg_i)
+            avg_q = np.squeeze(avg_q)
+
+        datasaver.add_result( *param_values, 
+                ("avg_i", avg_i),
+                ("avg_q", avg_q))
     
     run_id = datasaver.dataset.captured_run_id
     dataset = datasaver.dataset
@@ -262,4 +277,4 @@ soccfg = soc
 qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 #Run the experiment -- frequency is in megaherz (see qick example)
-output = multi_sweep({"gain": [100, 500, 20]}, soc, soccfg)
+output = multi_sweep({"phase":[0,10,2],"gain": [10000, 50000, 2],"freq":[100,500,2] },soc,soccfg)#,soc, soccfg)#, "phase":[0,90,5]}, soc, soccfg)
