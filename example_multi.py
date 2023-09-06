@@ -25,10 +25,10 @@ class MultiVariableSweepProgram(NDAveragerProgram):
         cfg = self.cfg
 
         #Defining local variables.
+        res_ch = cfg["res_ch"]
         freq = self.freq2reg(cfg["pulse_freq"], gen_ch=res_ch, ro_ch=cfg["ro_chs"][0])
         phase = self.deg2reg(cfg["pulse_phase"], gen_ch=res_ch)
         gain = cfg["pulse_gain"]
-        res_ch = cfg["res_ch"]
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
@@ -37,13 +37,20 @@ class MultiVariableSweepProgram(NDAveragerProgram):
             self.declare_readout(ch=ch, length=self.cfg["readout_length"],
                                  freq=self.cfg["pulse_freq"], gen_ch=cfg["res_ch"])
         self.set_pulse_registers(ch=res_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
-        
-        # Add any sweeps in sweep_variables sweeps.
+
         for sweep_variable in sweep_variables:
-            #TO DO: add lenght sweep
-            sweep_settings = sweep_variables[sweep_variable]
-            sweep_register = self.get_gen_reg(cfg["res_ch"], sweep_variable)
-            self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
+            if sweep_variable == "length":
+                pass
+
+                sweep_settings = sweep_variables[sweep_variable]
+                #The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
+                sweep_register = self.get_gen_reg(cfg["res_ch"], "mode")
+                print(sweep_register.init_val)
+                self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
+            else:
+                sweep_settings = sweep_variables[sweep_variable]
+                sweep_register = self.get_gen_reg(cfg["res_ch"], sweep_variable)
+                self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
 
 
         self.synci(200)  #Give processor some time to configure pulses
@@ -65,7 +72,7 @@ class ZCU216MetaInstrument(Instrument):
 
         self.soc = QickSoc()
 
-        # add parameters corresponding to settinsg of the instrument
+        # add parameters corresponding to settings of the instrument
         # that are *independent of the measurement kind*
         # measurement-specific settings (i.e. pulse lengths and so on) belong in the protocol class
         self.add_parameter("res_ch")
@@ -101,8 +108,8 @@ def multi_sweep(sweep_configuration, soc, soccfg):
                     pyro4, then soc is a Proxy object and soccfg is a QickConfig object.
     '''
 
-    #TO DO: add pulse lenght sweeps
-    possible_sweep_params = {"freq":"MHz", "gain":"DAC", "phase":"deg"}
+    #TO DO: add pulse length sweeps
+    possible_sweep_params = {"freq":"MHz", "gain":"DAC", "phase":"deg", "length":"us"}
 
     #Configure qick config
     config = {"res_ch": 6,  # --Fixed
@@ -110,7 +117,7 @@ def multi_sweep(sweep_configuration, soc, soccfg):
               "reps": 1,  # --Fixed
               #Set this really large for real time 
               #debugging using an oscilloscope.
-              "relax_delay": 1000000,  # --us
+              "relax_delay": 10,  # --us
 
               "length": 20,  # [Clock ticks]
               "readout_length": 100,  # [Clock ticks]
@@ -159,6 +166,7 @@ def multi_sweep(sweep_configuration, soc, soccfg):
 
         #Problem with getting this param
         prog = MultiVariableSweepProgram(soccfg, config)
+        print(prog)
 
         #The actual qick measurement happens here, as defined by the program
         expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True)
@@ -191,4 +199,8 @@ soccfg = soc
 qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 #Run the experiment -- frequency is in megaherz (see qick example)
-output = multi_sweep({"phase":[0,10,2],"gain": [10000, 50000, 2],"freq":[100,500,2] },soc,soccfg)
+output = multi_sweep({"phase":[0,10,2],"gain": [10000, 50000, 2],"freq":[100,500,2], "length":[30,500,5] },soc,soccfg)
+
+#Max length for pulse is 152.38095238095238 microseconds
+#pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
+#TO DO: Input validation and unit fixes.
