@@ -65,32 +65,6 @@ class MultiVariableSweepProgram(NDAveragerProgram):
                      syncdelay=self.us2cycles(self.cfg["relax_delay"]))
 
 
-class ZCU216MetaInstrument(Instrument):
-
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-        self.soc = QickSoc()
-
-        # add parameters corresponding to settings of the instrument
-        # that are *independent of the measurement kind*
-        # measurement-specific settings (i.e. pulse lengths and so on) belong in the protocol class
-        self.add_parameter("res_ch")
-        self.add_parameter("ro_chs")
-        self.add_parameter("reps")
-        self.add_parameter("relax_delay")
-        self.add_parameter("readout_length")
-        self.add_parameter("adc_trig_offset")
-        self.add_parameter("soft_avgs")
-
-    def generate_config(self) -> dict:
-        # generate a configuration dict based on self.parameters
-        ...
-
-    def add_paramteter(self, ):
-        ...
-
-
 def multi_sweep(sweep_configuration, soc, soccfg):
     '''
     This function handles input validation and initializing qcodes around the actual measurement.
