@@ -13,7 +13,7 @@ class ZCU216MetaInstrument(Instrument):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
-        #self.soc = QickSoc()
+        self.soc = QickSoc()
 
         # add parameters corresponding to settings of the instrument
         # that are *independent of the measurement kind*
@@ -41,14 +41,25 @@ class ZCU216MetaInstrument(Instrument):
                             parameter_class=ManualParameter,
                             label='DAC gain',
                             vals = Numbers(*[0,5e9]),
-                            unit = 'Hz')
+                            unit = 'DAC units')
 
         self.add_parameter('freq',
                             parameter_class=ManualParameter,
                             label='DAC frequency',
                             vals = Numbers(*[0,500e3]),
-                            unit = 'DAC units')
+                            unit = 'MHz')
         
+        self.add_parameter('phase',
+                            parameter_class=ManualParameter,
+                            label='Pulse phase',
+                            vals = Ints(0,360),
+                            unit = 'deg')
+
+        self.add_parameter('length',
+                            parameter_class=ManualParameter,
+                            label='Pulse length',
+                            vals = Ints(3, 65536),
+                            unit = 'Clock cycles')
 
 
     def generate_config(self):
@@ -62,7 +73,7 @@ class ZCU216MetaInstrument(Instrument):
 
 class ZCU216Station(Station):
 
-    def initialize_qick_program(params_and_values, config):
+    def initialize_qick_program(self, sweep_configuration, qicksoc, config):
         '''
         This function handles input validation and initializing qcodes around the actual measurement.
         It also handles the proper initialization of the config that will be given to a Qick program
@@ -86,19 +97,20 @@ class ZCU216Station(Station):
                   "length": 20,  # [Clock ticks]
                   "readout_length": 100,  # [Clock ticks]
                   "pulse_freq": 100,  # [MHz]
-                  "pulse_gain": 1000,  # [MHz]
+                  "pulse_gain": 10000,  # [MHz]
                   "pulse_phase": 0,  # [MHz]
                   "sweep_variables": sweep_configuration
               }
+        zcu_config = {**config, **iq_config}
+        prog = MultiVariableSweepProgram(qicksoc, zcu_config)
 
-        return {**config **iq_config}
+        return prog
 
     #dimension will refer to the amount dimension of the sweep in the program
     #Set up the QCoDeS experiment setup
 
-    def measure_iq( self,  params_and_values: dict[qc.Parameter, list[any]] ):
+    def measure_iq( self,  params_and_values ):
 
-        print(params_and_values)
         # this config stays constant for the whole measurement
         zcu_config = self.zcu.generate_config()
 
@@ -116,7 +128,6 @@ class ZCU216Station(Station):
         #Create manual parameters for gathering data
         for sweepable_variable in sweep_configuration:
 
-            print(sweepable_variable)
             #Check wether we can actually loop over each parameter
             if sweepable_variable  not in possible_sweep_params.keys():
                 print("Invalid sweep parameter")
@@ -136,14 +147,17 @@ class ZCU216Station(Station):
         meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects.reverse())
         meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects.reverse())
 
+        param_values = []
+
         with meas.run() as datasaver:
 
             #Problem with getting this param
-            prog = MultiVariableSweepProgram(soccfg, zcu_config)
-            print(prog)
+            prog = self.initialize_qick_program(sweep_configuration, self.zcu.soc, zcu_config)
     
+            print(prog)
+
             #The actual qick measurement happens here, as defined by the program
-            expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True)
+            expt_pts, avg_i, avg_q = prog.acquire(self.zcu.soc, load_pulses=True)
     
             #Create tuples containing 1D data of each experiment point of each sweeped variable
             for i in range(dimension):
@@ -160,19 +174,19 @@ class ZCU216Station(Station):
         dataset = datasaver.dataset
         return run_id
 
-
+qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 station = ZCU216Station()
 station.add_component(ZCU216MetaInstrument(name="zcu"))
 
 station.zcu.reps(1)
-station.zcu.relax_delay(10)
-station.zcu.adc_trig_offset(150)
-station.zcu.soft_avgs(500)
+station.zcu.relax_delay(1000000)
+station.zcu.adc_trig_offset(50)
+station.zcu.soft_avgs(1)
 
 
 print(station.zcu.print_readable_snapshot())
 
-run_id = station.measure_iq(params_and_values = {station.zcu.freq: [2e6, 3e6, 40], station.zcu.gain: [100, 500, 20]})
+run_id = station.measure_iq(params_and_values = {station.zcu.length: [5, 50, 8]})
 
 

@@ -2,6 +2,7 @@ import qcodes as qc
 from qcodes.instrument import Instrument
 from qick import *
 from qick.averager_program import QickSweep
+from qick.qick_asm import FullSpeedGenManager
 import numpy as np
 
 
@@ -40,13 +41,19 @@ class MultiVariableSweepProgram(NDAveragerProgram):
 
         for sweep_variable in sweep_variables:
             if sweep_variable == "length":
-                pass
-
+                
+                #Getting the gen manager for calculating the correct start and end points of the mode register.
+                #Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
+                gen_manager = FullSpeedGenManager(self, cfg["res_ch"]) 
                 sweep_settings = sweep_variables[sweep_variable]
+                start_code = gen_manager.get_mode_code(length=sweep_settings[0], outsel="dds")
+                end_code = gen_manager.get_mode_code(length=sweep_settings[1], outsel="dds")
+
+                print(self.cycles2us(sweep_settings[0]))
+                print(self.cycles2us(sweep_settings[1]))
                 #The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
                 sweep_register = self.get_gen_reg(cfg["res_ch"], "mode")
-                print(sweep_register.init_val)
-                self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
+                self.add_sweep(QickSweep(self, sweep_register, start_code, end_code, sweep_settings[2]))
             else:
                 sweep_settings = sweep_variables[sweep_variable]
                 sweep_register = self.get_gen_reg(cfg["res_ch"], sweep_variable)
@@ -63,97 +70,6 @@ class MultiVariableSweepProgram(NDAveragerProgram):
                      adc_trig_offset=self.cfg["adc_trig_offset"],
                      wait=True,
                      syncdelay=self.us2cycles(self.cfg["relax_delay"]))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
