@@ -26,25 +26,25 @@ class MultiVariableSweepProgram(NDAveragerProgram):
         cfg = self.cfg
 
         #Defining local variables.
-        res_ch = cfg["res_ch"]
-        freq = self.freq2reg(cfg["pulse_freq"], gen_ch=res_ch, ro_ch=cfg["ro_chs"][0])
-        phase = self.deg2reg(cfg["pulse_phase"], gen_ch=res_ch)
+        qubit_ch = cfg["qubit_ch"]
+        freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, res_ch=cfg["res_ch"][0])
+        phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
         gain = cfg["pulse_gain"]
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
-        self.declare_gen(ch=cfg["res_ch"], nqz=1, ro_ch=cfg["ro_chs"][0])
-        for ch in cfg["ro_chs"]:
-            self.declare_readout(ch=ch, length=self.cfg["readout_length"],
-                                 freq=self.cfg["pulse_freq"], gen_ch=cfg["res_ch"])
-        self.set_pulse_registers(ch=res_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=1, res_ch=cfg["res_ch"])
+        self.declare_readout(ch=ch, length=self.cfg["readout_length"],
+                             freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
+
+        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
 
         for sweep_variable in sweep_variables:
             if sweep_variable == "length":
                 
                 #Getting the gen manager for calculating the correct start and end points of the mode register.
                 #Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
-                gen_manager = FullSpeedGenManager(self, cfg["res_ch"]) 
+                gen_manager = FullSpeedGenManager(self, cfg["qubit_ch"]) 
                 sweep_settings = sweep_variables[sweep_variable]
                 start_code = gen_manager.get_mode_code(length=sweep_settings[0], outsel="dds")
                 end_code = gen_manager.get_mode_code(length=sweep_settings[1], outsel="dds")
@@ -52,11 +52,11 @@ class MultiVariableSweepProgram(NDAveragerProgram):
                 print(self.cycles2us(sweep_settings[0]))
                 print(self.cycles2us(sweep_settings[1]))
                 #The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
-                sweep_register = self.get_gen_reg(cfg["res_ch"], "mode")
+                sweep_register = self.get_gen_reg(cfg["qubit_ch"], "mode")
                 self.add_sweep(QickSweep(self, sweep_register, start_code, end_code, sweep_settings[2]))
             else:
                 sweep_settings = sweep_variables[sweep_variable]
-                sweep_register = self.get_gen_reg(cfg["res_ch"], sweep_variable)
+                sweep_register = self.get_gen_reg(cfg["qubit_ch"], sweep_variable)
                 self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
 
 
@@ -64,8 +64,8 @@ class MultiVariableSweepProgram(NDAveragerProgram):
 
     def body(self):
 
-        self.measure(pulse_ch=self.cfg["res_ch"],
-                     adcs=self.ro_chs,
+        self.measure(pulse_ch=self.cfg["qubit_ch"],
+                     adcs=self.res_ch,
                      pins=[0],
                      adc_trig_offset=self.cfg["adc_trig_offset"],
                      wait=True,

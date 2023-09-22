@@ -15,10 +15,11 @@ class ZCU216MetaInstrument(Instrument):
 
         self.soc = QickSoc()
 
-        # add parameters corresponding to settings of the instrument
-        # that are *independent of the measurement kind*
-        # measurement-specific settings (i.e. pulse lengths and so on) belong in the protocol class
-        # not entirely sure whether these are independent parameters
+
+        #The following parameters contain all QickConfig parameters
+        #that the user may modify before running the specific
+        #experiment, and the parameters that may be looped over in the program. 
+
         self.add_parameter('reps',
                             parameter_class=ManualParameter,
                             label='Measurement repetitions',
@@ -42,6 +43,17 @@ class ZCU216MetaInstrument(Instrument):
                             label='DAC gain',
                             vals = Numbers(*[0,5e9]),
                             unit = 'DAC units')
+        self.add_parameter('qubit_ch',
+                            parameter_class=ManualParameter,
+                            label='Qubit probe channel',
+                            vals = Ints(0,6))
+        self.add_parameter('res_ch',
+                            parameter_class=ManualParameter,
+                            label='Readout channel',
+                            vals = Ints(0,1))
+
+
+
 
         self.add_parameter('freq',
                             parameter_class=ManualParameter,
@@ -61,13 +73,25 @@ class ZCU216MetaInstrument(Instrument):
                             vals = Ints(3, 65536),
                             unit = 'Clock cycles')
 
+        #Default values for standard options (propably not too good right now)
+        self.reps(1)
+        self.relax_delay(1000000)
+        self.adc_trig_offset(50)
+        self.soft_avgs(1)
+        self.qubit_ch(6)
+        self.res_ch(0)
+
+
 
     def generate_config(self):
+
         default_config = {}
+
         # generate a configuration dict based on self.parameters
         for config_parameter in self.parameters:
-            if config_parameter != "IDN":
+            if config_parameter != "IDN" and self.get(config_parameter) != None:
                 default_config[config_parameter] = self.get(config_parameter)
+                
             
         return default_config
 
@@ -91,9 +115,9 @@ class ZCU216Station(Station):
         '''
 
 
-        #Configure qick config
-        iq_config = {"res_ch": 6,  # --Fixed
-                  "ro_chs": [0],  # --Fixed
+        #Configure measurement specific config
+
+        iq_config = {
                   "length": 20,  # [Clock ticks]
                   "readout_length": 100,  # [Clock ticks]
                   "pulse_freq": 100,  # [MHz]
@@ -101,6 +125,7 @@ class ZCU216Station(Station):
                   "pulse_phase": 0,  # [MHz]
                   "sweep_variables": sweep_configuration
               }
+
         zcu_config = {**config, **iq_config}
         prog = MultiVariableSweepProgram(qicksoc, zcu_config)
 
@@ -114,7 +139,7 @@ class ZCU216Station(Station):
         # this config stays constant for the whole measurement
         zcu_config = self.zcu.generate_config()
 
-        experiment = qc.load_or_create_experiment( experiment_name="zcu_qcodes_test", sample_name="ND_Sweep")
+        experiment = qc.load_or_create_experiment( experiment_name="zcu_qcodes_test", sample_name="iq_measure")
         meas = qc.Measurement(exp=experiment)
 
         dimension = 0
@@ -179,10 +204,6 @@ qc.initialise_or_create_database_at("./zcu_test_data.db")
 station = ZCU216Station()
 station.add_component(ZCU216MetaInstrument(name="zcu"))
 
-station.zcu.reps(1)
-station.zcu.relax_delay(1000000)
-station.zcu.adc_trig_offset(50)
-station.zcu.soft_avgs(1)
 
 
 print(station.zcu.print_readable_snapshot())
