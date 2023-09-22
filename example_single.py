@@ -121,4 +121,4 @@ soccfg = soc
 qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 #Run the experiment -- frequency is in megaherz (see qick example)
-output = single_sweep("pulse_freq", np.linspace(200, 500, 10), soc, soccfg)
+output = single_sweep("pulse_freq", np.linspace(50, 150, 200), soc, soccfg)

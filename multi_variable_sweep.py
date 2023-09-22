@@ -27,14 +27,14 @@ class MultiVariableSweepProgram(NDAveragerProgram):
 
         #Defining local variables.
         qubit_ch = cfg["qubit_ch"]
-        freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, res_ch=cfg["res_ch"][0])
+        freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, ro_ch=cfg["res_ch"])
         phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
         gain = cfg["pulse_gain"]
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
-        self.declare_gen(ch=cfg["qubit_ch"], nqz=1, res_ch=cfg["res_ch"])
-        self.declare_readout(ch=ch, length=self.cfg["readout_length"],
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=1, ro_ch=cfg["res_ch"])
+        self.declare_readout(ch=cfg["res_ch"], length=self.cfg["readout_length"],
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
 
         self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
@@ -65,7 +65,7 @@ class MultiVariableSweepProgram(NDAveragerProgram):
     def body(self):
 
         self.measure(pulse_ch=self.cfg["qubit_ch"],
-                     adcs=self.res_ch,
+                     adcs=self.ro_chs,
                      pins=[0],
                      adc_trig_offset=self.cfg["adc_trig_offset"],
                      wait=True,
