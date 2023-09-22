@@ -75,8 +75,8 @@ class ZCU216MetaInstrument(Instrument):
 
         #Default values for standard options (propably not too good right now)
         self.reps(1)
-        self.relax_delay(1000000)
-        self.adc_trig_offset(50)
+        self.relax_delay(self.soc.us2cycles(0.01))
+        self.adc_trig_offset(170)
         self.soft_avgs(1)
         self.qubit_ch(6)
         self.res_ch(0)
@@ -115,13 +115,11 @@ class ZCU216Station(Station):
         '''
 
 
-        #Configure measurement specific config
-
         iq_config = {
-                  "length": 20,  # [Clock ticks]
+                  "length": 100,  # [Clock ticks]
                   "readout_length": 100,  # [Clock ticks]
                   "pulse_freq": 100,  # [MHz]
-                  "pulse_gain": 10000,  # [MHz]
+                  "pulse_gain": 10000,  # [DAC units]
                   "pulse_phase": 0,  # [MHz]
                   "sweep_variables": sweep_configuration
               }
@@ -169,9 +167,10 @@ class ZCU216Station(Station):
     
 
         #Define the custom parameters which are dependent on the manual parameters
-        meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects.reverse())
-        meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects.reverse())
+        meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
+        meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
 
+        sweep_param_objects.reverse()
         param_values = []
 
         with meas.run() as datasaver:
@@ -192,8 +191,10 @@ class ZCU216Station(Station):
             for i in range(avg_i.ndim-dimension):
                 avg_i = np.squeeze(avg_i)
                 avg_q = np.squeeze(avg_q)
+
+            
     
-            datasaver.add_result( *param_values, ("avg_i", avg_i), ("avg_q", avg_q))
+            datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *param_values)
 
         run_id = datasaver.dataset.captured_run_id
         dataset = datasaver.dataset
@@ -208,6 +209,6 @@ station.add_component(ZCU216MetaInstrument(name="zcu"))
 
 print(station.zcu.print_readable_snapshot())
 
-run_id = station.measure_iq(params_and_values = {station.zcu.length: [5, 50, 8]})
+run_id = station.measure_iq(params_and_values = {station.zcu.freq: [80, 120, 200]})
 
 
