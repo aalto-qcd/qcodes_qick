@@ -173,7 +173,7 @@ soccfg = soc
 qc.initialise_or_create_database_at("./zcu_test_data.db")
 
 #Run the experiment -- frequency is in megaherz (see qick example)
-output = multi_sweep({"phase":[0,10,2],"gain": [10000, 50000, 2],"freq":[100,500,2], "length":[30,500,5] },soc,soccfg)
+output = multi_sweep({"phase":[0,10,2],"gain": [10000, 50000, 2] },soc,soccfg)
 
 #Max length for pulse is 152.38095238095238 microseconds
 #pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
