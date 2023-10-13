@@ -4,7 +4,7 @@ from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
 from qick.averager_program import QickSweep
-from multi_variable_sweep import MultiVariableSweepProgram
+from protocols import Protocol, NDSweepProtocol 
 import numpy as np
 
 
@@ -51,6 +51,10 @@ class ZCU216MetaInstrument(Instrument):
                             parameter_class=ManualParameter,
                             label='Readout channel',
                             vals = Ints(0,1))
+        self.add_parameter('nqz',
+                            parameter_class=ManualParameter,
+                            label='Nyquist zone',
+                            vals = Ints(1,2))
 
 
 
@@ -75,11 +79,12 @@ class ZCU216MetaInstrument(Instrument):
 
         #Default values for standard options (propably not too good right now)
         self.reps(1)
-        self.relax_delay(self.soc.us2cycles(0.01))
-        self.adc_trig_offset(170)
+        self.relax_delay(0.1)
+        self.adc_trig_offset(0.1)
         self.soft_avgs(1)
         self.qubit_ch(6)
         self.res_ch(0)
+        self.nqz(1)
 
 
 
@@ -97,7 +102,7 @@ class ZCU216MetaInstrument(Instrument):
 
 class ZCU216Station(Station):
 
-    def initialize_qick_program(self, sweep_configuration, qicksoc, config):
+    def initialize_qick_program(self, sweep_configuration, qicksoc, config, protocol):
         '''
         This function handles input validation and initializing qcodes around the actual measurement.
         It also handles the proper initialization of the config that will be given to a Qick program
@@ -117,22 +122,23 @@ class ZCU216Station(Station):
 
         iq_config = {
                   "length": 100,  # [Clock ticks]
-                  "readout_length": 100,  # [Clock ticks]
+                  "readout_length": 150,  # [Clock ticks]
                   "pulse_freq": 100,  # [MHz]
                   "pulse_gain": 10000,  # [DAC units]
                   "pulse_phase": 0,  # [MHz]
                   "sweep_variables": sweep_configuration
               }
 
-        zcu_config = {**config, **iq_config}
-        prog = MultiVariableSweepProgram(qicksoc, zcu_config)
 
-        return prog
+        zcu_config = {**config, **iq_config}
+        protocol.initialize_program(qicksoc, zcu_config)
+
+        return protocol 
 
     #dimension will refer to the amount dimension of the sweep in the program
     #Set up the QCoDeS experiment setup
 
-    def measure_iq( self,  params_and_values ):
+    def measure_iq( self,  params_and_values, protocol: Protocol ):
 
         # this config stays constant for the whole measurement
         zcu_config = self.zcu.generate_config()
@@ -176,21 +182,20 @@ class ZCU216Station(Station):
         with meas.run() as datasaver:
 
             #Problem with getting this param
-            prog = self.initialize_qick_program(sweep_configuration, self.zcu.soc, zcu_config)
+            protocol = self.initialize_qick_program(sweep_configuration, self.zcu.soc, zcu_config, protocol)
     
-            print(prog)
 
             #The actual qick measurement happens here, as defined by the program
-            expt_pts, avg_i, avg_q = prog.acquire(self.zcu.soc, load_pulses=True)
-    
+            expt_pts, avg_i, avg_q = protocol.run_program()
+
             #Create tuples containing 1D data of each experiment point of each sweeped variable
             for i in range(dimension):
                 param_values.append((sweep_param_objects[i], expt_pts[i]))
     
             #Get rid of unnecessary outer brackets.
             for i in range(avg_i.ndim-dimension):
-                avg_i = np.squeeze(avg_i)
-                avg_q = np.squeeze(avg_q)
+                avg_i = np.squeeze(avg_i.flatten())
+                avg_q = np.squeeze(avg_q.flatten())
 
             
     
@@ -200,15 +205,5 @@ class ZCU216Station(Station):
         dataset = datasaver.dataset
         return run_id
 
-qc.initialise_or_create_database_at("./zcu_test_data.db")
-
-station = ZCU216Station()
-station.add_component(ZCU216MetaInstrument(name="zcu"))
-
-
-
-print(station.zcu.print_readable_snapshot())
-
-run_id = station.measure_iq(params_and_values = {station.zcu.freq: [80, 120, 200]})
 
 

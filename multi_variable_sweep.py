@@ -6,7 +6,7 @@ from qick.qick_asm import FullSpeedGenManager
 import numpy as np
 
 
-class MultiVariableSweepProgram(NDAveragerProgram):
+class HardwareSweepProgram(NDAveragerProgram):
     """
     This class performs a hardware loop sweep over one or more registers 
     in the board. The limit is seven registers.
@@ -30,14 +30,15 @@ class MultiVariableSweepProgram(NDAveragerProgram):
         freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, ro_ch=cfg["res_ch"])
         phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
         gain = cfg["pulse_gain"]
+        length = self.us2cycles(cfg['length'], gen_ch=self.cfg['res_ch'])
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
-        self.declare_gen(ch=cfg["qubit_ch"], nqz=1, ro_ch=cfg["res_ch"])
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"], ro_ch=cfg["res_ch"])
         self.declare_readout(ch=cfg["res_ch"], length=self.cfg["readout_length"],
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
 
-        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
+        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=length)
 
         for sweep_variable in sweep_variables:
             if sweep_variable == "length":
@@ -46,11 +47,11 @@ class MultiVariableSweepProgram(NDAveragerProgram):
                 #Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
                 gen_manager = FullSpeedGenManager(self, cfg["qubit_ch"]) 
                 sweep_settings = sweep_variables[sweep_variable]
-                start_code = gen_manager.get_mode_code(length=sweep_settings[0], outsel="dds")
-                end_code = gen_manager.get_mode_code(length=sweep_settings[1], outsel="dds")
+                start_length = self.us2cycles(sweep_settings[0])
+                end_length = self.us2cycles(sweep_settings[1])
+                start_code = gen_manager.get_mode_code(length=start_length, outsel="dds")
+                end_code = gen_manager.get_mode_code(length=end_length, outsel="dds")
 
-                print(self.cycles2us(sweep_settings[0]))
-                print(self.cycles2us(sweep_settings[1]))
                 #The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
                 sweep_register = self.get_gen_reg(cfg["qubit_ch"], "mode")
                 self.add_sweep(QickSweep(self, sweep_register, start_code, end_code, sweep_settings[2]))
@@ -64,13 +65,43 @@ class MultiVariableSweepProgram(NDAveragerProgram):
 
     def body(self):
 
+
+
         self.measure(pulse_ch=self.cfg["qubit_ch"],
-                     adcs=self.ro_chs,
+                     adcs=[self.cfg["res_ch"]],
                      pins=[0],
-                     adc_trig_offset=self.cfg["adc_trig_offset"],
+                     adc_trig_offset=self.us2cycles(self.cfg["adc_trig_offset"]),
                      wait=True,
                      syncdelay=self.us2cycles(self.cfg["relax_delay"]))
 
+
+class LoopbackProgram(AveragerProgram):
+    def initialize(self):
+
+        cfg = self.cfg
+
+        #Defining local variables.
+        qubit_ch = cfg["qubit_ch"]
+        freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, ro_ch=cfg["res_ch"])
+        phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
+        gain = cfg["pulse_gain"]
+
+        #Declare signal generators and readout
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"], ro_ch=cfg["res_ch"])
+        self.declare_readout(ch=cfg["res_ch"], length=self.cfg["readout_length"],
+                             freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
+
+        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
+
+        self.synci(200)  # give processor some time to configure pulses
+
+
+    def body(self):
+        self.measure(pulse_ch        = self.cfg['res_ch'],
+                     adcs            = self.ro_chs,
+                     pins            = [0],
+                     adc_trig_offset = self.us2cycles(self.cfg['adc_trig_offset']),
+                     )
 
 
 
