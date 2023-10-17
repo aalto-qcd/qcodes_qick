@@ -9,8 +9,21 @@ import numpy as np
 
 
 class ZCU216MetaInstrument(Instrument):
+    '''
+    This class is an abstract QCoDes instrument, which
+    contains the settable and gettable parameters of the zcu216, most of which
+    correspond to configuration variables in the qick program config dictionary. 
+    '''
 
     def __init__(self, name, **kwargs):
+        '''
+        As we initialize the metainstrument, each of the gettable and settable 
+        parameters are defined, and some of them initialized. Parameters that
+        are specific to a certain measurement do not receive an initial value.
+        Other parameters will have set initial values, that the user may 
+        configure before performing a measurement.
+        '''
+
         super().__init__(name, **kwargs)
 
         self.soc = QickSoc()
@@ -19,46 +32,56 @@ class ZCU216MetaInstrument(Instrument):
         #The following parameters contain all QickConfig parameters
         #that the user may modify before running the specific
         #experiment, and the parameters that may be looped over in the program. 
+        #These have some "sensible" default values.
 
         self.add_parameter('reps',
                             parameter_class=ManualParameter,
                             label='Measurement repetitions',
-                            vals = Ints(0,5000))
+                            vals = Ints(0,5000),
+                            initial_value = 100)
+
         self.add_parameter('relax_delay',
                             parameter_class=ManualParameter,
                             label='Measurement repetitions',
                             vals = Numbers(*[0,500e6]),
-                            unit = 'us')
+                            unit = 'us',
+                            initial_value = 0.1)
+
         self.add_parameter('adc_trig_offset',
                             parameter_class=ManualParameter,
                             label='ADC trigger offset',
                             vals = Numbers(*[0,500e6]),
-                            unit = 'us')
+                            unit = 'us',
+                            initial_value = 0.1)
         self.add_parameter('soft_avgs',
                             parameter_class=ManualParameter,
                             label='Soft averages',
-                            vals = Ints(0,5000))
+                            vals = Ints(0,5000),
+                            initial_value = 1)
+        self.add_parameter('qubit_ch',
+                            parameter_class=ManualParameter,
+                            label='Qubit probe channel',
+                            vals = Ints(0,6),
+                            initial_value = 6)
+        self.add_parameter('res_ch',
+                            parameter_class=ManualParameter,
+                            label='Readout channel',
+                            vals = Ints(0,1),
+                            initial_value = 0)
+        self.add_parameter('nqz',
+                            parameter_class=ManualParameter,
+                            label='Nyquist zone',
+                            vals = Ints(1,2),
+                            initial_value = 1)
+
+
+
+        #Measurement specific settings, that do not receive an initial value
         self.add_parameter('gain',
                             parameter_class=ManualParameter,
                             label='DAC gain',
                             vals = Numbers(*[0,5e9]),
                             unit = 'DAC units')
-        self.add_parameter('qubit_ch',
-                            parameter_class=ManualParameter,
-                            label='Qubit probe channel',
-                            vals = Ints(0,6))
-        self.add_parameter('res_ch',
-                            parameter_class=ManualParameter,
-                            label='Readout channel',
-                            vals = Ints(0,1))
-        self.add_parameter('nqz',
-                            parameter_class=ManualParameter,
-                            label='Nyquist zone',
-                            vals = Ints(1,2))
-
-
-
-
         self.add_parameter('freq',
                             parameter_class=ManualParameter,
                             label='DAC frequency',
@@ -77,18 +100,17 @@ class ZCU216MetaInstrument(Instrument):
                             vals = Ints(3, 65536),
                             unit = 'Clock cycles')
 
-        #Default values for standard options (propably not too good right now)
-        self.reps(1)
-        self.relax_delay(0.1)
-        self.adc_trig_offset(0.1)
-        self.soft_avgs(1)
-        self.qubit_ch(6)
-        self.res_ch(0)
-        self.nqz(1)
 
 
 
     def generate_config(self):
+        """
+        In this function, we generate a qick configuration dictionary based
+        on the parameters in the metainstrument, which the user may have set
+        before running a measurement.
+
+        return: qick configuration dict
+        """
 
         default_config = {}
 
@@ -101,22 +123,31 @@ class ZCU216MetaInstrument(Instrument):
         return default_config
 
 class ZCU216Station(Station):
+    '''
+    This class is an abstract QCoDes station, which handles the configuration,
+    initialization and execution of a measurement using the zcu216. It also
+    enables the saving of the measurement results using QCoDes into a database.
+
+    '''
 
     def initialize_qick_program(self, sweep_configuration, qicksoc, config, protocol):
         '''
-        This function handles input validation and initializing qcodes around the actual measurement.
-        It also handles the proper initialization of the config that will be given to a Qick program
-        that is called here.
+        This function handles input validation and initializing qcodes around 
+        the actual measurement. It also handles the proper initialization of 
+        the program config that will be given to a Qick program that is called.
 
                 Parameters:
-                        sweep_configuration (dict): Dictionary that contains the sweep variables
-                                                    characterized by their flag as their key,
-                                                    and their sweep start value, end value and
-                                                    step amount as a list as the dict value.
+                        sweep_configuration (dict): 
+                        Dictionary that contains the sweep variables
+                        characterized by their flag as their key,
+                        and their sweep start value, end value and
+                        step amount as a list as the dict value.
 
-                        soc: The actual QickSoc object. 
-                        soccfg: In this case soccfg and soc point to the same object. If using
-                        pyro4, then soc is a Proxy object and soccfg is a QickConfig object.
+                        qicksoc: The actual QickSoc object. 
+                        config: A qick program configuration dictionary
+                        protocol: the protocol object used in the measurement
+
+                return: protocol object
         '''
 
 
@@ -135,20 +166,39 @@ class ZCU216Station(Station):
 
         return protocol 
 
-    #dimension will refer to the amount dimension of the sweep in the program
-    #Set up the QCoDeS experiment setup
 
     def measure_iq( self,  params_and_values, protocol: Protocol ):
+        '''
+        This function initializes and runs an IQ measurement.
+
+                Parameters:
+                        params_and_values (dict): 
+                        Dictionary that contains the sweep variables
+                        as qcodes parameters, with keys being a list
+                        containing the measurement start point, end point
+                        and the step count.
+                        protocol: the protocol object used in the measurement
+
+                return: QCoDeS run id, corresponding to the measurement
+                        (if succesful). 
+        '''
 
         # this config stays constant for the whole measurement
         zcu_config = self.zcu.generate_config()
 
-        experiment = qc.load_or_create_experiment( experiment_name="zcu_qcodes_test", sample_name="iq_measure")
+        # initialize qcodes
+        experiment = qc.load_or_create_experiment( 
+                experiment_name="zcu_qcodes_test", 
+                sample_name=protocol.name)
+
         meas = qc.Measurement(exp=experiment)
 
         dimension = 0
         sweep_param_objects = []
-        possible_sweep_params = {"freq":"MHz", "gain":"DAC units", "phase":"deg", "length":"us"}
+        possible_sweep_params = {"freq":"MHz",
+                                 "gain":"DAC units",
+                                 "phase":"deg",
+                                 "length":"us"}
         sweep_configuration = {}
 
         for parameter in params_and_values:
@@ -162,9 +212,10 @@ class ZCU216Station(Station):
                 print("Invalid sweep parameter")
                 return
 
-            #Deifne the manual parameters
+            #Define the manual parameters
             sweep_param_object = qc.ManualParameter(sweepable_variable, 
-                    instrument = None, unit=possible_sweep_params[sweepable_variable],
+                    instrument = None,
+                    unit=possible_sweep_params[sweepable_variable],
                     initial_value = sweep_configuration[sweepable_variable][0])
 
             dimension += 1
@@ -179,20 +230,25 @@ class ZCU216Station(Station):
         sweep_param_objects.reverse()
         param_values = []
 
+        #The qcodes experiment, surrounding the qick program is contained here.
         with meas.run() as datasaver:
 
-            #Problem with getting this param
-            protocol = self.initialize_qick_program(sweep_configuration, self.zcu.soc, zcu_config, protocol)
-    
+            #Initialize the 
+            protocol = self.initialize_qick_program(sweep_configuration,
+                                                    self.zcu.soc,
+                                                    zcu_config,
+                                                    protocol)
 
-            #The actual qick measurement happens here, as defined by the program
+            #Run the qick program, as defined by the protocol and params_and_values
             expt_pts, avg_i, avg_q = protocol.run_program()
 
-            #Create tuples containing 1D data of each experiment point of each sweeped variable
+            #Divide the expt_pts array into individual measurement points
+            #for each sweepable variable.
             for i in range(dimension):
                 param_values.append((sweep_param_objects[i], expt_pts[i]))
     
-            #Get rid of unnecessary outer brackets.
+            #Get rid of unnecessary outer brackets and flatten the matrix
+            #into a list of measurement results.
             for i in range(avg_i.ndim-dimension):
                 avg_i = np.squeeze(avg_i.flatten())
                 avg_q = np.squeeze(avg_q.flatten())
@@ -201,8 +257,8 @@ class ZCU216Station(Station):
     
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *param_values)
 
+        #Return the run_id
         run_id = datasaver.dataset.captured_run_id
-        dataset = datasaver.dataset
         return run_id
 
 

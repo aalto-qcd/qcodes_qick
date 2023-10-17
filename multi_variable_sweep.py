@@ -10,7 +10,6 @@ class HardwareSweepProgram(NDAveragerProgram):
     """
     This class performs a hardware loop sweep over one or more registers 
     in the board. The limit is seven registers.
-    Refer to: https://qick-docs.readthedocs.io/en/latest/_modules/qick/averager_program.html#NDAveragerProgram
 
 
     Methods
@@ -22,6 +21,9 @@ class HardwareSweepProgram(NDAveragerProgram):
         Defines the structure of the actual measurement and will be looped over reps times.
     """
     def initialize(self):
+        """
+        Initialization of the qick program, and configuration of the ND-sweeps is performed in this method.
+        """
     
         cfg = self.cfg
 
@@ -64,8 +66,11 @@ class HardwareSweepProgram(NDAveragerProgram):
         self.synci(200)  #Give processor some time to configure pulses
 
     def body(self):
-
-
+        """
+            The main structure of the measurement is just the measurement,
+            but the add_sweep commands in the initialize method add inner loops
+            into the qick program instructions.
+        """
 
         self.measure(pulse_ch=self.cfg["qubit_ch"],
                      adcs=[self.cfg["res_ch"]],
@@ -76,6 +81,9 @@ class HardwareSweepProgram(NDAveragerProgram):
 
 
 class LoopbackProgram(AveragerProgram):
+    """
+    Forgotten class for testing.
+    """
     def initialize(self):
 
         cfg = self.cfg
