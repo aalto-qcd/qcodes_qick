@@ -41,8 +41,8 @@ class NDSweepProtocol(Protocol):
             
         """
         super().__init__()
-        this.name = "NDSweepMeasurement"
-        this.measurement_type = "IQ_measurement"
+        self.name = "NDSweepMeasurement"
+        self.measurement_type = "IQ_measurement"
 
     def initialize_program(self, soccfg, cfg):
         """ 
