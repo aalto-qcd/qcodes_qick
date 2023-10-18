@@ -88,19 +88,31 @@ class NDSweepProtocol(Protocol):
                 self.cfg["pulse_freq"] = freq
                 prog = HardwareSweepProgram(self.soccfg, self.cfg)
                 expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
-                i_data.append(avg_i) 
-                q_data.append(avg_q) 
-
-            i_data = np.concatenate( i_data, axis=0 )
-            q_data = np.concatenate( q_data, axis=0 )
+                q_data.append(avg_q[0])
+                i_data.append(avg_i[0])
+            
+            i_datalist = np.concatenate( i_data, axis=0 )
+            q_datalist = np.concatenate( q_data, axis=0 )
             expt_pts.append(freqs)
-            return self.handle_output(expt_pts, i_data, q_data)
+            expt_pts, i_data, q_data =  self.handle_output(expt_pts, [ i_datalist ], [ q_datalist ])
+
+            if len(sweep_config) == 1:
+                i_data = list(itertools.chain(*i_data))
+                q_data = list(itertools.chain(*q_data))
+            
+            return expt_pts, i_data, q_data 
                 
         
         else:
             prog = HardwareSweepProgram(self.soccfg, self.cfg)
             expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
             expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
+
+            for i in range(avg_i.ndim-len(sweep_config)):
+                avg_i = np.squeeze(avg_i.flatten())
+                avg_q = np.squeeze(avg_q.flatten())
+
+
             return expt_pts, avg_i, avg_q 
 
 
