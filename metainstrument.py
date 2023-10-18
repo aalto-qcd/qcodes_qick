@@ -340,16 +340,10 @@ class ZCU216Station(Station):
 
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.
+            sweep_param_objects.reverse()
             for i in range(dimension):
                 param_values.append((sweep_param_objects[i], expt_pts[i]))
     
-            #Get rid of unnecessary outer brackets and flatten the matrix
-            #into a list of measurement results.
-            for i in range(avg_i.ndim-dimension):
-                avg_i = np.squeeze(avg_i.flatten())
-                avg_q = np.squeeze(avg_q.flatten())
-
-            
     
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *param_values)
 
