@@ -2,7 +2,7 @@ import qcodes as qc
 from qcodes.instrument import Instrument
 from qick import *
 from qick.averager_program import QickSweep
-from qick.qick_asm import FullSpeedGenManager
+from qick.asm_v1 import FullSpeedGenManager
 import numpy as np
 
 

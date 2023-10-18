@@ -135,6 +135,10 @@ class NDSweepProtocol(Protocol):
                 In this method, the average q values are unchanged
             
         """
+        #New version of qick returns lists containing np arrays,
+        #formerly only np arrays :)
+        avg_i = avg_i[0]
+        avg_q = avg_q[0]
         datapoints = len(avg_i.flatten())
         new_expt_pts = [[] for i in range(len(expt_pts))]
 
