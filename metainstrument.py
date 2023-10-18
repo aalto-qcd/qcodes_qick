@@ -27,6 +27,18 @@ class ZCU216MetaInstrument(Instrument):
 
         self.soc = QickSoc()
 
+        self.sensible_defaults = { "reps" : 100,
+                                   "relax_delay" : 0.1,
+                                   "adc_trig_offset" : 1,
+                                   "soft_avgs" : 1,
+                                   "qubit_ch" : 6,
+                                   "res_ch" : 0,
+                                   "nqz" : 1,
+                                   "readout_length" : 12,
+                                   "pulse_gain" : 10000,
+                                   "pulse_phase" : 0,
+                                   "pulse_freq" : 500,
+                                   "pulse_length" : 10 }
 
         #The following parameters contain all QickConfig parameters
         #that the user may modify before running the specific
@@ -51,7 +63,7 @@ class ZCU216MetaInstrument(Instrument):
                             label='ADC trigger offset',
                             vals = Numbers(*[0,150]),
                             unit = 'us',
-                            initial_value = 0.1)
+                            initial_value = 1)
 
         self.add_parameter('soft_avgs',
                             parameter_class=ManualParameter,
@@ -82,7 +94,7 @@ class ZCU216MetaInstrument(Instrument):
                             label='Lenght of the readout',
                             vals = Numbers(*[0,150]),
                             unit = 'us',
-                            initial_value = 10)
+                            initial_value = 12)
 
 
 
@@ -114,7 +126,7 @@ class ZCU216MetaInstrument(Instrument):
                             label='Pulse length',
                             vals = Numbers(*[0,150]),
                             unit = 'us',
-                            initial_value = 15)
+                            initial_value = 10)
 
 
 
@@ -152,6 +164,13 @@ class ZCU216Station(Station):
         super().__init__()
 
         self.add_component(ZCU216MetaInstrument(name='zcu'))
+
+    def set_original_defaults(self):
+        """
+        Set the original defaults
+        """
+
+        self.set_defaults(self.zcu.sensible_defaults)
 
     def set_defaults(self, defaults_dict):
         """
