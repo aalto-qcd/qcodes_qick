@@ -24,7 +24,7 @@ class HardwareSweepProgram(NDAveragerProgram):
         """
         Initialization of the qick program, and configuration of the ND-sweeps is performed in this method.
         """
-    
+
         cfg = self.cfg
 
         #Defining local variables.
@@ -32,18 +32,18 @@ class HardwareSweepProgram(NDAveragerProgram):
         freq = self.freq2reg(cfg["pulse_freq"], gen_ch=qubit_ch, ro_ch=cfg["res_ch"])
         phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
         gain = cfg["pulse_gain"]
-        length = self.us2cycles(cfg['length'], gen_ch=self.cfg['res_ch'])
+        length = self.us2cycles(cfg['pulse_length'], gen_ch=self.cfg['qubit_ch'])
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
         self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"], ro_ch=cfg["res_ch"])
-        self.declare_readout(ch=cfg["res_ch"], length=self.cfg["readout_length"],
+        self.declare_readout(ch=cfg["res_ch"], length=self.us2cycles(self.cfg['readout_length'], ro_ch = self.cfg['res_ch']),
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
 
         self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=length)
 
         for sweep_variable in sweep_variables:
-            if sweep_variable == "length":
+            if sweep_variable == "pulse_length":
                 
                 #Getting the gen manager for calculating the correct start and end points of the mode register.
                 #Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
@@ -59,7 +59,7 @@ class HardwareSweepProgram(NDAveragerProgram):
                 self.add_sweep(QickSweep(self, sweep_register, start_code, end_code, sweep_settings[2]))
             else:
                 sweep_settings = sweep_variables[sweep_variable]
-                sweep_register = self.get_gen_reg(cfg["qubit_ch"], sweep_variable)
+                sweep_register = self.get_gen_reg(cfg["qubit_ch"], sweep_variable.replace('pulse_', ''))
                 self.add_sweep(QickSweep(self, sweep_register, sweep_settings[0], sweep_settings[1], sweep_settings[2]))
 
 
@@ -99,7 +99,7 @@ class LoopbackProgram(AveragerProgram):
         self.declare_readout(ch=cfg["res_ch"], length=self.cfg["readout_length"],
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
 
-        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["length"])
+        self.set_pulse_registers(ch=qubit_ch, style="const", freq=freq, phase=phase, gain=gain, length=cfg["pulse_length"])
 
         self.synci(200)  # give processor some time to configure pulses
 

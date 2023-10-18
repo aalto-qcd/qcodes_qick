@@ -6,6 +6,12 @@ import numpy as np
 import itertools
 
 class Protocol:
+    """
+    The protocol class is a wrapper around an actual qick program, which
+    handles initializing and running the qick program, and handling output
+    into the correct form desired by the ZCUStation. Each protocol corresponds
+    to a specific qick program.
+    """
     def __init__(self):
         pass
             
@@ -34,6 +40,10 @@ class Protocol:
 
 
 class NDSweepProtocol(Protocol):
+    """
+        This protocol initializes and runs a simple N-dimensional sweep,
+        and correctly formats the output into a desired form. 
+    """
 
     def __init__(self):
         """
@@ -67,9 +77,9 @@ class NDSweepProtocol(Protocol):
             ND-array of avg_i values containing each measurement i value.
         """
         sweep_config = self.cfg["sweep_variables"]
-        if "freq" in sweep_config:
-            freqs = np.linspace(sweep_config["freq"][0], sweep_config["freq"][1], sweep_config["freq"][2])
-            sweep_config.pop("freq")
+        if "pulse_freq" in sweep_config:
+            freqs = np.linspace(sweep_config["pulse_freq"][0], sweep_config["pulse_freq"][1], sweep_config["pulse_freq"][2])
+            sweep_config.pop("pulse_freq")
             q_data = []
             i_data = []
             
@@ -134,7 +144,6 @@ class NDSweepProtocol(Protocol):
             for coordinate in point:
                 new_expt_pts[coord_index].append(coordinate)
                 coord_index += 1
-
 
         return new_expt_pts, avg_i, avg_q 
 
