@@ -54,7 +54,7 @@ class ZCU216MetaInstrument(Instrument):
         self.add_parameter('relax_delay',
                             parameter_class=ManualParameter,
                             label='Relax delay',
-                            vals = Numbers(*[0,150]),
+                            vals = Numbers(*[0,1000000]),
                             unit = 'us',
                             initial_value = 0.1)
 
@@ -130,7 +130,6 @@ class ZCU216MetaInstrument(Instrument):
 
 
 
-
     def generate_config(self):
         """
         In this function, we generate a qick configuration dictionary based
@@ -148,6 +147,18 @@ class ZCU216MetaInstrument(Instrument):
                 default_config[config_parameter] = self.get(config_parameter)
                 
         return default_config
+    
+    def return_soc(self):
+        """
+        In this function, we generate a qick configuration dictionary based
+        on the parameters in the metainstrument, which the user may have set
+        before running a measurement.
+
+        return: qick configuration dict
+        """
+
+                
+        return self.soc
 
 class ZCU216Station(Station):
     '''
@@ -164,6 +175,9 @@ class ZCU216Station(Station):
         super().__init__()
 
         self.add_component(ZCU216MetaInstrument(name='zcu'))
+
+    def troubleshoot(self):
+        return self.zcu.return_soc()
 
     def set_original_defaults(self):
         """
