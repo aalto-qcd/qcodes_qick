@@ -16,13 +16,15 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
         probe_phase = self.deg2reg(cfg["pulse_phase"], gen_ch=qubit_ch)
         probe_gain = cfg["pulse_gain"]
         probe_length = self.us2cycles(cfg['pulse_length'], gen_ch=qubit_ch)
+        cavity_pulse_length = self.us2cycles(cfg['readout_length'], gen_ch=cfg["cavity_ch"])
         
         #Get the start and step count of the freq sweep
         freq_sweep = cfg["sweep_variables"]["pulse_freq"]
         cfg["expts"] = freq_sweep[2]
         cfg["start"] = freq_sweep[0]
-        step_size = round((freq_sweep[1]-freq_sweep[0])/freq_sweep[2])
+        step_size = (freq_sweep[1]-freq_sweep[0])/freq_sweep[2]
         cfg["step"] = step_size
+        
 
 
         self.declare_gen(ch=cfg["cavity_ch"], nqz=1) #Cavity resonant probe
@@ -42,12 +44,13 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
         self.f_start = self.freq2reg(freq_sweep[0], gen_ch=cfg["qubit_ch"])  
         self.f_step = self.freq2reg(step_size, gen_ch=cfg["qubit_ch"])
 
+
         # add qubit and readout pulses to respective channels
         self.set_pulse_registers(ch=qubit_ch, style="const", freq=self.f_start, phase=probe_phase, gain=probe_gain,
                                  length=probe_length)
 
         self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=cfg["cavity_phase"], gain=cfg["cavity_gain"],
-                                 length=cfg["readout_length"])
+                                 length=cavity_pulse_length)
 
         self.sync_all(self.us2cycles(200))
 

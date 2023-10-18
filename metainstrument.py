@@ -362,7 +362,6 @@ class ZCU216Station(Station):
         sweep_param_objects.reverse()
         meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
         meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
-        sweep_param_objects.reverse()
 
         param_values = []
 
