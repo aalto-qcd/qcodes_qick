@@ -36,7 +36,7 @@ class HardwareSweepProgram(NDAveragerProgram):
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
-        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"], ro_ch=cfg["res_ch"], mixer_freq=5000)
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"], ro_ch=cfg["res_ch"])
         self.declare_readout(ch=cfg["res_ch"], length=self.us2cycles(self.cfg['readout_length'], ro_ch = self.cfg['res_ch']),
                              freq=self.cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
 

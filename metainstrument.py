@@ -4,7 +4,7 @@ from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
 from qick.averager_program import QickSweep
-from protocols import Protocol, NDSweepProtocol 
+from protocols import Protocol, NDSweepProtocol, PulseProbeSpectroscopyProtocol
 import numpy as np
 
 
@@ -77,6 +77,12 @@ class ZCU216MetaInstrument(Instrument):
                             vals = Ints(*[0,6]),
                             initial_value = 6)
 
+        self.add_parameter('cavity_ch',
+                            parameter_class=ManualParameter,
+                            label='Cavity probe channel',
+                            vals = Ints(*[0,6]),
+                            initial_value = 5)
+
         self.add_parameter('res_ch',
                             parameter_class=ManualParameter,
                             label='Readout channel',
@@ -128,7 +134,27 @@ class ZCU216MetaInstrument(Instrument):
                             unit = 'us',
                             initial_value = 10)
 
+        #Cavity probe settings
+        self.add_parameter('cavity_freq',
+                            parameter_class=ManualParameter,
+                            label='cavity probe pulse frequency',
+                            vals = Numbers(*[0,9000]),
+                            unit = 'MHz',
+                            initial_value = 500)
 
+        self.add_parameter('cavity_phase',
+                            parameter_class=ManualParameter,
+                            label='Cavity probe pulse phase',
+                            vals = Ints(*[0,360]),
+                            unit = 'deg',
+                            initial_value = 0)
+
+        self.add_parameter('cavity_gain',
+                            parameter_class=ManualParameter,
+                            label='Cavity probe dac gain',
+                            vals = Numbers(*[0,40000]),
+                            unit = 'DAC units',
+                            initial_value = 10000)
 
     def generate_config(self):
         """
