@@ -10,6 +10,8 @@ from measurements.Protocols import Protocol
 from typing import List, Dict, Any 
 
 
+from tqdm.auto import tqdm
+
 
 
 class NDSweepProtocol(Protocol):
@@ -144,15 +146,17 @@ class NDSweepProtocol(Protocol):
         """
         self.cfg = cfg.copy()
         software_iterators = {}
+        iterations = 1
 
         for parameter_name, value in self.cfg.items():
             if type(value) == list:
                 software_iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
+                iterations = iterations*value[2]
 
 
         if len(software_iterators) == 0:
             program = HardwareSweepProgram(self.soc, cfg)
-            expt_pts, avg_i, avg_q = program.acquire(self.soc, load_pulses=True)
+            expt_pts, avg_i, avg_q = program.acquire(self.soc, load_pulses=True, progress=True)
             expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(expt_pts, avg_i, avg_q)
             for i in range(len(list(cfg['sweep_variables']))):
                 if list(cfg['sweep_variables'])[i] == 'probe_length':
@@ -186,7 +190,7 @@ class NDSweepProtocol(Protocol):
             i_data = []
             q_data = []
 
-            for coordinate_point in itertools.product(*list(software_iterators.values())):
+            for coordinate_point in tqdm(itertools.product(*list(software_iterators.values())), total=iterations):
 
                 for coordinate_index in range(len(coordinate_point)):
                     cfg[iteratorlist[coordinate_index]] = coordinate_point[coordinate_index]
@@ -290,7 +294,7 @@ class HardwareSweepProgram(NDAveragerProgram):
         self.measure(pulse_ch=self.cfg["probe_ch"],
                      adcs=[self.cfg["ro_ch"]],
                      pins=[0],
-                     adc_trig_offset=self.cfg["adc_trig_offset"],
+                     adc_trig_offset=round(self.cfg["adc_trig_offset"]),
                      wait=True,
                      syncdelay=self.us2cycles(self.cfg["relax_delay"]))
 
