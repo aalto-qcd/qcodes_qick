@@ -5,7 +5,7 @@ from qcodes.utils.validators import Numbers, MultiType, Ints
 from qick import *
 from qick.averager_program import QickSweep
 from measurements.Protocols import Protocol, T1Protocol
-from metainstruments.ZCUMetainstrument import ZCU216MetaInstrument
+from metainstruments.ZCUMetainstrument import ZCU216Metainstrument
 from metainstruments.QICKChannel import DACChannel, ADCChannel
 from typing import List, Dict
 import numpy as np
@@ -24,43 +24,58 @@ class ZCU216Station(Station):
         """
 
         super().__init__()
-        self.add_component(ZCU216Metainstrument(name='zcu', label='ZCU216'))
+        self.add_component(ZCU216Metainstrument(name='zcu'))
+
   
     def add_DAC_channel(self, channel: int, name: str):
         if channel in self.zcu.validDACs:
-            self.add_component(DACChannel(name = name, channel_number = channel))
+            try:
+                self.add_component(DACChannel(name = name, channel_number = channel))
+            except:
+                pass
         else:
             raise Exception("Invalid DAC channel number")
 
 
     def add_ADC_channel(self, channel: int, name: str):
         if channel in self.zcu.validADCs:
-            self.add_component(ADCChannel(name = name, channel_number = channel))
+            try:
+                self.add_component(ADCChannel(name = name, channel_number = channel))
+            except:
+                pass
         else:
             raise Exception("Invalid ADC channel number")
 
     def add_protocol(self, protocol: Protocol):
-        self.add_component(protocol)
+        try:
+            self.add_component(protocol)
+        except:
+            pass
 
     def print_configuration(self):
         print("Station configuration:\n\n")
         for instrument in self.components:
-            print("-----" + self.components[instrument].label + "----\n")
             self.components[instrument].print_readable_snapshot()
+            print()
 
     def print_io_configuration(self):
         print("Station IO configuration:\n\n")
         for instrument in self.components:
             try:
                 if self.components[instrument].isADC or self.components[instrument].isDAC:
-                    print("-----" + self.components[instrument].label + "----\n")
                     self.components[instrument].print_readable_snapshot()
+                    print()
             except:
                 pass
 
     def troubleshoot(self):
         return self.zcu.return_soc()
 
+    def remove_protocol(self, protocol: Protocol):
+        try:
+            self.remove_component(protocol.name)
+        except:
+            pass
 
     def measure_iq( self,  
                     params_and_values : Dict[qc.Parameter, List[float]],
@@ -120,13 +135,10 @@ class ZCU216Station(Station):
         with meas.run() as datasaver:
 
             #Initialize the
-            program = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
+            program_base_config = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
 
             #Run the qick program, as defined by the protocol and params_and_values
-            expt_pts, avg_i, avg_q = protocol.run_program()
-
-            #Troubleshooting
-            #return expt_pts, avg_i, avg_q
+            expt_pts, avg_i, avg_q = protocol.run_program(program_base_config)
 
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.
@@ -134,12 +146,11 @@ class ZCU216Station(Station):
             for i in range(len(sweep_param_objects)):
                 result_param_values.append((sweep_param_objects[i], expt_pts[i]))
 
-            print(result_param_values)
-
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values)
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id
+        self.remove_protocol(protocol)
         return run_id
 
 
