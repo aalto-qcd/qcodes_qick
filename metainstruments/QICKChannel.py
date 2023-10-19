@@ -21,7 +21,7 @@ class DACChannel(Instrument):
         self.isDAC = True
         self.isADC = False
         
-        super().__init__(name, label="QICK DAC channel",)
+        super().__init__(name)
             
         self.sensible_defaults = {
                                    "nqz"          : 1,   # -- First nyquist zone
@@ -81,7 +81,7 @@ class ADCChannel(Instrument):
         that are sweeped over are overwritten.
         '''
         
-        super().__init__(name, label="QICK ADC channel")
+        super().__init__(name)
 
         self.isDAC = False
         self.isADC = True

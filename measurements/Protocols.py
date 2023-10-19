@@ -13,8 +13,8 @@ class Protocol(Instrument):
     into the correct form desired by the ZCUStation. Each protocol corresponds
     to a specific qick program.
     """
-    def __init__(self, name, label):
-        super().__init__(name=name, label=label)
+    def __init__(self, name):
+        super().__init__(name)
         self.required_DACs = {}
         self.required_ADCs = {}
         self.validated_IO = {}
@@ -120,7 +120,7 @@ class T1Protocol(Protocol):
         Initialize the protocol object.
             
         """
-        super().__init__(name=name, label="T1 Decay Protocol Object")
+        super().__init__(name)
 
         self.required_DACs = {'qubit': 'Qubit probe channel', 'readout' : 'Readout pulse channel', }
         self.required_ADCs = {'adc' : 'Readout adc channel' }
@@ -159,7 +159,7 @@ class T1Protocol(Protocol):
                             label='Variable delay between qubit excitation and readout',
                             vals = Ints(*[0,4000]),
                             unit = 'us',
-                            initial_value = 500)
+                            initial_value = 5)
 
         self.add_parameter('readout_length',
                             parameter_class=ManualParameter,
@@ -178,16 +178,17 @@ class T1Protocol(Protocol):
         """
         This can be hardcoded for now.
         """
+
         internal_config = {}
-        if 'variable_delay' in sweep_configuration:
-            internal_config["start"] = sweep_configuration["variable_delay"][0]
-            internal_config["expts"] = sweep_configuration["variable_delay"][2]
-            internal_config["step"] = (sweep_configuration["variable_delay"][1] 
-                                       - sweep_configuration["variable_delay"][0])/sweep_configuration["variable_delay"][2]
-        else:
-            internal_config["start"] = 0
-            internal_config["expts"] = self.variable_delay.get()
-            internal_config["step"] = 1 
+        internal_config["start"] = 0
+        internal_config["expts"] = self.variable_delay.get()
+        internal_config["step"] = 1 
+
+        for parameter, values in sweep_configuration.items():
+            if parameter == internal_variables['variable_delay']:
+                internal_config["start"] = values[0]
+                internal_config["expts"] = values[2]
+                internal_config["step"] = (values[1] - values[0])/values[2]
 
         return internal_config
 
@@ -212,7 +213,7 @@ class T1Protocol(Protocol):
 
                     #For the T1 program, readout probe pulse
                     #lenght is a good readout lenght
-                    'readout_lenght' : self.validated_IO['readout'].pulse_length,
+                    'readout_length' : self.validated_IO['readout'].pulse_length,
 
                     #These are channel specific values 
                     'qubit_ch' : self.validated_IO['qubit'].channel,
@@ -241,11 +242,12 @@ class T1Protocol(Protocol):
 
         internal_config = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters)
         qick_config = {**external_config, **internal_config}
+        print(qick_config)
 
         return qick_config
 
                 
-    def run_program(self):
+    def run_program(self, cfg : Dict[str, float]):
         """
         This method runs the program and returns the measurement 
         result.
@@ -259,13 +261,9 @@ class T1Protocol(Protocol):
             avg_i:
             ND-array of avg_i values containing each measurement i value.
         """
-        #prog = T1Program(self.soccfg, self.cfg)
-        #Dumb data
-        expt_pts = np.array([400, 500])        
-        avg_i = [np.array([[-0.02673513, -0.02834141]])]
-        avg_q = [np.array([[0.08327843, 0.08439062]])]
-
-        #expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True, progress=True)
+        self.cfg = cfg.copy()
+        prog = T1Program(self.soc, cfg)
+        expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True, progress=True)
         expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
 
 
@@ -322,31 +320,24 @@ class T1Program(RAveragerProgram):
         #The channel for the qubit probing is the channel corresponding
         #to the default pulse variables (pulse_lenght, pulse_phase, etc.)
         qubit_ch = cfg["qubit_ch"]
-        probe_gain = cfg["pulse_gain"]
-        probe_length = self.us2cycles(cfg['pulse_length'], gen_ch=qubit_ch)
+        probe_gain = cfg["qubit_gain"]
+        probe_length = self.us2cycles(cfg['qubit_length'], gen_ch=qubit_ch)
 
-        cavity_freq=self.freq2reg(cfg["cavity_freq"], gen_ch=cfg["cavity_ch"], ro_ch=cfg["res_ch"]) # conver f_res to dac register value
-        probe_freq=self.freq2reg(cfg["pulse_freq"], gen_ch=cfg["qubit_ch"])
+        cavity_freq=self.freq2reg(cfg["cavity_freq"], gen_ch=cfg["cavity_ch"], ro_ch=cfg["ro_ch"]) # conver f_res to dac register value
+        probe_freq=self.freq2reg(cfg["qubit_freq"], gen_ch=cfg["qubit_ch"])
 
         t1_sigma = self.us2cycles(cfg["t1_sigma"], qubit_ch)
         cavity_pulse_length = self.us2cycles(cfg['readout_length'], gen_ch=cfg["cavity_ch"])
-
-        #Get the start and step count of the relax delay sweep
-        time_sweep = cfg["sweep_variables"]["delay_time"]
-        cfg["expts"] = time_sweep[2]
-        cfg["start"] = time_sweep[0]
-        step_size = (time_sweep[1]-time_sweep[0])/time_sweep[2]
-        cfg["step"] = step_size
 
         #Get register page for qubit_ch
         self.q_rp=self.ch_page(qubit_ch)    
         self.r_wait = 3
         self.regwi(self.q_rp, self.r_wait, self.us2cycles(cfg["start"]))
 
-        self.declare_gen(ch=cfg["cavity_ch"], nqz=1) #Readout
-        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"]) #Qubit
+        self.declare_gen(ch=cfg["cavity_ch"], nqz=cfg["cavity_nqz"]) #Readout
+        self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["qubit_nqz"]) #Qubit
 
-        self.declare_readout(ch=cfg["res_ch"], length=self.us2cycles(cfg["readout_length"]),
+        self.declare_readout(ch=cfg["ro_ch"], length=self.us2cycles(cfg["readout_length"]),
                              freq=cfg["cavity_freq"], gen_ch=cfg["cavity_ch"])
 
 
@@ -370,7 +361,7 @@ class T1Program(RAveragerProgram):
 
         #trigger measurement, play measurement pulse, wait for qubit to relax
         self.measure(pulse_ch=self.cfg["cavity_ch"],
-             adcs=[self.cfg["res_ch"]],
+             adcs=[self.cfg["ro_ch"]],
              adc_trig_offset=self.cfg["adc_trig_offset"],
              wait=True,
              syncdelay=self.us2cycles(self.cfg["relax_delay"]))
