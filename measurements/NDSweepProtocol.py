@@ -2,6 +2,8 @@ import qcodes as qc
 import numpy as np
 import itertools
 from qick import *
+from qick.averager_program import QickSweep
+from qick.asm_v1 import FullSpeedGenManager
 from qcodes.instrument import Instrument, ManualParameter
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from measurements.Protocols import Protocol
@@ -64,18 +66,22 @@ class NDSweepProtocol(Protocol):
         This can be hardcoded for now.
         """
 
+        sweep_config = {}
         internal_config = {}
-        internal_config["start"] = self.validated_IO['qubit'].pulse_length.get()
-        internal_config["expts"] = 1
-        internal_config["step"] = 0 
 
-        for parameter, values in sweep_configuration.items():
-            if parameter == internal_variables['qubit_freq']:
-                internal_config["start"] = values[0]
-                internal_config["expts"] = values[2]
-                internal_config["step"] = (values[1] - values[0])/values[2]
+        for config_name, parameter in internal_variables.items():
+            if parameter in sweep_configuration.keys():
+                values = sweep_configuration[parameter]
+                sweep_config[config_name] = [ values[0], values[1], values[2]]
+                internal_config[config_name] = values[0] 
+            else:
+                internal_config[config_name] = parameter.get() 
 
-        return internal_config
+
+
+        internal_config["sweep_variables"] = sweep_config
+
+        return internal_config 
 
     def initialize_qick_program(self, soc, sweep_configuration):
         """ 
@@ -100,13 +106,13 @@ class NDSweepProtocol(Protocol):
                     'probe_ch' : self.validated_IO['probe'].channel,
                     'ro_ch' : self.validated_IO['adc'].channel,
                     'probe_nqz' : self.validated_IO['probe'].nqz,
+                    'probe_freq' : self.validated_IO['probe'].pulse_freq,
                    }
 
         external_config = self.compile_software_sweep_dict( sweep_configuration, external_parameters )
 
         # Internal parameters that can be swept in hardware
         internal_parameters = { 
-                    'qubit_freq' : self.validated_IO['probe'].pulse_freq,
                     'probe_gain' : self.validated_IO['probe'].pulse_gain,
                     'probe_phase' : self.validated_IO['probe'].pulse_phase,
                     'probe_length' : self.validated_IO['probe'].pulse_length,
@@ -121,7 +127,9 @@ class NDSweepProtocol(Protocol):
     def run_program(self, cfg : Dict[str, float]):
         """
         This method runs the program and returns the measurement 
-        result.
+        result. For the NDSweep program, combining both multiple
+        hardware sweeps and software sweeps, this method is implemented
+        fully in the protocol. For RAveragerprograms, see Protocol.run_hybrid_loop_program
 
         Return:
             expt_pts:
@@ -133,14 +141,81 @@ class NDSweepProtocol(Protocol):
             ND-array of avg_i values containing each measurement i value.
         """
         self.cfg = cfg.copy()
-        iterators = {}
+        software_iterators = {}
 
         for parameter_name, value in self.cfg.items():
             if type(value) == list:
-                iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
+                software_iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
 
-        expt_pts, avg_i, avg_q = self.run_hybrid_loop_program(self.cfg, PulseProbeSpectroscopyProgram, iterators)
-        return expt_pts, avg_i, avg_q 
+
+        if len(software_iterators) == 0:
+            program = HardwareSweepProgram(self.soc, cfg)
+            expt_pts, avg_i, avg_q = program.acquire(self.soc, load_pulses=True)
+            expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(expt_pts, avg_i, avg_q)
+            for i in range(len(list(cfg['sweep_variables']))):
+                if list(cfg['sweep_variables'])[i] == 'probe_length':
+                    length_expt_pts = expt_pts[i]
+                    mode_code = length_expt_pts[0] - self.soc.us2cycles(cfg['sweep_variables']['probe_length'][0])
+                    f = lambda x: self.soc.cycles2us(x - mode_code)
+                    fixed_length_vals = [ f(x) for x in length_expt_pts]
+                    expt_pts[i] = fixed_length_vals
+                    
+
+            for i in range(avg_i.ndim-len(cfg['sweep_variables'])):
+                avg_i = np.squeeze(avg_i.flatten())
+                avg_q = np.squeeze(avg_q.flatten())
+
+            return expt_pts, avg_i, avg_q
+
+
+        else:
+
+            iteratorlist = list(software_iterators)
+            hardware_loop_dim = len((cfg['sweep_variables']))
+
+
+            total_hardware_sweep_points = 1
+            for sweep_var in cfg['sweep_variables']:
+                total_hardware_sweep_points = total_hardware_sweep_points*cfg['sweep_variables'][sweep_var][2]
+            
+
+            software_expt_data = [ [] for i in range(len(software_iterators))]
+            hardware_expt_data = [ [] for i in range(hardware_loop_dim)]
+            i_data = []
+            q_data = []
+
+            for coordinate_point in itertools.product(*list(software_iterators.values())):
+
+                for coordinate_index in range(len(coordinate_point)):
+                    cfg[iteratorlist[coordinate_index]] = round(coordinate_point[coordinate_index])
+
+                program = HardwareSweepProgram(self.soc, cfg)
+                expt_pts, avg_i, avg_q = program.acquire(self.soc, load_pulses=True)
+
+                for i in range(hardware_loop_dim):
+                    if list(cfg['sweep_variables'])[i] == 'probe_length':
+                        length_expt_pts = expt_pts[i]
+                        mode_code = length_expt_pts[0] - self.soc.us2cycles(cfg['sweep_variables']['probe_length'][0])
+                        f = lambda x: self.soc.cycles2us(x - mode_code)
+                        fixed_length_vals = [ f(x) for x in length_expt_pts]
+                        expt_pts[i] = fixed_length_vals
+                    else:
+                        expt_pts[i] = expt_pts[i].tolist()
+
+                expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(expt_pts, avg_i, avg_q)
+
+                i_data.extend(avg_i.flatten()) 
+                q_data.extend(avg_q.flatten()) 
+
+                for i in range(hardware_loop_dim):
+                    hardware_expt_data[i].extend(expt_pts[i])
+                for i in range(len(software_iterators)):
+                    software_expt_data[i].extend([ coordinate_point[i] for x in range(total_hardware_sweep_points) ])
+
+        
+        software_expt_data.extend(hardware_expt_data)
+
+        return software_expt_data, i_data, q_data
 
 
 class HardwareSweepProgram(NDAveragerProgram):
@@ -173,7 +248,7 @@ class HardwareSweepProgram(NDAveragerProgram):
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
-        self.declare_gen(ch=cfg["probe_ch"], nqz=cfg["nqz"], ro_ch=cfg["ro_ch"])
+        self.declare_gen(ch=cfg["probe_ch"], nqz=cfg["probe_nqz"], ro_ch=cfg["ro_ch"])
         self.declare_readout(ch=cfg["ro_ch"], length=self.us2cycles(self.cfg['readout_length'], ro_ch = self.cfg['ro_ch']),
                              freq=self.cfg["probe_freq"], gen_ch=cfg["probe_ch"])
 

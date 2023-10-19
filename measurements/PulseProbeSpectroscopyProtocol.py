@@ -65,7 +65,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         """
 
         internal_config = {}
-        internal_config["start"] = self.validated_IO['qubit'].pulse_length.get()
+        internal_config["start"] = self.validated_IO['qubit'].pulse_freq.get()
         internal_config["expts"] = 1
         internal_config["step"] = 0 
 
