@@ -189,7 +189,7 @@ class NDSweepProtocol(Protocol):
             for coordinate_point in itertools.product(*list(software_iterators.values())):
 
                 for coordinate_index in range(len(coordinate_point)):
-                    cfg[iteratorlist[coordinate_index]] = round(coordinate_point[coordinate_index])
+                    cfg[iteratorlist[coordinate_index]] = coordinate_point[coordinate_index]
 
                 program = HardwareSweepProgram(self.soc, cfg)
                 expt_pts, avg_i, avg_q = program.acquire(self.soc, load_pulses=True)
