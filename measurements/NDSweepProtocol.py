@@ -36,7 +36,7 @@ class NDSweepProtocol(Protocol):
 
         self.add_parameter('adc_trig_offset',
                             parameter_class=ManualParameter,
-                            label='Delay between measuring pulse and ADC initialization',
+                            label='Delay between sending probe pulse and ADC initialization',
                             vals = Ints(*[0,100000]),
                             unit = 'Clock ticks', 
                             initial_value = 100)
