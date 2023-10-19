@@ -128,7 +128,6 @@ class ZCU216Station(Station):
 
 
         #Define the custom parameters which are dependent on the manual parameters
-        sweep_param_objects.reverse()
         meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
         meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
 
@@ -138,18 +137,18 @@ class ZCU216Station(Station):
         with meas.run() as datasaver:
 
             #Initialize the
-            program_base_config = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
+            program_base_config, sweep_parameter_list = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
 
             #Run the qick program, as defined by the protocol and params_and_values
             expt_pts, avg_i, avg_q = protocol.run_program(program_base_config)
 
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.
-            sweep_param_objects.reverse()
-            for i in range(len(sweep_param_objects)):
-                result_param_values.append((sweep_param_objects[i], expt_pts[i]))
+            for i in range(len(sweep_parameter_list)):
+                result_param_values.append( (sweep_parameter_list[i], expt_pts[i] ) )
 
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values)
+            protocol.reset_program()
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id

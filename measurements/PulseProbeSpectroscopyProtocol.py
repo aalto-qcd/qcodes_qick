@@ -74,6 +74,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                 internal_config["start"] = values[0]
                 internal_config["expts"] = values[2]
                 internal_config["step"] = (values[1] - values[0])/values[2]
+                self.add_sweep_parameter(isHardware = True, parameter = parameter)
 
         return internal_config
 
@@ -124,7 +125,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         internal_config = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters)
         qick_config = {**external_config, **internal_config}
 
-        return qick_config
+        return qick_config, self.sweep_parameter_list
 
                 
     def run_program(self, cfg : Dict[str, float]):
