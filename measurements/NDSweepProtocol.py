@@ -74,6 +74,7 @@ class NDSweepProtocol(Protocol):
                 values = sweep_configuration[parameter]
                 sweep_config[config_name] = [ values[0], values[1], values[2]]
                 internal_config[config_name] = values[0] 
+                self.add_sweep_parameter(isHardware = True, parameter = parameter)
             else:
                 internal_config[config_name] = parameter.get() 
 
@@ -81,7 +82,7 @@ class NDSweepProtocol(Protocol):
 
         internal_config["sweep_variables"] = sweep_config
 
-        return internal_config 
+        return internal_config
 
     def initialize_qick_program(self, soc, sweep_configuration):
         """ 
@@ -119,9 +120,10 @@ class NDSweepProtocol(Protocol):
                    }
 
         internal_config = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters)
+
         qick_config = {**external_config, **internal_config}
 
-        return qick_config
+        return qick_config, self.sweep_parameter_list
 
                 
     def run_program(self, cfg : Dict[str, float]):
@@ -213,6 +215,7 @@ class NDSweepProtocol(Protocol):
                     software_expt_data[i].extend([ coordinate_point[i] for x in range(total_hardware_sweep_points) ])
 
         
+        software_expt_data.reverse()
         software_expt_data.extend(hardware_expt_data)
 
         return software_expt_data, i_data, q_data
