@@ -4,7 +4,7 @@ from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints
 from qick import *
 from qick.averager_program import QickSweep
-from measurements.Protocols import Protocol, T1Protocol
+from measurements.Protocols import Protocol
 from metainstruments.ZCUMetainstrument import ZCU216Metainstrument
 from metainstruments.QICKChannel import DACChannel, ADCChannel
 from typing import List, Dict
