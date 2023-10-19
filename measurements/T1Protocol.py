@@ -160,13 +160,8 @@ class T1Protocol(Protocol):
             ND-array of avg_i values containing each measurement i value.
         """
         self.cfg = cfg.copy()
-        iterators = {}
 
-        for parameter_name, value in self.cfg.items():
-            if type(value) == list:
-                iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
-
-        expt_pts, avg_i, avg_q = self.run_hybrid_loop_program(self.cfg, T1Program, iterators)
+        expt_pts, avg_i, avg_q = self.run_hybrid_loop_program(self.cfg, T1Program)
         return expt_pts, avg_i, avg_q 
 
     def handle_output(self, expt_pts, avg_i, avg_q):
@@ -262,7 +257,7 @@ class T1Program(RAveragerProgram):
         #trigger measurement, play measurement pulse, wait for qubit to relax
         self.measure(pulse_ch=self.cfg["cavity_ch"],
              adcs=[self.cfg["ro_ch"]],
-             adc_trig_offset=self.cfg["adc_trig_offset"],
+             adc_trig_offset=round(self.cfg["adc_trig_offset"]),
              wait=True,
              syncdelay=self.us2cycles(self.cfg["relax_delay"]))
 
