@@ -2,11 +2,11 @@ import qcodes as qc
 import numpy as np
 import itertools
 from qick import *
-from qcodes.instrument import InstrumentBase, ManualParameter
+from qcodes.instrument import Instrument, ManualParameter
 from qcodes.utils.validators import Numbers, MultiType, Ints 
+from typing import List, Dict, Any 
 
-
-class Protocol(InstrumentBase):
+class Protocol(Instrument):
     """
     The protocol class is a wrapper around an actual qick program, which
     handles initializing and running the qick program, and handling output
@@ -43,7 +43,7 @@ class Protocol(InstrumentBase):
         """
         pass
 
-    def compile_hardware_sweep_dict( self, sweep_configuration : dict[qc.Parameter, list],  external_parameters : dict[str, qc.Parameter]):
+    def compile_hardware_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, List[float]],  external_parameters : Dict[str, qc.Parameter]):
         """
         This can one day be such that you can sweep all 
         hardware sweepable variables through calling this
@@ -53,7 +53,7 @@ class Protocol(InstrumentBase):
 
 
 
-    def set_io(self, io_data : dict[str, qc.Instrument]):
+    def set_io(self, io_data : Dict[str, qc.Instrument]):
 
         temp_IO = self.validated_IO.copy()
         
@@ -78,7 +78,7 @@ class Protocol(InstrumentBase):
             return True
 
 
-    def validate_params(self, params_and_values : dict[qc.Parameter, list]):
+    def validate_params(self, params_and_values : Dict[qc.Parameter, List[float]]):
         #Validate params and values
         #This is only an elementary check. We want to be able to trust
         #That the iteration list corresponding to the parameter is valid
@@ -90,7 +90,7 @@ class Protocol(InstrumentBase):
                 return False
         return True 
             
-    def compile_software_sweep_dict( self, sweep_configuration : dict[qc.Parameter, list],  external_parameters : dict[str, qc.Parameter]):
+    def compile_software_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, List[float]],  external_parameters : Dict[str, qc.Parameter]):
 
         external_parameter_config = {}
 
