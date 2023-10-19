@@ -61,9 +61,9 @@ class ZCU216MetaInstrument(Instrument):
         self.add_parameter('adc_trig_offset',
                             parameter_class=ManualParameter,
                             label='ADC trigger offset',
-                            vals = Numbers(*[0,150]),
-                            unit = 'us',
-                            initial_value = 1)
+                            vals = Ints(*[0,10000]),
+                            unit = 'Clock ticks',
+                            initial_value = 100)
 
         self.add_parameter('soft_avgs',
                             parameter_class=ManualParameter,

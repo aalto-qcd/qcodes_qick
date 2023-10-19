@@ -36,7 +36,7 @@ class T1Program(RAveragerProgram):
         self.declare_gen(ch=cfg["cavity_ch"], nqz=1) #Readout
         self.declare_gen(ch=cfg["qubit_ch"], nqz=cfg["nqz"]) #Qubit
 
-        self.declare_readout(ch=cfg["res_ch"], length=cfg["readout_length"],
+        self.declare_readout(ch=cfg["res_ch"], length=self.us2cycles(cfg["readout_length"]),
                              freq=cfg["cavity_freq"], gen_ch=cfg["cavity_ch"])
 
 

@@ -76,7 +76,7 @@ class T1Protocol(Protocol):
             ND-array of avg_i values containing each measurement i value.
         """
         prog = T1Program(self.soccfg, self.cfg)
-        expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
+        expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True, progress=True)
         expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
 
         return expt_pts, avg_i, avg_q 
@@ -271,7 +271,7 @@ class NDSweepProtocol(Protocol):
         
         else:
             prog = HardwareSweepProgram(self.soccfg, self.cfg)
-            expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
+            expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True, progress=True)
             expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
 
             for i in range(avg_i.ndim-len(sweep_config)):

@@ -30,7 +30,7 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
         self.declare_gen(ch=cfg["cavity_ch"], nqz=1) #Cavity resonant probe
         self.declare_gen(ch=qubit_ch, nqz=cfg["nqz"]) #Qubit probe
 
-        self.declare_readout(ch=cfg["res_ch"], length=cfg["readout_length"],
+        self.declare_readout(ch=cfg["res_ch"], length=self.us2cycles(cfg["readout_length"]),
                              freq=cfg["cavity_freq"], gen_ch=cfg["cavity_ch"])
 
         #Find register pages
