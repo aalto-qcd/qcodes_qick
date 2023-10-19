@@ -1,5 +1,5 @@
 import qcodes as qc
-from qcodes.instrument import InstrumentBase, ManualParameter
+from qcodes.instrument import Instrument, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints
 from qick import *
@@ -7,6 +7,7 @@ from qick.averager_program import QickSweep
 from measurements.Protocols import Protocol, T1Protocol
 from metainstruments.ZCUMetainstrument import ZCU216MetaInstrument
 from metainstruments.QICKChannel import DACChannel, ADCChannel
+from typing import List, Dict
 import numpy as np
 
 
@@ -23,7 +24,7 @@ class ZCU216Station(Station):
         """
 
         super().__init__()
-        self.add_component(ZCU216MetaInstrument(name='zcu', label='ZCU216'))
+        self.add_component(ZCU216Metainstrument(name='zcu', label='ZCU216'))
   
     def add_DAC_channel(self, channel: int, name: str):
         if channel in self.zcu.validDACs:
@@ -62,10 +63,10 @@ class ZCU216Station(Station):
 
 
     def measure_iq( self,  
-                    params_and_values : dict[qc.Parameter, list[float]],
+                    params_and_values : Dict[qc.Parameter, List[float]],
                     protocol : Protocol,
-                    dac_channels : dict[str : qc.Instrument],
-                    adc_channels: dict[str : qc.Instrument]):
+                    dac_channels : Dict[str, qc.Instrument],
+                    adc_channels: Dict[str, qc.Instrument]):
         '''
         This function initializes and runs an IQ measurement.
 

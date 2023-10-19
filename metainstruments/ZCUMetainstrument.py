@@ -1,5 +1,5 @@
 import qcodes as qc
-from qcodes.instrument import InstrumentBase, ManualParameter
+from qcodes.instrument import Instrument, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
@@ -8,7 +8,7 @@ from measurements.protocols import Protocol, NDSweepProtocol, PulseProbeSpectros
 import numpy as np
 
 
-class ZCU216MetaInstrument(InstrumentBase):
+class ZCU216Metainstrument(Instrument):
     '''
     This class is an abstract QCoDes instrument, which
     contains the settable and gettable parameters of the zcu216, most of which

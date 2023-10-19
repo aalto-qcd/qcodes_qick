@@ -1,5 +1,5 @@
 import qcodes as qc
-from qcodes.instrument import InstrumentBase, ManualParameter
+from qcodes.instrument import Instrument, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
@@ -8,7 +8,7 @@ from measurements.protocols import Protocol, NDSweepProtocol, PulseProbeSpectros
 import numpy as np
 
 
-class DACChannel(InstrumentBase):
+class DACChannel(Instrument):
     
     def __init__(self, name: str, channel_number: int, **kwargs):
         '''
@@ -71,7 +71,7 @@ class DACChannel(InstrumentBase):
                             initial_value = 10)
 
 
-class ADCChannel(InstrumentBase):
+class ADCChannel(Instrument):
 
     def __init__(self, name: str, channel_number: int, **kwargs):
         '''
