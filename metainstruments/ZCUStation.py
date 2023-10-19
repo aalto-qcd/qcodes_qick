@@ -97,6 +97,8 @@ class ZCU216Station(Station):
                         (if succesful).
         '''
 
+        if protocol not in self.components.values() :
+            raise Exception("Protocol not defined as an instrument")
         
         #Here we want to validate the given data, which is protocol dependent.
         io_data = { **dac_channels, **adc_channels }
@@ -150,7 +152,10 @@ class ZCU216Station(Station):
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id
-        self.remove_protocol(protocol)
+
+        #This might be unnecessary/annoying. 
+        #self.remove_protocol(protocol)
+
         return run_id
 
 
