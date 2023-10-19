@@ -82,7 +82,8 @@ class ZCU216Station(Station):
                     params_and_values : Dict[qc.Parameter, List[float]],
                     protocol : Protocol,
                     dac_channels : Dict[str, qc.Instrument],
-                    adc_channels: Dict[str, qc.Instrument]):
+                    adc_channels: Dict[str, qc.Instrument],
+                    experiment):
         '''
         This function initializes and runs an IQ measurement.
 
