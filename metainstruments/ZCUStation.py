@@ -82,7 +82,8 @@ class ZCU216Station(Station):
                     params_and_values : Dict[qc.Parameter, List[float]],
                     protocol : Protocol,
                     dac_channels : Dict[str, qc.Instrument],
-                    adc_channels: Dict[str, qc.Instrument]):
+                    adc_channels: Dict[str, qc.Instrument],
+                    experiment):
         '''
         This function initializes and runs an IQ measurement.
 
@@ -114,10 +115,6 @@ class ZCU216Station(Station):
 
         # initialize qcodes
         # this will be removed in the final product (the user initializes their own experiment)
-
-        experiment = qc.load_or_create_experiment(
-                experiment_name="zcu_qcodes_test",
-                sample_name="Herja")
 
         meas = qc.Measurement(exp=experiment)
 
