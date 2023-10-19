@@ -4,7 +4,7 @@ from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
 from qick.averager_program import QickSweep
-from protocols import Protocol, NDSweepProtocol, PulseProbeSpectroscopyProtocol
+from protocols import Protocol, NDSweepProtocol, PulseProbeSpectroscopyProtocol, T1Protocol
 import numpy as np
 
 
@@ -75,13 +75,13 @@ class ZCU216MetaInstrument(Instrument):
                             parameter_class=ManualParameter,
                             label='Qubit probe channel',
                             vals = Ints(*[0,6]),
-                            initial_value = 6)
+                            initial_value = 4)
 
         self.add_parameter('cavity_ch',
                             parameter_class=ManualParameter,
                             label='Cavity probe channel',
                             vals = Ints(*[0,6]),
-                            initial_value = 5)
+                            initial_value = 6)
 
         self.add_parameter('res_ch',
                             parameter_class=ManualParameter,
@@ -155,6 +155,22 @@ class ZCU216MetaInstrument(Instrument):
                             vals = Numbers(*[0,40000]),
                             unit = 'DAC units',
                             initial_value = 10000)
+
+        #T1 measurement stuff
+        self.add_parameter('delay_time',
+                            parameter_class=ManualParameter,
+                            label='T1 variable delay',
+                            vals = Numbers(*[0,10000]),
+                            unit = 'us',
+                            initial_value = 3)
+
+        self.add_parameter('t1_sigma',
+                            parameter_class=ManualParameter,
+                            label='T1 variable delay',
+                            vals = Numbers(*[0,10000]),
+                            unit = 'us',
+                            initial_value = 0.025)
+
 
     def generate_config(self):
         """
@@ -321,7 +337,8 @@ class ZCU216Station(Station):
         possible_sweep_params = {"pulse_freq":"MHz",
                                  "pulse_gain":"DAC units",
                                  "pulse_phase":"deg",
-                                 "pulse_length":"us"}
+                                 "pulse_length":"us",
+                                 "delay_time": "us"}
         sweep_param_objects = []
         sweep_configuration = {}
 
@@ -376,6 +393,9 @@ class ZCU216Station(Station):
 
             #Run the qick program, as defined by the protocol and params_and_values
             expt_pts, avg_i, avg_q = protocol.run_program()
+
+            #Troubleshooting
+            #return expt_pts, avg_i, avg_q
 
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.

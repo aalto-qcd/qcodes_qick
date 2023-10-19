@@ -3,6 +3,7 @@ from qick import *
 from qick.averager_program import QickSweep
 from multi_variable_sweep import HardwareSweepProgram, LoopbackProgram
 from pulse_probe_spectroscopy import PulseProbeSpectroscopyProgram
+from t1program import T1Program
 import numpy as np
 import itertools
 
@@ -37,6 +38,89 @@ class Protocol:
 
         """
         pass
+
+class T1Protocol(Protocol):
+    """
+        This protocol initializes and runs a T1 decay measurement 
+        program, and correctly formats the output into a desired form. 
+    """
+    def __init__(self):
+        """
+        Initialize the protocol object.
+            
+        """
+        super().__init__()
+        self.name = "T1DecayMeasurement"
+        self.measurement_type = "IQ_measurement"
+
+    def initialize_program(self, soccfg, cfg):
+        """ 
+        Initialize the qick soc and qick config
+        
+        """
+        self.cfg = cfg
+        self.soccfg = soccfg
+
+    def run_program(self):
+        """
+        This method runs the program and returns the measurement 
+        result.
+
+        Return:
+            expt_pts:
+            list of arrays containing the coordinate values of 
+            each variable for each measurement point
+            avg_q:
+            ND-array of avg_q values containing each measurement q value.
+            avg_i:
+            ND-array of avg_i values containing each measurement i value.
+        """
+        prog = T1Program(self.soccfg, self.cfg)
+        expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
+        expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
+
+        return expt_pts, avg_i, avg_q 
+
+    def handle_output(self, expt_pts, avg_i, avg_q):
+        """
+        This method handles formatting the output into a standardized
+        form, to be sent to back to the ZCU216Station. 
+
+        Parameters:
+            expt_pts:
+                array of arrays containing each of the experiment
+                values (only once) for each of the sweepable variables.
+                This contains the coordinates of our measurement.
+            avg_i: 
+                I values of the measurement each corresponding to 
+                a specific combination of coordinates. 
+            avg_q: 
+                Q values of the measurement each corresponding to 
+                a specific combination of coordinates. 
+
+
+        Returns:
+            expt_pts: 
+                list of N (coordinate amount) arrays whose each element
+                corresponds to an individual measurement. Thus, the lists
+                will be the same size as there are total measurement points
+                and for each index you may find the corresponding coordinate
+                point of an individual measurement from each of the arrays.
+            avg_i: 
+                In this method, the average i values are unchanged
+            avg_q: 
+                In this method, the average q values are unchanged
+            
+        """
+        avg_i = avg_i[0]
+        avg_i = avg_i.flatten()
+        avg_q = avg_q[0]
+        avg_q = avg_q.flatten()
+        expt_pts = expt_pts.tolist()
+        return [expt_pts], avg_i, avg_q 
+
+
+
 
 
 class PulseProbeSpectroscopyProtocol(Protocol):
@@ -76,12 +160,11 @@ class PulseProbeSpectroscopyProtocol(Protocol):
             avg_i:
             ND-array of avg_i values containing each measurement i value.
         """
-        sweep_config = self.cfg["sweep_variables"]
         prog = PulseProbeSpectroscopyProgram(self.soccfg, self.cfg)
         expt_pts, avg_i, avg_q = prog.acquire(self.soccfg, load_pulses=True)
         expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
-        return expt_pts, avg_i, avg_q 
 
+        return expt_pts, avg_i, avg_q 
 
     def handle_output(self, expt_pts, avg_i, avg_q):
         """
@@ -114,11 +197,12 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                 In this method, the average q values are unchanged
             
         """
-        #New version of qick returns lists containing np arrays,
-        #formerly only np arrays :)
         avg_i = avg_i[0]
+        avg_i = avg_i.flatten()
         avg_q = avg_q[0]
-        return expt_pts, avg_i, avg_q 
+        avg_q = avg_q.flatten()
+        expt_pts = expt_pts.tolist()
+        return [expt_pts], avg_i, avg_q 
 
 
 class NDSweepProtocol(Protocol):
