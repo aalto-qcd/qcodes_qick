@@ -24,7 +24,7 @@ class T1Protocol(Protocol):
 
         self.required_DACs = {'qubit': 'Qubit probe channel', 'readout' : 'Readout pulse channel', }
         self.required_ADCs = {'adc' : 'Readout adc channel' }
-        self.validated_IO = {'qubit' : None, 'qubit': None, 'qubit': None}
+        self.validated_IO = {'qubit' : None, 'readout': None, 'adc': None}
 
         self.sensible_defaults = {
                                    "adc_trig_offset"  : 100,    # -- Clock ticks
@@ -125,8 +125,6 @@ class T1Protocol(Protocol):
                     'cavity_gain' : self.validated_IO['readout'].pulse_gain,
                     'qubit_freq' : self.validated_IO['qubit'].pulse_freq,
                     'cavity_freq' : self.validated_IO['readout'].pulse_freq,
-                    'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
-                    'cavity_phase' : self.validated_IO['readout'].pulse_phase,
                     'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
                     'cavity_phase' : self.validated_IO['readout'].pulse_phase,
                     'qubit_length' : self.validated_IO['qubit'].pulse_length,
