@@ -51,6 +51,7 @@ class ZCU216Station(Station):
             self.add_component(protocol)
         except:
             pass
+        return self.components[protocol.name]
 
     def print_configuration(self):
         print("Station configuration:\n\n")

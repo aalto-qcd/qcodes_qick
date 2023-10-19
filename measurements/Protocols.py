@@ -112,10 +112,10 @@ class Protocol(Instrument):
             prog = program(self.soc, cfg)
             expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True)
             expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
+            avg_i = np.squeeze(avg_i.flatten())
+            avg_q = np.squeeze(avg_q.flatten())
 
-            for i in range(avg_i.ndim-len(sweep_config)):
-                avg_i = np.squeeze(avg_i.flatten())
-                avg_q = np.squeeze(avg_q.flatten())
+            return expt_pts, avg_i, avg_q
 
 
         else:
