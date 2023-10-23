@@ -1,7 +1,7 @@
 import qcodes as qc
 from qick import *
 from qick.averager_program import QickSweep
-from multi_variable_sweep import HardwareSweepProgram, LoopbackProgram
+from qick-programs import HardwareSweepProgram, LoopbackProgram
 import numpy as np
 import itertools
 
