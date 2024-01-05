@@ -17,8 +17,11 @@ class DACChannel(InstrumentBase):
         initial value, but those that initial values corresponding to variables
         that are sweeped over are overwritten.
         '''
+
+        self.isDAC = True
+        self.isADC = False
         
-        super().__init__(name, **kwargs)
+        super().__init__(name, label="QICK DAC channel",)
             
         self.sensible_defaults = {
                                    "nqz"          : 1,   # -- First nyquist zone
@@ -78,8 +81,10 @@ class ADCChannel(InstrumentBase):
         that are sweeped over are overwritten.
         '''
         
-        
-        super().__init__(name, **kwargs)
+        super().__init__(name, label="QICK ADC channel")
+
+        self.isDAC = False
+        self.isADC = True
             
         self.sensible_defaults = {
                                    "nqz"          : 1,   # -- First nyquist zone

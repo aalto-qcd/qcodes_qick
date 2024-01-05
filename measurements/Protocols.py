@@ -13,8 +13,47 @@ class Protocol(InstrumentBase):
     into the correct form desired by the ZCUStation. Each protocol corresponds
     to a specific qick program.
     """
-    def __init__(self, name):
-        super().__init__(name=name)
+    def __init__(self, name, label):
+        super().__init__(name=name, label=label)
+        self.required_DACs = {}
+        self.required_ADCs = {}
+        self.validated_IO = {}
+
+        pass
+
+    def set_io(self, io_data : dict[str, qc.Instrument]):
+        
+        for io_port in io_data.keys():
+            if io_data[io_port].isDAC and io_port in self.required_DACs:
+                self.validated_IO[io_port] = io_data[io_port]
+
+            elif io_data[io_port].isADC and io_port in self.required_ADCs:
+                self.validated_IO[io_port] = io_data[io_port]
+
+            else:
+                raise Exception("Invalid IO channel: " + io_port)
+                self.validated_IO = {}
+                return False
+        
+        for io_port in { **self.required_DACs, **self.required_ADCs}:
+            if io_port not in self.validated_IO:
+                raise Exception("Invalid IO channel: " + io_port)
+                self.validated_IO = {}
+                return False
+        else:
+            return True
+
+
+    def validate_params(self, params_and_values : dict[qc.Parameter, list]):
+        #Validate params and values
+        #This is only an elementary check. We want to be able to trust
+        #That the iteration list corresponding to the parameter is valid
+
+        
+
+
+
+
         pass
             
     def initialize_program(self):
@@ -39,6 +78,9 @@ class Protocol(InstrumentBase):
         """
         pass
 
+
+
+
 class T1Protocol(Protocol):
     """
         This protocol initializes and runs a T1 decay measurement 
@@ -49,7 +91,11 @@ class T1Protocol(Protocol):
         Initialize the protocol object.
             
         """
-        super().__init__(name=name)
+        super().__init__(name=name, label="T1 Decay Protocol Object")
+
+        self.required_DACs = {'qubit': 'Qubit probe channel', 'readout' : 'Readout pulse channel', }
+        self.required_ADCs = {'adc' : 'Readout adc channel' }
+        self.validated_IO = {}
 
         self.sensible_defaults = {
                                    "adc_trig_offset"  : 100,    # -- Clock ticks
@@ -91,7 +137,6 @@ class T1Protocol(Protocol):
                             label='Measurement repetitions',
                             vals = Ints(0,5000),
                             initial_value = 400)
-
 
 
 
