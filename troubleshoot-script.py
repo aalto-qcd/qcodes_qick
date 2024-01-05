@@ -28,7 +28,7 @@ station.add_protocol(protocol = T1Protocol("T1_Protocol"))
 #station.print_io_configuration()
 #print(station.troubleshoot())
 
-t1p = station.measure_iq(params_and_values = {station.zcu.delay_time: [400,600,2]}, protocol = T1Protocol(), dac_channels = {'qubit': station.QubitProbe,'readout': station.ReadoutProbe}, adc_channels = {'adc' : station.ReadoutADC} )
+t1p = station.measure_iq(params_and_values = {station.T1_Protocol.variable_delay: [0,300,2]}, protocol = T1Protocol(), dac_channels = {'qubit': station.QubitProbe,'readout': station.ReadoutProbe}, adc_channels = {'adc' : station.ReadoutADC} )
 testdata = qc.load_by_id(t1p).to_xarray_dataset()
 plt.plot(testdata["delay_time"], abs(testdata["avg_q"]+1j*testdata["avg_i"]))
 plt.show()

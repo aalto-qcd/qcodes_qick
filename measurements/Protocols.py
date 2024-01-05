@@ -31,14 +31,14 @@ class Protocol(InstrumentBase):
                 self.validated_IO[io_port] = io_data[io_port]
 
             else:
-                raise Exception("Invalid IO channel: " + io_port)
                 self.validated_IO = {}
+                raise Exception("Invalid IO channel: " + io_port)
                 return False
         
         for io_port in { **self.required_DACs, **self.required_ADCs}:
             if io_port not in self.validated_IO:
-                raise Exception("Invalid IO channel: " + io_port)
                 self.validated_IO = {}
+                raise Exception("Invalid IO channel: " + io_port)
                 return False
         else:
             return True
@@ -48,13 +48,13 @@ class Protocol(InstrumentBase):
         #Validate params and values
         #This is only an elementary check. We want to be able to trust
         #That the iteration list corresponding to the parameter is valid
-
-        
-
-
-
-
-        pass
+        for parameter, sweep_configuration in params_and_values.items():
+            if parameter.validate(sweep_configuration[0]) is None and parameter.validate(sweep_configuration[0]) is None:
+                pass
+            else:
+                raise Exception("Invalid parameter setpoints: " + parameter.name )
+                return False
+        return True 
             
     def initialize_program(self):
         """ 
@@ -124,6 +124,13 @@ class T1Protocol(Protocol):
                             vals = Numbers(*[0,4000]),
                             unit = 'us',
                             initial_value = 0.025)
+
+        self.add_parameter('variable_delay',
+                            parameter_class=ManualParameter,
+                            label='Variable delay between qubit excitation and readout',
+                            vals = Ints(*[0,4000]),
+                            unit = 'us',
+                            initial_value = 0)
 
         self.add_parameter('readout_length',
                             parameter_class=ManualParameter,

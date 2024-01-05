@@ -44,87 +44,21 @@ class ZCU216Station(Station):
     def print_configuration(self):
         print("Station configuration:\n\n")
         for instrument in self.components:
-            print("-----" + self.components[instrument].label + "----")
-            print()
+            print("-----" + self.components[instrument].label + "----\n")
             self.components[instrument].print_readable_snapshot()
-            print()
 
     def print_io_configuration(self):
         print("Station IO configuration:\n\n")
         for instrument in self.components:
             try:
                 if self.components[instrument].isADC or self.components[instrument].isDAC:
-                    print("-----" + self.components[instrument].label + "----")
-                    print()
+                    print("-----" + self.components[instrument].label + "----\n")
                     self.components[instrument].print_readable_snapshot()
-                    print()
             except:
                 pass
 
     def troubleshoot(self):
         return self.zcu.return_soc()
-
-    def set_original_defaults(self):
-        """
-        Set the original defaults
-        """
-
-        self.set_defaults(self.zcu.sensible_defaults)
-
-    def set_defaults(self, defaults_dict):
-        """
-        This method configures new default for the station based on a dictionary
-        with qcodes parameter names and their new default values
-        """
-        for parameter_name in defaults_dict:
-            if parameter_name not in self.zcu.parameters:
-                print(f"Unable to set default value for {parameter_name}; invalid parameter name")
-            else:
-                try:
-                    param = self.zcu.parameters[parameter_name]
-                    param.set(defaults_dict[parameter_name])
-                except ValueError:
-                    print(f"Unable to set default value for {parameter_name}; value outside of range {param.vals}")
-
-
-
-    def validate_sweep(self, possible_sweep_params, parameter, sweep_list):
-        '''
-        This function handles input validation and initializing qcodes around
-        the actual measurement. It also handles the proper initialization of
-        the program config that will be given to a Qick program that is called.
-
-                Parameters:
-                        possible_sweep_params (dict):
-                            dictionary of possible sweep parameters and their unit
-                        parameter:
-                            the QCoDeS parameter to be swept over
-
-                        sweep_list: the sweep list [start, end, step amount]
-
-                return: True if valid configuration, False if not
-        '''
-
-        #Check wether we can actually loop over each parameter
-        if parameter.name not in possible_sweep_params.keys():
-            print("Invalid sweep parameter")
-            return False
-
-        elif len(sweep_list) != 3:
-            print("Invalid sweep list")
-            return False
-
-        #Validate the sweep start and end
-        for value in sweep_list[:2]:
-            try:
-                parameter.validate(value)
-            except ValueError:
-                print(f"Sweep range for variable {parameter.name} is outside of bounds {parameter.vals}.")
-                return False
-
-        return True
-
-
 
     def initialize_qick_program(self, sweep_configuration, qicksoc, config, protocol):
         '''
@@ -183,7 +117,6 @@ class ZCU216Station(Station):
         #Here we want to validate the given data, which is protocol dependent.
         io_data = { **dac_channels, **adc_channels }
         protocol.set_io(io_data)
-        print(protocol.validated_IO)
         protocol.validate_params(params_and_values)
 
         #After input validation, we want to 
@@ -194,6 +127,7 @@ class ZCU216Station(Station):
         sweep_configuration = {}
 
         # initialize qcodes
+        # this will be removed in the final product (the user initializes their own experiment)
 
         experiment = qc.load_or_create_experiment(
                 experiment_name="zcu_qcodes_test",
