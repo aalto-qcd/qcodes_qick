@@ -60,38 +60,6 @@ class ZCU216Station(Station):
     def troubleshoot(self):
         return self.zcu.return_soc()
 
-    def initialize_qick_program(self, sweep_configuration, qicksoc, config, protocol):
-        '''
-        This function handles the proper initialization of
-        the program config and protocol.
-
-                Parameters:
-                        sweep_configuration (dict):
-                        Dictionary that contains the sweep variables
-                        characterized by their flag as their key,
-                        and their sweep start value, end value and
-                        step amount as a list as the dict value.
-
-                        qicksoc: The actual QickSoc object.
-                        config: A qick program configuration dictionary
-                        protocol: the protocol object used in the measurement
-
-                return: protocol object
-        '''
-
-        iq_config = {
-                  "sweep_variables": sweep_configuration
-              }
-
-        for sweep_variable in sweep_configuration:
-            iq_config[sweep_variable] = sweep_configuration[sweep_variable][0]
-
-
-        zcu_config = {**config, **iq_config}
-        protocol.initialize_program(qicksoc, zcu_config)
-
-        return protocol
-
 
     def measure_iq( self,  
                     params_and_values : dict[qc.Parameter, list[float]],
@@ -122,7 +90,6 @@ class ZCU216Station(Station):
         #After input validation, we want to 
         #Configure the default config that will remain constant through the measurement
 
-        dimension = 0
         sweep_param_objects = []
         sweep_configuration = {}
 
@@ -136,17 +103,9 @@ class ZCU216Station(Station):
         meas = qc.Measurement(exp=experiment)
 
         #Create manual parameters for gathering data
-        for sweepable_variable in sweep_configuration:
-
-            #Define the manual parameters
-            sweep_param_object = qc.ManualParameter(sweepable_variable,
-                    instrument = None,
-                    unit=possible_sweep_params[sweepable_variable],
-                    initial_value = sweep_configuration[sweepable_variable][0])
-
-            dimension += 1
-            sweep_param_objects.append(sweep_param_object)
-            meas.register_parameter(sweep_param_object)
+        for parameter, values in params_and_values.items():
+            sweep_param_objects.append(parameter)
+            meas.register_parameter(parameter)
 
 
         #Define the custom parameters which are dependent on the manual parameters
@@ -154,16 +113,13 @@ class ZCU216Station(Station):
         meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
         meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
 
-        param_values = []
+        result_param_values = []
 
         #The qcodes experiment, surrounding the qick program is contained here.
         with meas.run() as datasaver:
 
             #Initialize the
-            protocol = self.initialize_qick_program(sweep_configuration,
-                                                    self.zcu.soc,
-                                                    zcu_config,
-                                                    protocol)
+            program = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
 
             #Run the qick program, as defined by the protocol and params_and_values
             expt_pts, avg_i, avg_q = protocol.run_program()
@@ -174,11 +130,12 @@ class ZCU216Station(Station):
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.
             sweep_param_objects.reverse()
-            for i in range(dimension):
-                param_values.append((sweep_param_objects[i], expt_pts[i]))
+            for i in range(len(sweep_param_objects)):
+                result_param_values.append((sweep_param_objects[i], expt_pts[i]))
 
+            print(result_param_values)
 
-            datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *param_values)
+            datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values)
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id
