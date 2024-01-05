@@ -23,8 +23,7 @@ class ZCU216Station(Station):
         """
 
         super().__init__()
-
-        self.add_component(ZCU216MetaInstrument(name='zcu'))
+        self.add_component(ZCU216MetaInstrument(name='zcu', label='ZCU216'))
   
     def add_DAC_channel(self, channel: int, name: str):
         if channel in self.zcu.validDACs:
@@ -41,6 +40,26 @@ class ZCU216Station(Station):
 
     def add_protocol(self, protocol: Protocol):
         self.add_component(protocol)
+
+    def print_configuration(self):
+        print("Station configuration:\n\n")
+        for instrument in self.components:
+            print("-----" + self.components[instrument].label + "----")
+            print()
+            self.components[instrument].print_readable_snapshot()
+            print()
+
+    def print_io_configuration(self):
+        print("Station IO configuration:\n\n")
+        for instrument in self.components:
+            try:
+                if self.components[instrument].isADC or self.components[instrument].isDAC:
+                    print("-----" + self.components[instrument].label + "----")
+                    print()
+                    self.components[instrument].print_readable_snapshot()
+                    print()
+            except:
+                pass
 
     def troubleshoot(self):
         return self.zcu.return_soc()
@@ -141,10 +160,10 @@ class ZCU216Station(Station):
 
 
     def measure_iq( self,  
-                    params_and_values : dict[qc.Parameter, list],
+                    params_and_values : dict[qc.Parameter, list[float]],
                     protocol : Protocol,
                     dac_channels : dict[str : qc.Instrument],
-                    adc_channel: qc.Instrument):
+                    adc_channels: dict[str : qc.Instrument]):
         '''
         This function initializes and runs an IQ measurement.
 
@@ -162,16 +181,18 @@ class ZCU216Station(Station):
 
         
         #Here we want to validate the given data, which is protocol dependent.
-
-        dimension = 0
-
-        sweep_param_objects = []
-        sweep_configuration = {}
+        io_data = { **dac_channels, **adc_channels }
+        protocol.set_io(io_data)
+        print(protocol.validated_IO)
+        protocol.validate_params(params_and_values)
 
         #After input validation, we want to 
         #Configure the default config that will remain constant through the measurement
 
-        zcu_config = self.zcu.generate_config()
+        dimension = 0
+        sweep_param_objects = []
+        sweep_configuration = {}
+
         # initialize qcodes
 
         experiment = qc.load_or_create_experiment(
