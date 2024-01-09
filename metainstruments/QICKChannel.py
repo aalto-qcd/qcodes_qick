@@ -3,8 +3,6 @@ from qcodes.instrument import Instrument, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
-from qick.averager_program import QickSweep
-from measurements.protocols import Protocol, NDSweepProtocol, PulseProbeSpectroscopyProtocol, T1Protocol
 import numpy as np
 
 

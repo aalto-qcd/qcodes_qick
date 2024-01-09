@@ -3,8 +3,6 @@ from qcodes.instrument import Instrument, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
-from qick.averager_program import QickSweep
-from measurements.protocols import Protocol, NDSweepProtocol, PulseProbeSpectroscopyProtocol, T1Protocol
 import numpy as np
 
 
@@ -29,8 +27,6 @@ class ZCU216Metainstrument(Instrument):
 
         self.validADCs = [0,1]
         self.validDACs = [0,1,2,3,4,5,6]
-
-
 
     def add_DAC_channel(self, channel: int, name: str):
         if channel in self.validDACs:
