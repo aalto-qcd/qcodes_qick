@@ -24,7 +24,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
 
         self.required_DACs = {'qubit': 'Qubit probe channel', 'readout' : 'Readout pulse channel', }
         self.required_ADCs = {'adc' : 'Readout adc channel' }
-        self.validated_IO = {'qubit' : None, 'qubit': None, 'qubit': None}
+        self.validated_IO = {'qubit' : None, 'readout': None, 'adc': None}
 
         self.sensible_defaults = {
                                    "adc_trig_offset"  : 100,    # -- Clock ticks
@@ -46,13 +46,6 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                             unit = 'us', 
                             initial_value = 0.1)
 
-        self.add_parameter('variable_delay',
-                            parameter_class=ManualParameter,
-                            label='Variable delay between qubit excitation and readout',
-                            vals = Ints(*[0,4000]),
-                            unit = 'us',
-                            initial_value = 5)
-
         self.add_parameter('readout_length',
                             parameter_class=ManualParameter,
                             label='Lenght of the readout',
@@ -72,7 +65,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         """
 
         internal_config = {}
-        internal_config["start"] = self.validated_IO['qubit'].pulse_length.get()
+        internal_config["start"] = self.validated_IO['qubit'].pulse_freq.get()
         internal_config["expts"] = 1
         internal_config["step"] = 0 
 
@@ -115,8 +108,6 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                     'qubit_gain' : self.validated_IO['qubit'].pulse_gain,
                     'cavity_gain' : self.validated_IO['readout'].pulse_gain,
                     'cavity_freq' : self.validated_IO['readout'].pulse_freq,
-                    'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
-                    'cavity_phase' : self.validated_IO['readout'].pulse_phase,
                     'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
                     'cavity_phase' : self.validated_IO['readout'].pulse_phase,
                     'qubit_length' : self.validated_IO['qubit'].pulse_length,
