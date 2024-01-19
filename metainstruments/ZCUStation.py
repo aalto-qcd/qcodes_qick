@@ -116,10 +116,6 @@ class ZCU216Station(Station):
         # initialize qcodes
         # this will be removed in the final product (the user initializes their own experiment)
 
-        experiment = qc.load_or_create_experiment(
-                experiment_name="zcu_qcodes_test",
-                sample_name="Herja")
-
         meas = qc.Measurement(exp=experiment)
 
         #Create manual parameters for gathering data
