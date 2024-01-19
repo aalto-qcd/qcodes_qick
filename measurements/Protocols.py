@@ -6,6 +6,8 @@ from qcodes.instrument import Instrument, ManualParameter
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from typing import List, Dict, Any 
 
+from tqdm.auto import tqdm
+
 class Protocol(Instrument):
     """
     The protocol class is a wrapper around an actual qick program, which
@@ -110,13 +112,22 @@ class Protocol(Instrument):
              
 
 
-    def run_hybrid_loop_program( self, cfg, program, software_iterators ): 
+    def run_hybrid_loop_program( self, cfg, program  ): 
         #ONLY FOR RAVERAGERPROGRAMS
+
+        software_iterators = {}
+        iterations = 1
+    
+        for parameter_name, value in cfg.items():
+            if type(value) == list:
+                software_iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
+                iterations = iterations*value[2]
+
 
 
         if len(software_iterators) == 0:
             prog = program(self.soc, cfg)
-            expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True)
+            expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True, progress=True)
             expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output( [ expt_pts ], avg_i, avg_q)
             avg_i = np.squeeze(avg_i.flatten())
             avg_q = np.squeeze(avg_q.flatten())
@@ -132,7 +143,7 @@ class Protocol(Instrument):
             i_data = []
             q_data = []
 
-            for coordinate_point in itertools.product(*list(software_iterators.values())):
+            for coordinate_point in tqdm(itertools.product(*list(software_iterators.values())), total = iterations):
 
 
                 for coordinate_index in range(len(coordinate_point)):
