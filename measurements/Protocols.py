@@ -19,6 +19,11 @@ class Protocol(Instrument):
         self.required_ADCs = {}
         self.validated_IO = {}
 
+        #This list contains the sweep parameters, and it is to be deleted after every run
+        self.sweep_parameter_list = []
+        self.cfg = {}
+
+
         pass
 
     def initialize_qick_program(self, soc, sweep_configuration):
@@ -97,6 +102,7 @@ class Protocol(Instrument):
         for config_key, parameter in external_parameters.items():
             if parameter in sweep_configuration.keys():
                 external_parameter_config[config_key] = sweep_configuration[parameter]
+                self.add_sweep_parameter(isHardware = False, parameter = parameter)
             else:
                 external_parameter_config[config_key] = parameter.get()
 
@@ -111,7 +117,7 @@ class Protocol(Instrument):
         if len(software_iterators) == 0:
             prog = program(self.soc, cfg)
             expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True)
-            expt_pts, avg_i, avg_q = self.handle_output(expt_pts, avg_i, avg_q)
+            expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output( [ expt_pts ], avg_i, avg_q)
             avg_i = np.squeeze(avg_i.flatten())
             avg_q = np.squeeze(avg_q.flatten())
 
@@ -147,7 +153,10 @@ class Protocol(Instrument):
 
                 hardware_expt_data.extend([expt_pts[0][i] for i in range(len(expt_pts[0]))])
                 
-        software_expt_data.insert(0, hardware_expt_data)            
+
+
+        software_expt_data.reverse()
+        software_expt_data.append(hardware_expt_data)            
 
 
         return software_expt_data, i_data, q_data 
@@ -198,4 +207,77 @@ class Protocol(Instrument):
                 coord_index += 1
 
         return new_expt_pts, avg_i, avg_q
+
+    def add_sweep_parameter(self, isHardware: bool, parameter: qc.Parameter):
+        """
+        This function adds a sweep parameter in the correct order to the sweep_parameters.
+        """
+        if isHardware:
+            self.sweep_parameter_list.append(parameter)
+        else:
+            self.sweep_parameter_list.insert(0, parameter)
+
+    def reset_program(self):
+        """
+        reset the protocol, remove all program specific data, but do not change the internal 
+        parameter values
+        """
+        self.sweep_parameter_list = []
+        self.cfg = {}
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
