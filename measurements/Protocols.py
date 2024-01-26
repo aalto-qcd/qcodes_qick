@@ -2,13 +2,13 @@ import qcodes as qc
 import numpy as np
 import itertools
 from qick import *
-from qcodes.instrument import Instrument, ManualParameter
+from qcodes.instrument import InstrumentBase, ManualParameter
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from typing import List, Dict, Any 
 
 from tqdm.auto import tqdm
 
-class Protocol(Instrument):
+class Protocol(InstrumentBase):
     """
     The protocol class is a wrapper around an actual qick program, which
     handles initializing and running the qick program, and handling output
@@ -28,7 +28,8 @@ class Protocol(Instrument):
 
         pass
 
-    def initialize_qick_program(self, soc, sweep_configuration):
+
+    def initialize_qick_program(self, soc, soccfg, sweep_configuration):
         """ 
         Abstract method for possible initialization functionality 
 
@@ -126,7 +127,7 @@ class Protocol(Instrument):
 
 
         if len(software_iterators) == 0:
-            prog = program(self.soc, cfg)
+            prog = program(self.soccfg, cfg)
             expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True, progress=True)
             expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output( [ expt_pts ], avg_i, avg_q)
             avg_i = np.squeeze(avg_i.flatten())
@@ -150,7 +151,7 @@ class Protocol(Instrument):
                     cfg[iteratorlist[coordinate_index]] = round(coordinate_point[coordinate_index])
 
 
-                prog = program(self.soc, cfg) 
+                prog = program(self.soccfg, cfg) 
                 expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True)
 
                 #Problems arise here with NDAveragerprograms :)

@@ -78,12 +78,13 @@ class PulseProbeSpectroscopyProtocol(Protocol):
 
         return internal_config
 
-    def initialize_qick_program(self, soc, sweep_configuration):
+    def initialize_qick_program(self, soc, soccfg, sweep_configuration):
         """ 
         Initialize the qick soc and qick config
         
         """
         self.soc = soc
+        self.soccfg = soccfg
 
         #This is the only part where you need to hard code the qick config dictionary, this
         #is due to the fact that the qick config dictionary expect certain hard coded entries.

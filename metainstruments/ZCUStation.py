@@ -1,5 +1,5 @@
 import qcodes as qc
-from qcodes.instrument import Instrument, ManualParameter
+from qcodes.instrument import InstrumentBase, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints
 from qick import *
@@ -36,6 +36,8 @@ class ZCU216Station(Station):
         else:
             raise Exception("Invalid DAC channel number")
 
+    def ask(self, cmd): 
+        pass
 
     def add_ADC_channel(self, channel: int, name: str):
         if channel in self.zcu.validADCs:
@@ -134,7 +136,7 @@ class ZCU216Station(Station):
         with meas.run() as datasaver:
 
             #Initialize the
-            program_base_config, sweep_parameter_list = protocol.initialize_qick_program(self.zcu.soc, params_and_values)
+            program_base_config, sweep_parameter_list = protocol.initialize_qick_program(self.zcu.soc, self.zcu.soccfg, params_and_values)
 
             #Run the qick program, as defined by the protocol and params_and_values
             expt_pts, avg_i, avg_q = protocol.run_program(program_base_config)
