@@ -1,12 +1,16 @@
 import qcodes as qc
-from qcodes.instrument import Instrument, ManualParameter
+from qcodes.instrument import InstrumentBase, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
+from qick import QickConfig
+import Pyro4
+
+
 import numpy as np
 
 
-class ZCU216Metainstrument(Instrument):
+class ZCU216Metainstrument(InstrumentBase):
     '''
     This class is an abstract QCoDes instrument, which
     contains the settable and gettable parameters of the zcu216, most of which
@@ -23,10 +27,32 @@ class ZCU216Metainstrument(Instrument):
 
         super().__init__(**kwargs)
 
-        self.soc = QickSoc()
+        #Pyro4 Socket initialization
+
+
+        Pyro4.config.SERIALIZER = "pickle"
+        Pyro4.config.PICKLE_PROTOCOL_VERSION=4
+        
+
+        #IP ADDRESS AND PORT OF THE NAMESERVER
+        ns_host = "10.0.100.16"
+        ns_port = 8888
+        proxy_name = "myqick"
+        
+        ns = Pyro4.locateNS(host=ns_host, port=ns_port)
+
+        # print the nameserver entries: you should see the QickSoc proxy
+        for k,v in ns.list().items():
+            print(k,v)
+
+        self.soc = Pyro4.Proxy(ns.lookup(proxy_name))
+        self.soccfg = QickConfig(self.soc.get_cfg())
 
         self.validADCs = [0,1]
         self.validDACs = [0,1,2,3,4,5,6]
+
+    def ask(self, cmd):
+        pass
 
     def add_DAC_channel(self, channel: int, name: str):
         if channel in self.validDACs:

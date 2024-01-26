@@ -1,12 +1,12 @@
 import qcodes as qc
-from qcodes.instrument import Instrument, ManualParameter
+from qcodes.instrument import InstrumentBase, ManualParameter
 from qcodes.station import Station
 from qcodes.utils.validators import Numbers, MultiType, Ints 
 from qick import *
 import numpy as np
 
 
-class DACChannel(Instrument):
+class DACChannel(InstrumentBase):
     
     def __init__(self, name: str, channel_number: int, **kwargs):
         '''
@@ -68,8 +68,12 @@ class DACChannel(Instrument):
                             unit = 'us',
                             initial_value = 10)
 
+    def ask(self, cmd): 
+        pass
 
-class ADCChannel(Instrument):
+
+
+class ADCChannel(InstrumentBase):
 
     def __init__(self, name: str, channel_number: int, **kwargs):
         '''
@@ -89,4 +93,7 @@ class ADCChannel(Instrument):
                             label='Channel number',
                             vals = Ints(*[0,1]),
                             initial_value = channel_number)
+
+    def ask(self, cmd):
+        pass
 
