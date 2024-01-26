@@ -148,8 +148,6 @@ class NDSweepProtocol(Protocol):
         self.cfg = cfg.copy()
         software_iterators = {}
         iterations = 1
-        print(self.soc)
-        print(self.soccfg)
         
 
         for parameter_name, value in cfg.items():

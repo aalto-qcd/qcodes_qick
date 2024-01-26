@@ -77,7 +77,7 @@ class ZCU216Metainstrument(InstrumentBase):
         """
 
                 
-        return self.soc
+        return self.soccfg
 
 
 
