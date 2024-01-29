@@ -59,6 +59,13 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                             vals = Ints(0,5000),
                             initial_value = 400)
 
+        self.add_parameter('readout_pulse_delay',
+                            parameter_class=ManualParameter,
+                            label='Delay between ending the probe pulse and initiating the readout pulse',
+                            vals = Numbers(*[0,100]),
+                            unit = 'us',
+                            initial_value = 0.05)
+
     def compile_hardware_sweep_dict(self, sweep_configuration, internal_variables):
         """
         This can be hardcoded for now.
@@ -96,6 +103,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                     'reps' : self.reps,
                     'relax_delay' : self.relax_delay,
                     'adc_trig_offset' : self.adc_trig_offset,
+                    'readout_pulse_delay' : self.readout_pulse_delay
 
                     #For the PulseProbeSpectroscopy program, readout probe pulse
                     #lenght is a good readout lenght
@@ -194,7 +202,7 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
 
     def body(self):
         self.pulse(ch=self.cfg["qubit_ch"])  #play probe pulse
-        self.sync_all(self.us2cycles(0.05)) # align channels and wait 50ns
+        self.sync_all(self.us2cycles(cfg["readout_pulse_delay"])) # align channels and wait 50ns
 
         #trigger measurement, play measurement pulse, wait for qubit to relax
         self.measure(pulse_ch=self.cfg["cavity_ch"],
