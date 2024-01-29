@@ -46,12 +46,6 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                             unit = 'us', 
                             initial_value = 0.1)
 
-        self.add_parameter('readout_length',
-                            parameter_class=ManualParameter,
-                            label='Lenght of the readout',
-                            vals = Numbers(*[0,150]),
-                            unit = 'us',
-                            initial_value = 5)
 
         self.add_parameter('reps',
                             parameter_class=ManualParameter,

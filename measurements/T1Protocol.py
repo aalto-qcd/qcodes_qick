@@ -61,12 +61,6 @@ class T1Protocol(Protocol):
                             unit = 'us',
                             initial_value = 5)
 
-        self.add_parameter('readout_length',
-                            parameter_class=ManualParameter,
-                            label='Lenght of the readout',
-                            vals = Numbers(*[0,150]),
-                            unit = 'us',
-                            initial_value = 5)
 
         self.add_parameter('reps',
                             parameter_class=ManualParameter,
