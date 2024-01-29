@@ -105,17 +105,20 @@ class PulseProbeSpectroscopyProtocol(Protocol):
 
                     #These are channel specific values 
                     'qubit_ch' : self.validated_IO['qubit'].channel,
-                    'cavity_ch' : self.validated_IO['readout'].channel,
-                    'ro_ch' : self.validated_IO['adc'].channel,
                     'qubit_nqz' : self.validated_IO['qubit'].nqz,
-                    'cavity_nqz' : self.validated_IO['readout'].nqz,
                     'qubit_gain' : self.validated_IO['qubit'].pulse_gain,
+                    'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
+                    'qubit_length' : self.validated_IO['qubit'].pulse_length,
+
+
+                    'cavity_ch' : self.validated_IO['readout'].channel,
+                    'cavity_nqz' : self.validated_IO['readout'].nqz,
                     'cavity_gain' : self.validated_IO['readout'].pulse_gain,
                     'cavity_freq' : self.validated_IO['readout'].pulse_freq,
-                    'qubit_phase' : self.validated_IO['qubit'].pulse_phase,
                     'cavity_phase' : self.validated_IO['readout'].pulse_phase,
-                    'qubit_length' : self.validated_IO['qubit'].pulse_length,
                     'cavity_length' : self.validated_IO['readout'].pulse_length
+
+                    'ro_ch' : self.validated_IO['adc'].channel,
                    }
 
         external_config = self.compile_software_sweep_dict( sweep_configuration, external_parameters )
