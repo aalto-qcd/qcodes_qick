@@ -148,7 +148,7 @@ class Protocol(InstrumentBase):
 
 
                 for coordinate_index in range(len(coordinate_point)):
-                    cfg[iteratorlist[coordinate_index]] = round(coordinate_point[coordinate_index])
+                    cfg[iteratorlist[coordinate_index]] = coordinate_point[coordinate_index]
 
 
                 prog = program(self.soccfg, cfg) 
