@@ -167,7 +167,7 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
         qubit_ch = cfg["qubit_ch"]
         probe_freq = self.freq2reg(cfg["start"], gen_ch=qubit_ch, ro_ch=cfg["ro_ch"])
         probe_phase = self.deg2reg(cfg["qubit_phase"], gen_ch=qubit_ch)
-        probe_gain = cfg["qubit_gain"]
+        probe_gain = round(cfg["qubit_gain"])
         probe_length = self.us2cycles(cfg['qubit_length'], gen_ch=qubit_ch)
         cavity_pulse_length = self.us2cycles(cfg['readout_length'], gen_ch=cfg["cavity_ch"])
         self.declare_gen(ch=cfg["cavity_ch"], nqz=cfg["cavity_nqz"]) #Cavity resonant probe

@@ -212,7 +212,7 @@ class T1Program(RAveragerProgram):
         #The channel for the qubit probing is the channel corresponding
         #to the default pulse variables (pulse_lenght, pulse_phase, etc.)
         qubit_ch = cfg["qubit_ch"]
-        probe_gain = cfg["qubit_gain"]
+        probe_gain = round(cfg["qubit_gain"])
         probe_length = self.us2cycles(cfg['qubit_length'], gen_ch=qubit_ch)
 
         cavity_freq=self.freq2reg(cfg["cavity_freq"], gen_ch=cfg["cavity_ch"], ro_ch=cfg["ro_ch"]) # conver f_res to dac register value
