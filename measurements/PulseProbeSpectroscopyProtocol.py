@@ -97,7 +97,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                     'reps' : self.reps,
                     'relax_delay' : self.relax_delay,
                     'adc_trig_offset' : self.adc_trig_offset,
-                    'readout_pulse_delay' : self.readout_pulse_delay
+                    'readout_pulse_delay' : self.readout_pulse_delay,
 
                     #For the PulseProbeSpectroscopy program, readout probe pulse
                     #lenght is a good readout lenght
@@ -116,9 +116,9 @@ class PulseProbeSpectroscopyProtocol(Protocol):
                     'cavity_gain' : self.validated_IO['readout'].pulse_gain,
                     'cavity_freq' : self.validated_IO['readout'].pulse_freq,
                     'cavity_phase' : self.validated_IO['readout'].pulse_phase,
-                    'cavity_length' : self.validated_IO['readout'].pulse_length
+                    'cavity_length' : self.validated_IO['readout'].pulse_length,
 
-                    'ro_ch' : self.validated_IO['adc'].channel,
+                    'ro_ch' : self.validated_IO['adc'].channel
                    }
 
         external_config = self.compile_software_sweep_dict( sweep_configuration, external_parameters )
