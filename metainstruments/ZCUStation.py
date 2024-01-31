@@ -81,7 +81,7 @@ class ZCU216Station(Station):
             pass
 
     def measure_iq( self,  
-                    params_and_values : Dict[qc.Parameter, List[float]],
+                    params_and_values : Dict[qc.Parameter,  np.ndarray],
                     protocol : Protocol,
                     dac_channels : Dict[str, qc.Instrument],
                     adc_channels: Dict[str, qc.Instrument],

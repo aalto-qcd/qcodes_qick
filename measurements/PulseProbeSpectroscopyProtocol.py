@@ -73,8 +73,8 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         for parameter, values in sweep_configuration.items():
             if parameter == internal_variables['qubit_freq']:
                 internal_config["start"] = values[0]
-                internal_config["expts"] = values[2]
-                internal_config["step"] = (values[1] - values[0])/values[2]
+                internal_config["expts"] = values[-1]
+                internal_config["step"] = (values[-1]-values[0])/len(values)
                 self.add_sweep_parameter(isHardware = True, parameter = parameter)
 
         return internal_config
