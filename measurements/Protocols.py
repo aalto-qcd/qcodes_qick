@@ -59,6 +59,11 @@ class Protocol(InstrumentBase):
 
         pass
 
+    
+    def print_io(self):
+        print(self.required_DACs)
+        print(self.required_ADCs)
+        return
 
 
     def set_io(self, io_data : Dict[str, qc.Instrument]):

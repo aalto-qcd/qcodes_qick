@@ -234,9 +234,7 @@ class T1Program(RAveragerProgram):
 
 
         # add qubit and readout pulses to respective channels
-        self.add_gauss(ch=qubit_ch, name="qubit", sigma=t1_sigma, length=t1_sigma*4)
-        self.set_pulse_registers(ch=qubit_ch, style="arb", freq=probe_freq, phase=0, gain=probe_gain,
-                                 waveform="qubit")
+        self.set_pulse_registers(ch=qubit_ch, style="const", freq=probe_freq, phase=0, gain=probe_gain)
         self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=cfg["cavity_phase"], gain=cfg["cavity_gain"],
                                  length=cavity_pulse_length)
 

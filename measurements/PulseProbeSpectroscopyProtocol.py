@@ -84,6 +84,9 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         Initialize the qick soc and qick config
         
         """
+        
+
+
         self.soc = soc
         self.soccfg = soccfg
 
