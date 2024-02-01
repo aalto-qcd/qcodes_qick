@@ -56,7 +56,7 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         self.add_parameter('readout_pulse_delay',
                             parameter_class=ManualParameter,
                             label='Delay between ending the probe pulse and initiating the readout pulse',
-                            vals = Numbers(*[0,100]),
+                            vals = Numbers(*[0,1000]),
                             unit = 'us',
                             initial_value = 0.05)
 
@@ -73,8 +73,8 @@ class PulseProbeSpectroscopyProtocol(Protocol):
         for parameter, values in sweep_configuration.items():
             if parameter == internal_variables['qubit_freq']:
                 internal_config["start"] = values[0]
-                internal_config["expts"] = values[-1]
-                internal_config["step"] = (values[-1]-values[0])/len(values)
+                internal_config["expts"] = values[2]
+                internal_config["step"] = (values[1]-values[0])/values[2]
                 self.add_sweep_parameter(isHardware = True, parameter = parameter)
 
         return internal_config
@@ -195,14 +195,14 @@ class PulseProbeSpectroscopyProgram(RAveragerProgram):
         self.set_pulse_registers(ch=qubit_ch, style="const", freq=self.f_start, phase=probe_phase, gain=probe_gain,
                                  length=probe_length)
 
-        self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=cfg["cavity_phase"], gain=cfg["cavity_gain"],
+        self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=cfg["cavity_phase"], gain=round(cfg["cavity_gain"]),
                                  length=cavity_pulse_length)
 
         self.sync_all(self.us2cycles(200))
 
     def body(self):
         self.pulse(ch=self.cfg["qubit_ch"])  #play probe pulse
-        self.sync_all(self.us2cycles(cfg["readout_pulse_delay"])) # align channels and wait 50ns
+        self.sync_all(self.us2cycles(self.cfg["readout_pulse_delay"])) # align channels and wait 50ns
 
         #trigger measurement, play measurement pulse, wait for qubit to relax
         self.measure(pulse_ch=self.cfg["cavity_ch"],

@@ -81,7 +81,7 @@ class ZCU216Station(Station):
             pass
 
     def measure_iq( self,  
-                    params_and_values : Dict[qc.Parameter,  np.ndarray],
+                    params_and_values : Dict[qc.Parameter,  List[float]],
                     protocol : Protocol,
                     dac_channels : Dict[str, qc.Instrument],
                     adc_channels: Dict[str, qc.Instrument],
@@ -123,18 +123,20 @@ class ZCU216Station(Station):
         #Create manual parameters for gathering data
         for parameter, values in params_and_values.items():
             sweep_param_objects.append(parameter)
-            meas.register_parameter(parameter)
+            meas.register_parameter(parameter, paramtype="array")
 
 
         #Define the custom parameters which are dependent on the manual parameters
-        meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects)
-        meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects)
+        meas.register_custom_parameter("avg_i", setpoints=sweep_param_objects, paramtype="array")
+        meas.register_custom_parameter("avg_q", setpoints=sweep_param_objects, paramtype="array")
 
         result_param_values = []
 
         #The qcodes experiment, surrounding the qick program is contained here.
         with meas.run() as datasaver:
-
+            
+            
+            protocol.reset_program()
             #Initialize the
             program_base_config, sweep_parameter_list = protocol.initialize_qick_program(self.zcu.soc, self.zcu.soccfg, params_and_values)
 
@@ -147,7 +149,7 @@ class ZCU216Station(Station):
                 result_param_values.append( (sweep_parameter_list[i], expt_pts[i] ) )
 
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values)
-            protocol.reset_program()
+            
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id

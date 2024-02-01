@@ -72,7 +72,7 @@ class NDSweepProtocol(Protocol):
         for config_name, parameter in internal_variables.items():
             if parameter in sweep_configuration.keys():
                 values = sweep_configuration[parameter]
-                sweep_config[config_name] = [ values[0], values[-1], (values[-1]-values[0])/len(values)]
+                sweep_config[config_name] = [ values[0], values[1], values[2] ]
                 internal_config[config_name] = values[0] 
                 self.add_sweep_parameter(isHardware = True, parameter = parameter)
             else:
@@ -152,9 +152,8 @@ class NDSweepProtocol(Protocol):
 
         for parameter_name, value in cfg.items():
             if type(value) == list:
-                software_iterators[parameter_name] = value.tolist()
-                iterations = iterations*(len(value))
-
+                software_iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
+                iterations = iterations*value[2]
 
         if len(software_iterators) == 0:
             program = HardwareSweepProgram(self.soccfg, cfg)
