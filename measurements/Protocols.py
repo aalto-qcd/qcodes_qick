@@ -91,19 +91,19 @@ class Protocol(InstrumentBase):
             return True
 
 
-    def validate_params(self, params_and_values : Dict[qc.Parameter, np.ndarray]):
+    def validate_params(self, params_and_values : Dict[qc.Parameter, List[float]]):
         #Validate params and values
         #This is only an elementary check. We want to be able to trust
         #That the iteration list corresponding to the parameter is valid
         for parameter, sweep_configuration in params_and_values.items():
-            if parameter.validate(sweep_configuration) is None:
+            if parameter.validate(sweep_configuration[0]) is None and parameter.validate(sweep_configuration[1]) is None:
                 pass
             else:
                 raise Exception("Invalid parameter setpoints: " + parameter.name )
                 return False
         return True 
             
-    def compile_software_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, np.ndarray],  external_parameters : Dict[str, qc.Parameter]):
+    def compile_software_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, List[float] ],  external_parameters : Dict[str, qc.Parameter]):
 
         external_parameter_config = {}
 
@@ -125,9 +125,9 @@ class Protocol(InstrumentBase):
         iterations = 1
     
         for parameter_name, value in cfg.items():
-            if type(value) == np.ndarray:
-                software_iterators[parameter_name] = value.tolist()
-                iterations = iterations*len(value)
+            if type(value) == list:
+                software_iterators[parameter_name] = np.linspace(value[0],value[1],value[2]).tolist()
+                iterations = iterations*value[2]
 
 
 
