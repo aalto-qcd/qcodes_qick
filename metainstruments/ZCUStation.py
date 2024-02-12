@@ -71,16 +71,13 @@ class ZCU216Station(Station):
             except:
                 pass
 
-    def troubleshoot(self):
-        return self.zcu.return_soc()
-
     def remove_protocol(self, protocol: Protocol):
         try:
             self.remove_component(protocol.name)
         except:
             pass
 
-    def measure_iq( self,  
+    def measure_iq( self,
                     params_and_values : Dict[qc.Parameter,  List[float]],
                     protocol : Protocol,
                     dac_channels : Dict[str, qc.Instrument],
@@ -116,7 +113,6 @@ class ZCU216Station(Station):
         sweep_configuration = {}
 
         # initialize qcodes
-        # this will be removed in the final product (the user initializes their own experiment)
 
         meas = qc.Measurement(exp=experiment)
 
@@ -136,12 +132,11 @@ class ZCU216Station(Station):
         with meas.run() as datasaver:
             
             
-            protocol.reset_program()
             #Initialize the
-            program_base_config, sweep_parameter_list = protocol.initialize_qick_program(self.zcu.soc, self.zcu.soccfg, params_and_values)
+            program_base_config, sweep_parameter_list = protocol.initialize_qick_config(params_and_values)
 
             #Run the qick program, as defined by the protocol and params_and_values
-            expt_pts, avg_i, avg_q = protocol.run_program(program_base_config)
+            expt_pts, avg_i, avg_q = protocol.run_program(self.zcu.soc, program_base_config)
 
             #Divide the expt_pts array into individual measurement points
             #for each sweepable variable.
@@ -149,14 +144,9 @@ class ZCU216Station(Station):
                 result_param_values.append( (sweep_parameter_list[i], expt_pts[i] ) )
 
             datasaver.add_result( ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values)
-            
+
 
         #Return the run_id
         run_id = datasaver.dataset.captured_run_id
-
-        #This might be unnecessary/annoying. 
-        #self.remove_protocol(protocol)
-
         return run_id
-
 

@@ -46,7 +46,6 @@ class ZCU216Metainstrument(InstrumentBase):
             print(k,v)
 
         self.soc = Pyro4.Proxy(ns.lookup(proxy_name))
-        self.soccfg = QickConfig(self.soc.get_cfg())
 
         self.validADCs = [0,1]
         self.validDACs = [0,1,2,3,4,5,6]
@@ -67,7 +66,7 @@ class ZCU216Metainstrument(InstrumentBase):
         else:
             raise Exception("Invalid ADC channel number") 
 
-    def return_soc(self):
+    def get_soccfg(self):
         """
         In this function, we generate a qick configuration dictionary based
         on the parameters in the metainstrument, which the user may have set
@@ -77,7 +76,7 @@ class ZCU216Metainstrument(InstrumentBase):
         """
 
                 
-        return self.soccfg
+        return QickConfig(self.soc.get_cfg())
 
 
 

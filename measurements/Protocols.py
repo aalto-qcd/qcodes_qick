@@ -29,7 +29,7 @@ class Protocol(InstrumentBase):
         pass
 
 
-    def initialize_qick_program(self, soc, soccfg, sweep_configuration):
+    def initialize_qick_config(self, sweep_configuration):
         """ 
         Abstract method for possible initialization functionality 
 
@@ -103,24 +103,27 @@ class Protocol(InstrumentBase):
                 return False
         return True 
             
-    def compile_software_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, List[float] ],  external_parameters : Dict[str, qc.Parameter]):
+    def compile_software_sweep_dict( self, sweep_configuration : Dict[qc.Parameter, List[float] ],
+                                     external_parameters : Dict[str, qc.Parameter],
+                                     sweep_parameter_list: List[qc.Parameter],):
 
         external_parameter_config = {}
 
         for config_key, parameter in external_parameters.items():
             if parameter in sweep_configuration.keys():
                 external_parameter_config[config_key] = sweep_configuration[parameter]
-                self.add_sweep_parameter(isHardware = False, parameter = parameter)
+                sweep_parameter_list = self.add_sweep_parameter(isHardware = False, parameter = parameter, sweep_parameter_list = sweep_parameter_list)
             else:
                 external_parameter_config[config_key] = parameter.get()
 
-        return external_parameter_config
+        return external_parameter_config, sweep_parameter_list
              
 
 
-    def run_hybrid_loop_program( self, cfg, program  ): 
+    def run_hybrid_loop_program( self, soc, cfg, program  ): 
         #ONLY FOR RAVERAGERPROGRAMS
 
+        soccfg = QickConfig(soc.get_cfg())
         software_iterators = {}
         iterations = 1
     
@@ -132,8 +135,8 @@ class Protocol(InstrumentBase):
 
 
         if len(software_iterators) == 0:
-            prog = program(self.soccfg, cfg)
-            expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True, progress=True)
+            prog = program(soccfg, cfg)
+            expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True, progress=True)
             expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output( [ expt_pts ], avg_i, avg_q)
             avg_i = np.squeeze(avg_i.flatten())
             avg_q = np.squeeze(avg_q.flatten())
@@ -156,8 +159,8 @@ class Protocol(InstrumentBase):
                     cfg[iteratorlist[coordinate_index]] = coordinate_point[coordinate_index]
 
 
-                prog = program(self.soccfg, cfg) 
-                expt_pts, avg_i, avg_q = prog.acquire(self.soc, load_pulses=True)
+                prog = program(soccfg, cfg) 
+                expt_pts, avg_i, avg_q = prog.acquire(soc, load_pulses=True)
 
                 #Problems arise here with NDAveragerprograms :)
                 expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output( [ expt_pts ], avg_i, avg_q )
@@ -225,22 +228,16 @@ class Protocol(InstrumentBase):
 
         return new_expt_pts, avg_i, avg_q
 
-    def add_sweep_parameter(self, isHardware: bool, parameter: qc.Parameter):
+    def add_sweep_parameter(self, isHardware: bool, parameter: qc.Parameter, sweep_parameter_list : List[qc.Parameter]):
         """
         This function adds a sweep parameter in the correct order to the sweep_parameters.
         """
         if isHardware:
-            self.sweep_parameter_list.append(parameter)
+            sweep_parameter_list.append(parameter)
         else:
-            self.sweep_parameter_list.insert(0, parameter)
-
-    def reset_program(self):
-        """
-        reset the protocol, remove all program specific data, but do not change the internal 
-        parameter values
-        """
-        self.sweep_parameter_list = []
-        self.cfg = {}
+            sweep_parameter_list.insert(0, parameter)
+            
+        return sweep_parameter_list
 
         
 

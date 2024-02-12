@@ -93,6 +93,13 @@ class ADCChannel(InstrumentBase):
                             label='Channel number',
                             vals = Ints(*[0,1]),
                             initial_value = channel_number)
+                            
+        self.add_parameter('readout_time',
+                            parameter_class=ManualParameter,
+                            label='Up time of the ADC readout | Used for timetrace applications',
+                            vals = Numbers(*[0,1000000]),
+                            unit = 'Clock ticks',
+                            initial_value = 0)       
 
     def ask(self, cmd):
         pass

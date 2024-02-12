@@ -62,7 +62,7 @@ class NDSweepProtocol(Protocol):
                             vals = Ints(0,5000),
                             initial_value = 400)
 
-    def compile_hardware_sweep_dict(self, sweep_configuration, internal_variables):
+    def compile_hardware_sweep_dict(self, sweep_configuration, internal_variables, sweep_parameter_list):
         """
         This can be hardcoded for now.
         """
@@ -74,7 +74,7 @@ class NDSweepProtocol(Protocol):
                 values = sweep_configuration[parameter]
                 sweep_config[config_name] = [ values[0], values[1], values[2] ]
                 internal_config[config_name] = values[0] 
-                self.add_sweep_parameter(isHardware = True, parameter = parameter)
+                sweep_parameter_list = self.add_sweep_parameter(isHardware = True, parameter = parameter, sweep_parameter_list = sweep_parameter_list)
             else:
                 internal_config[config_name] = parameter.get() 
 
@@ -82,17 +82,16 @@ class NDSweepProtocol(Protocol):
 
         internal_config["sweep_variables"] = sweep_config
 
-        return internal_config
+        return internal_config, sweep_parameter_list
 
-    def initialize_qick_program(self, soc, soccfg, sweep_configuration):
+    def initialize_qick_config(self, sweep_configuration):
 
         """ 
         Initialize the qick soc and qick config
         NOTE: soc is the Pyro4 proxy object, and soccfg is a QickConfig object inferred from the proxy object
         
         """
-        self.soc = soc
-        self.soccfg = soccfg
+
 
         #This is the only part where you need to hard code the qick config dictionary, this
         #is due to the fact that the qick config dictionary expect certain hard coded entries.
@@ -113,7 +112,8 @@ class NDSweepProtocol(Protocol):
                     'probe_freq' : self.validated_IO['probe'].pulse_freq,
                    }
 
-        external_config = self.compile_software_sweep_dict( sweep_configuration, external_parameters )
+        sweep_parameter_list = []
+        external_config, sweep_parameter_list = self.compile_software_sweep_dict( sweep_configuration, external_parameters, sweep_parameter_list )
 
         # Internal parameters that can be swept in hardware
         internal_parameters = { 
@@ -122,14 +122,14 @@ class NDSweepProtocol(Protocol):
                     'probe_length' : self.validated_IO['probe'].pulse_length,
                    }
 
-        internal_config = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters)
+        internal_config, sweep_parameter_list = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters, sweep_parameter_list)
 
         qick_config = {**external_config, **internal_config}
 
-        return qick_config, self.sweep_parameter_list
+        return qick_config, sweep_parameter_list
 
                 
-    def run_program(self, cfg : Dict[str, float]):
+    def run_program(self, soc, cfg : Dict[str, float]):
         """
         This method runs the program and returns the measurement 
         result. For the NDSweep program, combining both multiple
@@ -145,7 +145,7 @@ class NDSweepProtocol(Protocol):
             avg_i:
             ND-array of avg_i values containing each measurement i value.
         """
-        self.cfg = cfg.copy()
+        soccfg = QickConfig(soc.get_cfg())
         software_iterators = {}
         iterations = 1
         
@@ -156,14 +156,14 @@ class NDSweepProtocol(Protocol):
                 iterations = iterations*value[2]
 
         if len(software_iterators) == 0:
-            program = HardwareSweepProgram(self.soccfg, cfg)
-            expt_pts, avg_i, avg_q = program.acquire(self.soc, progress=True)
+            program = HardwareSweepProgram(soccfg, cfg)
+            expt_pts, avg_i, avg_q = program.acquire(soc, progress=True)
             expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(expt_pts, avg_i, avg_q)
             for i in range(len(list(cfg['sweep_variables']))):
                 if list(cfg['sweep_variables'])[i] == 'probe_length':
                     length_expt_pts = expt_pts[i]
-                    mode_code = length_expt_pts[0] - self.soc.us2cycles(cfg['sweep_variables']['probe_length'][0])
-                    f = lambda x: self.soc.cycles2us(x - mode_code)
+                    mode_code = length_expt_pts[0] - soccfg.us2cycles(cfg['sweep_variables']['probe_length'][0])
+                    f = lambda x: soccfg.cycles2us(x - mode_code)
                     fixed_length_vals = [ f(x) for x in length_expt_pts]
                     expt_pts[i] = fixed_length_vals
                     
@@ -197,14 +197,14 @@ class NDSweepProtocol(Protocol):
                     cfg[iteratorlist[coordinate_index]] = coordinate_point[coordinate_index]
 
 
-                program = HardwareSweepProgram( self.soccfg, cfg )
-                expt_pts, avg_i, avg_q = program.acquire(self.soc )
+                program = HardwareSweepProgram( soccfg, cfg )
+                expt_pts, avg_i, avg_q = program.acquire(soc )
 
                 for i in range(hardware_loop_dim):
                     if list(cfg['sweep_variables'])[i] == 'probe_length':
                         length_expt_pts = expt_pts[i]
-                        mode_code = length_expt_pts[0] - self.soc.us2cycles(cfg['sweep_variables']['probe_length'][0])
-                        f = lambda x: self.soc.cycles2us(x - mode_code)
+                        mode_code = length_expt_pts[0] - soccfg.us2cycles(cfg['sweep_variables']['probe_length'][0])
+                        f = lambda x: soccfg.cycles2us(x - mode_code)
                         fixed_length_vals = [ f(x) for x in length_expt_pts]
                         expt_pts[i] = fixed_length_vals
                     else:
@@ -252,13 +252,13 @@ class HardwareSweepProgram(NDAveragerProgram):
         probe_ch = cfg["probe_ch"]
         freq = self.freq2reg(cfg["probe_freq"], gen_ch=probe_ch, ro_ch=cfg["ro_ch"])
         phase = self.deg2reg(cfg["probe_phase"], gen_ch=probe_ch)
-        gain = cfg["probe_gain"]
+        gain = round(cfg["probe_gain"])
         length = self.us2cycles(cfg['probe_length'], gen_ch=cfg['probe_ch'])
         sweep_variables = cfg["sweep_variables"]
 
         #Declare signal generators and readout
         self.declare_gen(ch=cfg["probe_ch"], nqz=cfg["probe_nqz"], ro_ch=cfg["ro_ch"])
-        self.declare_readout(ch=cfg["ro_ch"], length=self.us2cycles(cfg['readout_length'], ro_ch = cfg['ro_ch']),
+        self.declare_readout(ch=cfg["ro_ch"], length=self.us2cycles(cfg['readout_length']),
                              freq=cfg["probe_freq"], gen_ch=cfg["probe_ch"])
 
         self.set_pulse_registers(ch=probe_ch, style="const", freq=freq, phase=phase, gain=gain, length=length)
@@ -296,7 +296,6 @@ class HardwareSweepProgram(NDAveragerProgram):
 
         self.measure(pulse_ch=cfg["probe_ch"],
                      adcs=[cfg["ro_ch"]],
-                     pins=[0],
                      adc_trig_offset=round(cfg["adc_trig_offset"]),
                      wait=True,
                      syncdelay=self.us2cycles(cfg["relax_delay"]))
