@@ -61,7 +61,8 @@ class T1Protocol(Protocol):
                             vals = Ints(0,5000),
                             initial_value = 400)
 
-    def compile_hardware_sweep_dict(self, sweep_configuration, internal_variables):
+
+    def compile_hardware_sweep_dict(self, sweep_configuration, internal_variables, sweep_parameter_list ):
         """
         This can be hardcoded for now.
         """
@@ -76,17 +77,15 @@ class T1Protocol(Protocol):
                 internal_config["start"] = values[0]
                 internal_config["expts"] = values[2]
                 internal_config["step"] = (values[1]-values[0])/values[2]
-                self.add_sweep_parameter(isHardware = True, parameter = parameter)
+                sweep_parameter_list = self.add_sweep_parameter(isHardware = True, parameter = parameter, sweep_parameter_list = sweep_parameter_list)
 
-        return internal_config
+        return internal_config, sweep_parameter_list
 
-    def initialize_qick_program(self, soc, soccfg, sweep_configuration):
+    def initialize_qick_config(self, sweep_configuration):
         """ 
         Initialize the qick soc and qick config
         
         """
-        self.soc = soc
-        self.soccfg = soccfg
 
         #This is the only part where you need to hard code the qick config dictionary, this
         #is due to the fact that the qick config dictionary expect certain hard coded entries.
@@ -121,20 +120,21 @@ class T1Protocol(Protocol):
                     'ro_ch' : self.validated_IO['adc'].channel
                    }
 
-        external_config = self.compile_software_sweep_dict( sweep_configuration, external_parameters )
+        sweep_parameter_list = []
+        external_config, sweep_parameter_list = self.compile_software_sweep_dict( sweep_configuration, external_parameters, sweep_parameter_list )
 
         # Internal parameters that can be swept in hardware
         internal_parameters = { 
                     'variable_delay' : self.variable_delay,
                    }
 
-        internal_config = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters)
+        internal_config, sweep_parameter_list = self.compile_hardware_sweep_dict(sweep_configuration, internal_parameters, sweep_parameter_list)
         qick_config = {**external_config, **internal_config}
 
-        return qick_config, self.sweep_parameter_list
+        return qick_config, sweep_parameter_list
 
                 
-    def run_program(self, cfg : Dict[str, float]):
+    def run_program(self, soc, cfg : Dict[str, float]):
         """
         This method runs the program and returns the measurement 
         result.
@@ -150,7 +150,7 @@ class T1Protocol(Protocol):
         """
         self.cfg = cfg.copy()
 
-        expt_pts, avg_i, avg_q = self.run_hybrid_loop_program(self.cfg, T1Program)
+        expt_pts, avg_i, avg_q = self.run_hybrid_loop_program(soc, self.cfg, T1Program)
         return expt_pts, avg_i, avg_q 
 
     def handle_output(self, expt_pts, avg_i, avg_q):
@@ -227,7 +227,7 @@ class T1Program(RAveragerProgram):
 
         # add qubit and readout pulses to respective channels
         self.set_pulse_registers(ch=qubit_ch, style="const", freq=probe_freq, phase=probe_phase, gain=probe_gain, length=probe_length)
-        self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=cfg["cavity_phase"], gain=round(cfg["cavity_gain"]),
+        self.set_pulse_registers(ch=cfg["cavity_ch"], style="const", freq=cavity_freq, phase=self.deg2reg(cfg["qubit_phase"], gen_ch=cavity_ch), gain=round(cfg["cavity_gain"]),
                                  length=cavity_pulse_length)
 
         self.sync_all(self.us2cycles(200))
