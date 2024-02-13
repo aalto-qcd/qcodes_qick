@@ -57,8 +57,12 @@ class ZCU216Station(Station):
 
     def print_configuration(self):
         print("Station configuration:\n\n")
+        
         for instrument in self.components:
-            self.components[instrument].print_readable_snapshot()
+            try:
+                self.components[instrument].print_readable_snapshot()
+            except:
+                pass
             print()
 
     def print_io_configuration(self):
