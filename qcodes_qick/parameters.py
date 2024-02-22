@@ -6,7 +6,7 @@ from qcodes.validators import Numbers
 from qick.qick_asm import QickConfig
 
 
-class QickDacFreqParameter(Parameter):
+class DacHzParameter(Parameter):
     """Frequency parameter with automatic rounding to a multiple of the frequency unit of the specified DAC channel (and optionally also an ADC channel). The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
@@ -27,7 +27,7 @@ class QickDacFreqParameter(Parameter):
         )
 
 
-class QickAdcFreqParameter(Parameter):
+class AdcHzParameter(Parameter):
     """Frequency parameter with automatic rounding to a multiple of the frequency unit of the specified ADC channel (and optionally also an DAC channel). The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
@@ -48,7 +48,7 @@ class QickAdcFreqParameter(Parameter):
         )
 
 
-class QickDacPhaseParameter(Parameter):
+class DacDegParameter(Parameter):
     """Phase parameter with automatic rounding to a multiple of the phase unit of the specified DAC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
@@ -68,7 +68,7 @@ class QickDacPhaseParameter(Parameter):
         )
 
 
-class QickDacTimeParameter(Parameter):
+class DacSecParameter(Parameter):
     """Time parameter with automatic rounding to a multiple of the time unit of the specified DAC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
@@ -88,7 +88,7 @@ class QickDacTimeParameter(Parameter):
         )
 
 
-class QickAdcTimeParameter(Parameter):
+class AdcSecParameter(Parameter):
     """Time parameter with automatic rounding to a multiple of the time unit of the specified ADC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
