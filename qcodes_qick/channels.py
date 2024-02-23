@@ -1,10 +1,12 @@
-from qcodes.instrument import InstrumentBase, ManualParameter
+from qcodes import InstrumentChannel, ManualParameter
 from qcodes.utils.validators import Ints, Numbers
 
+from qcodes_qick.instruments import QickInstrument
 
-class DACChannel(InstrumentBase):
 
-    def __init__(self, name: str, channel_number: int, **kwargs):
+class DACChannel(InstrumentChannel):
+
+    def __init__(self, parent: QickInstrument, name: str, channel_number: int, **kwargs):
         """
         As we initialize the metainstrument, each of the gettable and settable
         parameters are defined and initialized. All parameters receive some
@@ -15,7 +17,7 @@ class DACChannel(InstrumentBase):
         self.isDAC = True
         self.isADC = False
 
-        super().__init__(name)
+        super().__init__(parent, name, **kwargs)
 
         self.sensible_defaults = {
             "nqz": 1,  # -- First nyquist zone
@@ -81,9 +83,9 @@ class DACChannel(InstrumentBase):
         pass
 
 
-class ADCChannel(InstrumentBase):
+class ADCChannel(InstrumentChannel):
 
-    def __init__(self, name: str, channel_number: int, **kwargs):
+    def __init__(self, parent: QickInstrument, name: str, channel_number: int, **kwargs):
         """
         As we initialize the metainstrument, each of the gettable and settable
         parameters are defined and initialized. All parameters receive some
@@ -91,7 +93,7 @@ class ADCChannel(InstrumentBase):
         that are sweeped over are overwritten.
         """
 
-        super().__init__(name)
+        super().__init__(parent, name, **kwargs)
 
         self.isDAC = False
         self.isADC = True
