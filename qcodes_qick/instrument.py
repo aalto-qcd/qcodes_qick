@@ -10,7 +10,7 @@ import Pyro4
 import numpy as np
 
 
-class ZCU216Metainstrument(InstrumentBase):
+class QickInstrument(InstrumentBase):
     '''
     This class is an abstract QCoDes instrument, which
     contains the settable and gettable parameters of the zcu216, most of which
