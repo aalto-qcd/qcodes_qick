@@ -1,19 +1,20 @@
-from qcodes import InstrumentChannel, ManualParameter
+from qcodes import InstrumentChannel, ManualParameter, Parameter
 from qcodes.utils.validators import Ints, Numbers
 
 from qcodes_qick.instruments import QickInstrument
+from qcodes_qick.parameters import DacDegParameter, DacHzParameter, DacSecParameter
 
 
 class DACChannel(InstrumentChannel):
 
     def __init__(self, parent: QickInstrument, name: str, channel: int, **kwargs):
         super().__init__(parent, name, **kwargs)
+        assert 0 <= channel <= 6
 
-        self.channel = ManualParameter(
+        self.channel = Parameter(
             name="channel",
             instrument=self,
             label="Channel number",
-            vals=Ints(0, 6),
             initial_value=channel,
         )
 
@@ -29,36 +30,30 @@ class DACChannel(InstrumentChannel):
             name="pulse_gain",
             instrument=self,
             label="DAC gain",
-            vals=Numbers(0, 40000),
+            vals=Ints(-32768, 32767),
             unit="DAC units",
-            initial_value=5000,
+            initial_value=10000,
         )
 
-        self.pulse_freq = ManualParameter(
+        self.pulse_freq = DacHzParameter(
             name="pulse_freq",
             instrument=self,
             label="NCO frequency",
-            vals=Numbers(0, 9000),
-            unit="MHz",
-            initial_value=500,
+            initial_value=1e9,
         )
 
-        self.pulse_phase = ManualParameter(
+        self.pulse_phase = DacDegParameter(
             name="pulse_phase",
             instrument=self,
             label="Pulse phase",
-            vals=Ints(0, 360),
-            unit="deg",
             initial_value=0,
         )
 
-        self.pulse_length = ManualParameter(
+        self.pulse_length = DacSecParameter(
             name="pulse_length",
             instrument=self,
             label="Pulse length",
-            vals=Numbers(0, 150),
-            unit="us",
-            initial_value=10,
+            initial_value=10e-6,
         )
 
 
@@ -66,12 +61,12 @@ class ADCChannel(InstrumentChannel):
 
     def __init__(self, parent: QickInstrument, name: str, channel: int, **kwargs):
         super().__init__(parent, name, **kwargs)
+        assert 0 <= channel <= 1
 
-        self.channel = ManualParameter(
+        self.channel = Parameter(
             name="channel",
             instrument=self,
             label="Channel number",
-            vals=Ints(0, 1),
             initial_value=channel,
         )
 
