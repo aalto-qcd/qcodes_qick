@@ -1,107 +1,108 @@
-from typing import Optional
+from __future__ import annotations
 
-from qcodes import Parameter
+from typing import TYPE_CHECKING
+
+from qcodes import ManualParameter
 from qcodes.validators import Numbers
 
-from qick.qick_asm import QickConfig
+if TYPE_CHECKING:
+    from qcodes_qick.channels import QickAdcChannel, QickDacChannel
 
 
-class DacHzParameter(Parameter):
+class DacHzParameter(ManualParameter):
     """Frequency parameter with automatic rounding to a multiple of the frequency unit of the specified DAC channel (and optionally also an ADC channel). The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
         self,
         name: str,
-        soccfg: QickConfig,
-        dac_ch: int,
-        adc_ch: Optional[int] = None,
+        instrument: QickDacChannel,
         **kwargs,
     ):
         super().__init__(
             name=name,
-            get_parser=lambda reg: soccfg.reg2freq(reg, dac_ch) * 1e6,
-            set_parser=lambda freq: soccfg.freq2reg(freq / 1e6, dac_ch, adc_ch),
+            instrument=instrument,
+            get_parser=instrument.reg2hz,
+            set_parser=instrument.hz2reg,
             vals=Numbers(),
             unit="Hz",
             **kwargs,
         )
 
 
-class AdcHzParameter(Parameter):
+class AdcHzParameter(ManualParameter):
     """Frequency parameter with automatic rounding to a multiple of the frequency unit of the specified ADC channel (and optionally also an DAC channel). The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
         self,
         name: str,
-        soccfg: QickConfig,
-        adc_ch: int,
-        dac_ch: Optional[int] = None,
+        instrument: QickAdcChannel,
         **kwargs,
     ):
         super().__init__(
             name=name,
-            get_parser=lambda reg: soccfg.reg2freq_adc(reg, adc_ch) * 1e6,
-            set_parser=lambda freq: soccfg.freq2reg_adc(freq / 1e6, adc_ch, dac_ch),
+            instrument=instrument,
+            get_parser=instrument.reg2hz,
+            set_parser=instrument.hz2reg,
             vals=Numbers(),
             unit="Hz",
             **kwargs,
         )
 
 
-class DacDegParameter(Parameter):
+class DacDegParameter(ManualParameter):
     """Phase parameter with automatic rounding to a multiple of the phase unit of the specified DAC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
     def __init__(
         self,
         name: str,
-        soccfg: QickConfig,
-        dac_ch: int,
+        instrument: QickDacChannel,
         **kwargs,
     ):
         super().__init__(
             name=name,
-            get_parser=lambda reg: soccfg.reg2deg(reg, dac_ch),
-            set_parser=lambda deg: soccfg.deg2reg(deg, dac_ch),
+            instrument=instrument,
+            get_parser=instrument.reg2deg,
+            set_parser=instrument.deg2reg,
             vals=Numbers(),
             unit="deg",
             **kwargs,
         )
 
 
-class DacSecParameter(Parameter):
-    """Time parameter with automatic rounding to a multiple of the time unit of the specified DAC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
+class DacSecParameter(ManualParameter):
+    """Time parameter with automatic rounding to a multiple of the clock period of the specified DAC channel. The `get_raw()` method returns the time in the number of clock cycles (int)."""
 
     def __init__(
         self,
         name: str,
-        soccfg: QickConfig,
-        dac_ch: int,
+        instrument: QickDacChannel,
         **kwargs,
     ):
         super().__init__(
             name=name,
-            get_parser=lambda reg: soccfg.cycles2us(reg, gen_ch=dac_ch) / 1e6,
-            set_parser=lambda time: soccfg.us2cycles(time * 1e6, gen_ch=dac_ch),
+            instrument=instrument,
+            get_parser=instrument.cycles2sec,
+            set_parser=instrument.sec2cycles,
             vals=Numbers(),
             unit="sec",
             **kwargs,
         )
 
 
-class AdcSecParameter(Parameter):
-    """Time parameter with automatic rounding to a multiple of the time unit of the specified ADC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
+class AdcSecParameter(ManualParameter):
+    """Time parameter with automatic rounding to a multiple of the clock period of the specified ADC channel. The `get_raw()` method returns the time in the number of clock cycles (int)."""
 
     def __init__(
         self,
         name: str,
-        soccfg: QickConfig,
-        adc_ch: int,
+        instrument: QickAdcChannel,
         **kwargs,
     ):
         super().__init__(
             name=name,
-            get_parser=lambda reg: soccfg.cycles2us(reg, ro_ch=adc_ch) / 1e6,
-            set_parser=lambda time: soccfg.us2cycles(time * 1e6, ro_ch=adc_ch),
+            instrument=instrument,
+            get_parser=instrument.cycles2sec,
+            set_parser=instrument.sec2cycles,
             vals=Numbers(),
             unit="sec",
             **kwargs,
