@@ -11,12 +11,12 @@ from qick import QickConfig
 
 
 @dataclass
-class PythonSweep:
+class SoftwareSweep:
     parameter: Parameter
     values: Sequence
 
 
-class QickSweep:
+class HardwareSweep:
     def __init__(
         self, parameter: QuantizedParameter, start: float, step: float, num: int
     ):
