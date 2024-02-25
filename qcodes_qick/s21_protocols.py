@@ -11,135 +11,45 @@ from qick import QickConfig
 from qick.averager_program import QickSweep, NDAveragerProgram
 
 
-class NDSweepProtocol(Protocol):
-    """
-    This protocol initializes and runs a pulse probe spectroscopy measurement
-    program, and correctly formats the output into a desired form.
-    """
+class S21Protocol(Protocol):
 
-    def __init__(self, name="NDS_Protocol"):
-        """
-        Initialize the protocol object.
-
-        """
+    def __init__(self, name="S21Protocol"):
         super().__init__(name)
 
-        self.required_DACs = {"probe": "Probe channel"}
-        self.required_ADCs = {"adc": "Readout adc channel"}
-        self.validated_IO = {"probe": None, "adc": None}
-
-        self.sensible_defaults = {
-            "adc_trig_offset": 100,  # -- Clock ticks
-            "relax_delay": 1,  # -- us
-            "readout_lenght": 5,  # -- MHz
-            "reps": 400,
-        }  # -- us
-
-        self.add_parameter(
-            "adc_trig_offset",
-            parameter_class=ManualParameter,
+        self.adc_trig_offset = ManualParameter(
+            name="adc_trig_offset",
+            instrument=self,
             label="Delay between sending probe pulse and ADC initialization",
-            vals=Ints(*[0, 100000]),
+            vals=Ints(0, 100000),
             unit="Clock ticks",
             initial_value=100,
         )
 
-        self.add_parameter(
-            "relax_delay",
-            parameter_class=ManualParameter,
+        self.relax_delay = ManualParameter(
+            name="relax_delay",
+            instrument=self,
             label="Delay between reps",
-            vals=Numbers(*[0, 100000]),
+            vals=Numbers(0, 100000),
             unit="us",
             initial_value=0.1,
         )
 
-        self.add_parameter(
-            "readout_length",
-            parameter_class=ManualParameter,
+        self.readout_length = ManualParameter(
+            name="readout_length",
+            instrument=self,
             label="Lenght of the readout",
-            vals=Numbers(*[0, 150]),
+            vals=Numbers(0, 150),
             unit="us",
             initial_value=5,
         )
 
-        self.add_parameter(
-            "reps",
-            parameter_class=ManualParameter,
+        self.reps = ManualParameter(
+            name="reps",
+            instrument=self,
             label="Measurement repetitions",
             vals=Ints(0, 5000),
             initial_value=400,
         )
-
-    def compile_hardware_sweep_dict(
-        self, sweep_configuration, internal_variables, sweep_parameter_list
-    ):
-        """
-        This can be hardcoded for now.
-        """
-
-        sweep_config = {}
-        internal_config = {}
-        for config_name, parameter in internal_variables.items():
-            if parameter in sweep_configuration.keys():
-                values = sweep_configuration[parameter]
-                sweep_config[config_name] = [values[0], values[1], values[2]]
-                internal_config[config_name] = values[0]
-                sweep_parameter_list = self.add_sweep_parameter(
-                    isHardware=True,
-                    parameter=parameter,
-                    sweep_parameter_list=sweep_parameter_list,
-                )
-            else:
-                internal_config[config_name] = parameter.get()
-
-        internal_config["sweep_variables"] = sweep_config
-
-        return internal_config, sweep_parameter_list
-
-    def initialize_qick_config(self, sweep_configuration):
-        """
-        Initialize the qick soc and qick config
-        NOTE: soc is the Pyro4 proxy object, and soccfg is a QickConfig object inferred from the proxy object
-
-        """
-
-        # This is the only part where you need to hard code the qick config dictionary, this
-        # is due to the fact that the qick config dictionary expect certain hard coded entries.
-
-        # (Protocol specific) config corresponding to parameters that can only be swept outside of
-        # the qick program hardware loop
-        external_parameters = {
-            # These are protocol specific, inherent parameter values
-            "reps": self.reps,
-            "relax_delay": self.relax_delay,
-            "adc_trig_offset": self.adc_trig_offset,
-            "readout_length": self.readout_length,
-            # These are channel specific values
-            "probe_ch": self.validated_IO["probe"].channel,
-            "ro_ch": self.validated_IO["adc"].channel,
-            "probe_nqz": self.validated_IO["probe"].nqz,
-            "probe_freq": self.validated_IO["probe"].pulse_freq,
-        }
-
-        sweep_parameter_list = []
-        external_config, sweep_parameter_list = self.compile_software_sweep_dict(
-            sweep_configuration, external_parameters, sweep_parameter_list
-        )
-
-        # Internal parameters that can be swept in hardware
-        internal_parameters = {
-            "probe_gain": self.validated_IO["probe"].pulse_gain,
-            "probe_phase": self.validated_IO["probe"].pulse_phase,
-            "probe_length": self.validated_IO["probe"].pulse_length,
-        }
-
-        internal_config, sweep_parameter_list = self.compile_hardware_sweep_dict(
-            sweep_configuration, internal_parameters, sweep_parameter_list
-        )
-
-        qick_config = {**external_config, **internal_config}
-
-        return qick_config, sweep_parameter_list
 
     def run_program(self, soc, cfg: dict[str, float]):
         """
