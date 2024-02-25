@@ -1,10 +1,32 @@
 import itertools
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 from qcodes import Instrument, Parameter
 from tqdm.auto import tqdm
 
+from qcodes_qick.parameters import QuantizedParameter
 from qick import QickConfig
+
+
+@dataclass
+class PythonSweep:
+    parameter: Parameter
+    values: Sequence
+
+
+class QickSweep:
+    def __init__(
+        self, parameter: QuantizedParameter, start: float, step: float, num: int
+    ):
+        self.parameter = parameter
+        self.start_int = parameter.float2int(start)
+        self.start = parameter.int2float(self.start_int)
+        self.step_int = parameter.float2int(step)
+        self.step = parameter.int2float(self.step_int)
+        self.num = num
+        self.values = self.start + self.step * np.arange(num)
 
 
 class Protocol(Instrument):
