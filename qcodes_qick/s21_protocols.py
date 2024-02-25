@@ -2,53 +2,91 @@ import itertools
 
 import numpy as np
 from qcodes.instrument import ManualParameter
-from qcodes.utils.validators import Ints, Numbers
-from qick.asm_v1 import FullSpeedGenManager
+from qcodes.utils.validators import Ints
 from tqdm.auto import tqdm
 
 from measurements.Protocols import Protocol
+from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.parameters import (
+    DegParameter,
+    GainParameter,
+    HzParameter,
+    SecParameter,
+    TProcSecParameter,
+)
 from qick import QickConfig
-from qick.averager_program import QickSweep, NDAveragerProgram
+from qick.asm_v1 import FullSpeedGenManager
+from qick.averager_program import NDAveragerProgram, QickSweep
 
 
 class S21Protocol(Protocol):
 
-    def __init__(self, name="S21Protocol"):
+    def __init__(
+        self, dac_channel: DacChannel, adc_channel: AdcChannel, name="S21Protocol"
+    ):
         super().__init__(name)
 
-        self.adc_trig_offset = ManualParameter(
+        self.pulse_gain = GainParameter(
+            name="pulse_gain",
+            instrument=self,
+            label="DAC gain",
+            initial_value=0.5,
+        )
+
+        self.pulse_freq = HzParameter(
+            name="pulse_freq",
+            instrument=self,
+            label="Pulse frequency",
+            initial_value=1e9,
+            channel=dac_channel,
+        )
+
+        self.pulse_phase = DegParameter(
+            name="pulse_phase",
+            instrument=self,
+            label="Pulse phase",
+            initial_value=0,
+            channel=dac_channel,
+        )
+
+        self.pulse_length = SecParameter(
+            name="pulse_length",
+            instrument=self,
+            label="Pulse length",
+            initial_value=10e-6,
+            channel=dac_channel,
+        )
+
+        self.adc_trig_offset = TProcSecParameter(
             name="adc_trig_offset",
             instrument=self,
             label="Delay between sending probe pulse and ADC initialization",
-            vals=Ints(0, 100000),
-            unit="Clock ticks",
-            initial_value=100,
+            initial_value=0,
+            qick_instrument=self.parent,
         )
 
-        self.relax_delay = ManualParameter(
+        self.relax_delay = TProcSecParameter(
             name="relax_delay",
             instrument=self,
             label="Delay between reps",
-            vals=Numbers(0, 100000),
-            unit="us",
-            initial_value=0.1,
+            initial_value=1e-3,
+            qick_instrument=self.parent,
         )
 
-        self.readout_length = ManualParameter(
+        self.readout_length = SecParameter(
             name="readout_length",
             instrument=self,
-            label="Lenght of the readout",
-            vals=Numbers(0, 150),
-            unit="us",
-            initial_value=5,
+            label="Length of the readout",
+            initial_value=10e-6,
+            channel=adc_channel,
         )
 
         self.reps = ManualParameter(
             name="reps",
             instrument=self,
             label="Measurement repetitions",
-            vals=Ints(0, 5000),
-            initial_value=400,
+            vals=Ints(min_value=0),
+            initial_value=1000,
         )
 
     def run_program(self, soc, cfg: dict[str, float]):
