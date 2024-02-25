@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from qcodes import ChannelTuple, Instrument, Measurement
 
 from qcodes_qick.channels import QickAdcChannel, QickDacChannel
-from qcodes_qick.protocols import Protocol, PythonSweep, QickSweep
+from qcodes_qick.protocols import HardwareSweep, Protocol, SoftwareSweep
 from qick.pyro import make_proxy
 
 
@@ -42,8 +42,8 @@ class QickInstrument(Instrument):
 
     def measure_iq(
         self,
-        python_sweeps: Sequence[PythonSweep],
-        qick_sweeps: Sequence[QickSweep],
+        software_sweeps: Sequence[SoftwareSweep],
+        hardware_sweeps: Sequence[HardwareSweep],
         protocol: Protocol,
         dac_channels: dict[str, Instrument],
         adc_channels: dict[str, Instrument],
