@@ -21,10 +21,12 @@ from qick.averager_program import NDAveragerProgram, QickSweep
 
 class S21Protocol(Protocol):
 
-    def __init__(
-        self, dac_channel: DacChannel, adc_channel: AdcChannel, name="S21Protocol"
-    ):
+    def __init__(self, dac: DacChannel, adc: AdcChannel, name="S21Protocol"):
         super().__init__(name)
+        self.dac = dac
+        self.adc = adc
+        self.dac.matching_adc.set(adc.channel)
+        self.adc.matching_dac.set(dac.channel)
 
         self.pulse_gain = GainParameter(
             name="pulse_gain",
@@ -38,7 +40,7 @@ class S21Protocol(Protocol):
             instrument=self,
             label="Pulse frequency",
             initial_value=1e9,
-            channel=dac_channel,
+            channel=self.dac,
         )
 
         self.pulse_phase = DegParameter(
@@ -46,7 +48,7 @@ class S21Protocol(Protocol):
             instrument=self,
             label="Pulse phase",
             initial_value=0,
-            channel=dac_channel,
+            channel=self.dac,
         )
 
         self.pulse_length = SecParameter(
@@ -54,7 +56,7 @@ class S21Protocol(Protocol):
             instrument=self,
             label="Pulse length",
             initial_value=10e-6,
-            channel=dac_channel,
+            channel=self.dac,
         )
 
         self.adc_trig_offset = TProcSecParameter(
@@ -78,7 +80,7 @@ class S21Protocol(Protocol):
             instrument=self,
             label="Length of the readout",
             initial_value=10e-6,
-            channel=adc_channel,
+            channel=self.adc,
         )
 
         self.reps = ManualParameter(
