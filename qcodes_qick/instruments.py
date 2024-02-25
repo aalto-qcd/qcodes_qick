@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from qcodes import ChannelTuple, Instrument, Measurement
 
-from qcodes_qick.channels import QickAdcChannel, QickDacChannel
+from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.protocols import HardwareSweep, Protocol, SoftwareSweep
 from qick.pyro import make_proxy
 
@@ -23,22 +23,31 @@ class QickInstrument(Instrument):
         self.dacs = ChannelTuple(
             parent=self,
             name="dacs",
-            chan_type=QickDacChannel,
+            chan_type=DacChannel,
             chan_list=[
-                QickDacChannel(self, f"dac{ch}", ch) for ch in range(self.dac_count)
+                DacChannel(self, f"dac{ch}", ch) for ch in range(self.dac_count)
             ],
         )
         self.adcs = ChannelTuple(
             parent=self,
             name="adcs",
-            chan_type=QickAdcChannel,
+            chan_type=AdcChannel,
             chan_list=[
-                QickAdcChannel(self, f"adc{ch}", ch) for ch in range(self.adc_count)
+                AdcChannel(self, f"adc{ch}", ch) for ch in range(self.adc_count)
             ],
         )
 
         self.add_submodule("dacs", self.dacs)
         self.add_submodule("adcs", self.adcs)
+
+    def cycles2sec_tproc(self, reg: int) -> float:
+        """Convert time from the number of tProc clock cycles to seconds"""
+        return self.soccfg.cycles2us(reg) / 1e6
+
+    def sec2cycles_tproc(self, sec: float) -> int:
+        """Convert time from seconds to the number of tProc clock cycles"""
+        return self.soccfg.us2cycles(sec * 1e6)
+
 
     def measure_iq(
         self,

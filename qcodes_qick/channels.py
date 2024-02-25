@@ -3,15 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter
-from qcodes.utils.validators import Ints, Numbers
-
-from qcodes_qick.parameters import DacDegParameter, DacHzParameter, DacSecParameter
+from qcodes.utils.validators import Ints
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class QickDacChannel(InstrumentChannel):
+class DacChannel(InstrumentChannel):
 
     parent: QickInstrument
 
@@ -35,59 +33,35 @@ class QickDacChannel(InstrumentChannel):
             initial_value=1,
         )
 
-        self.pulse_gain = ManualParameter(
-            name="pulse_gain",
-            instrument=self,
-            label="DAC gain",
-            vals=Ints(-32768, 32767),
-            unit="DAC units",
-            initial_value=10000,
-        )
-
-        self.pulse_freq = DacHzParameter(
-            name="pulse_freq",
-            instrument=self,
-            label="NCO frequency",
-            initial_value=1e9,
-        )
-
-        self.pulse_phase = DacDegParameter(
-            name="pulse_phase",
-            instrument=self,
-            label="Pulse phase",
-            initial_value=0,
-        )
-
-        self.pulse_length = DacSecParameter(
-            name="pulse_length",
-            instrument=self,
-            label="Pulse length",
-            initial_value=10e-6,
-        )
-
     def reg2hz(self, reg: int) -> float:
+        """Convert a DAC frequency from the register value (int) to Hz"""
         return self.parent.soccfg.reg2freq(reg, self.channel) * 1e6
 
     def hz2reg(self, hz: float) -> int:
+        """Convert a DAC frequency from Hz to the register value (int)"""
         adc_channel = self.matching_adc.get()
         if adc_channel == -1:
             adc_channel = None
         return self.parent.soccfg.freq2reg(hz / 1e6, self.channel, adc_channel)
 
     def reg2deg(self, reg: int) -> float:
+        """Convert a DAC phase from the register value (int) to degrees"""
         return self.parent.soccfg.reg2deg(reg, self.channel)
 
     def deg2reg(self, deg: float) -> int:
+        """Convert a DAC phase from degrees to the register value (int)"""
         return self.parent.soccfg.deg2reg(deg, self.channel)
 
     def cycles2sec(self, reg: int) -> float:
+        """Convert time from the number of DAC clock cycles to seconds"""
         return self.parent.soccfg.cycles2us(reg, gen_ch=self.channel) / 1e6
 
     def sec2cycles(self, sec: float) -> int:
+        """Convert time from seconds to the number of DAC clock cycles"""
         return self.parent.soccfg.us2cycles(sec * 1e6, gen_ch=self.channel)
 
 
-class QickAdcChannel(InstrumentChannel):
+class AdcChannel(InstrumentChannel):
 
     parent: QickInstrument
 
@@ -103,26 +77,21 @@ class QickAdcChannel(InstrumentChannel):
             initial_value=-1,
         )
 
-        self.readout_time = ManualParameter(
-            name="readout_time",
-            instrument=self,
-            label="Up time of the ADC readout | Used for timetrace applications",
-            vals=Numbers(0, 1000000),
-            unit="Clock ticks",
-            initial_value=0,
-        )
-
     def reg2hz(self, reg: int) -> float:
+        """Convert ADC frequency from the register value (int) to Hz"""
         return self.parent.soccfg.reg2freq_adc(reg, self.channel) * 1e6
 
     def hz2reg(self, hz: float) -> int:
+        """Convert ADC frequency from Hz to the register value (int)"""
         dac_channel = self.matching_dac.get()
         if dac_channel == -1:
             dac_channel = None
         return self.parent.soccfg.freq2reg_adc(hz / 1e6, self.channel, dac_channel)
 
     def cycles2sec(self, reg: int) -> float:
+        """Convert time from the number of ADC clock cycles to seconds"""
         return self.parent.soccfg.cycles2us(reg, ro_ch=self.channel) / 1e6
 
     def sec2cycles(self, sec: float) -> int:
+        """Convert time from seconds to the number of ADC clock cycles"""
         return self.parent.soccfg.us2cycles(sec * 1e6, ro_ch=self.channel)
