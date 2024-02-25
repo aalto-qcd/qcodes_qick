@@ -40,85 +40,85 @@ class QickInstrument(Instrument):
         self.add_submodule("dacs", self.dacs)
         self.add_submodule("adcs", self.adcs)
 
-        def measure_iq(
-            self,
-            python_sweeps: Sequence[PythonSweep],
-            qick_sweeps: Sequence[QickSweep],
-            protocol: Protocol,
-            dac_channels: dict[str, Instrument],
-            adc_channels: dict[str, Instrument],
-            experiment,
-        ):
-            """
-            This function initializes and runs an IQ measurement.
+    def measure_iq(
+        self,
+        python_sweeps: Sequence[PythonSweep],
+        qick_sweeps: Sequence[QickSweep],
+        protocol: Protocol,
+        dac_channels: dict[str, Instrument],
+        adc_channels: dict[str, Instrument],
+        experiment,
+    ):
+        """
+        This function initializes and runs an IQ measurement.
 
-                    Parameters:
-                            params_and_values (dict):
-                            Dictionary that contains the sweep variables
-                            as qcodes parameters, with keys being a list
-                            containing the measurement start point, end point
-                            and the step count.
-                            protocol: the protocol object used in the measurement
+            Parameters:
+                    params_and_values (dict):
+                    Dictionary that contains the sweep variables
+                    as qcodes parameters, with keys being a list
+                    containing the measurement start point, end point
+                    and the step count.
+                    protocol: the protocol object used in the measurement
 
-                    return: QCoDeS run id, corresponding to the measurement
-                            (if succesful).
-            """
+            return: QCoDeS run id, corresponding to the measurement
+                    (if succesful).
+        """
 
-            if protocol not in self.components.values():
-                raise Exception("Protocol not defined as an instrument")
+        if protocol not in self.components.values():
+            raise Exception("Protocol not defined as an instrument")
 
-            # Here we want to validate the given data, which is protocol dependent.
-            io_data = {**dac_channels, **adc_channels}
-            protocol.set_io(io_data)
-            protocol.validate_params(params_and_values)
+        # Here we want to validate the given data, which is protocol dependent.
+        io_data = {**dac_channels, **adc_channels}
+        protocol.set_io(io_data)
+        protocol.validate_params(params_and_values)
 
-            # After input validation, we want to
-            # Configure the default config that will remain constant through the measurement
+        # After input validation, we want to
+        # Configure the default config that will remain constant through the measurement
 
-            sweep_param_objects = []
-            sweep_configuration = {}
+        sweep_param_objects = []
+        sweep_configuration = {}
 
-            # initialize qcodes
+        # initialize qcodes
 
-            meas = Measurement(exp=experiment)
+        meas = Measurement(exp=experiment)
 
-            # Create manual parameters for gathering data
-            for parameter, values in params_and_values.items():
-                sweep_param_objects.append(parameter)
-                meas.register_parameter(parameter, paramtype="array")
+        # Create manual parameters for gathering data
+        for parameter, values in params_and_values.items():
+            sweep_param_objects.append(parameter)
+            meas.register_parameter(parameter, paramtype="array")
 
-            # Define the custom parameters which are dependent on the manual parameters
-            meas.register_custom_parameter(
-                "avg_i", setpoints=sweep_param_objects, paramtype="array"
+        # Define the custom parameters which are dependent on the manual parameters
+        meas.register_custom_parameter(
+            "avg_i", setpoints=sweep_param_objects, paramtype="array"
+        )
+        meas.register_custom_parameter(
+            "avg_q", setpoints=sweep_param_objects, paramtype="array"
+        )
+
+        result_param_values = []
+
+        # The qcodes experiment, surrounding the qick program is contained here.
+        with meas.run() as datasaver:
+
+            # Initialize the
+            program_base_config, sweep_parameter_list = protocol.initialize_qick_config(
+                params_and_values
             )
-            meas.register_custom_parameter(
-                "avg_q", setpoints=sweep_param_objects, paramtype="array"
+
+            # Run the qick program, as defined by the protocol and params_and_values
+            expt_pts, avg_i, avg_q = protocol.run_program(
+                self.zcu.soc, program_base_config
             )
 
-            result_param_values = []
+            # Divide the expt_pts array into individual measurement points
+            # for each sweepable variable.
+            for i in range(len(sweep_parameter_list)):
+                result_param_values.append((sweep_parameter_list[i], expt_pts[i]))
 
-            # The qcodes experiment, surrounding the qick program is contained here.
-            with meas.run() as datasaver:
+            datasaver.add_result(
+                ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values
+            )
 
-                # Initialize the
-                program_base_config, sweep_parameter_list = (
-                    protocol.initialize_qick_config(params_and_values)
-                )
-
-                # Run the qick program, as defined by the protocol and params_and_values
-                expt_pts, avg_i, avg_q = protocol.run_program(
-                    self.zcu.soc, program_base_config
-                )
-
-                # Divide the expt_pts array into individual measurement points
-                # for each sweepable variable.
-                for i in range(len(sweep_parameter_list)):
-                    result_param_values.append((sweep_parameter_list[i], expt_pts[i]))
-
-                datasaver.add_result(
-                    ("avg_i", avg_i), ("avg_q", avg_q), *result_param_values
-                )
-
-            # Return the run_id
-            run_id = datasaver.dataset.captured_run_id
-            return run_id
+        # Return the run_id
+        run_id = datasaver.dataset.captured_run_id
+        return run_id
