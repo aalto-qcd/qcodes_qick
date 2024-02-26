@@ -12,7 +12,7 @@ class QickInstrument(Instrument):
         # Use the IP address and port of the Pyro4 nameserver to get:
         #   soc: Pyro4.Proxy pointing to the QickSoc object on the board
         #   soccfg: QickConfig containing the current configuration of the board
-        soc, self.soccfg = make_proxy(ns_host="10.0.100.16", ns_port=8888)
+        self.soc, self.soccfg = make_proxy(ns_host="10.0.100.16", ns_port=8888)
 
         self.dac_count = len(self.soccfg["gens"])
         self.adc_count = len(self.soccfg["readouts"])
