@@ -13,7 +13,6 @@ from qcodes_qick.parameters import (
     TProcSecParameter,
 )
 from qcodes_qick.protocols import HardwareSweep, NDAveragerProtocol
-from qick.asm_v1 import FullSpeedGenManager
 from qick.averager_program import NDAveragerProgram, QickSweep
 
 if TYPE_CHECKING:
@@ -140,41 +139,8 @@ class S21Program(NDAveragerProgram):
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
                 )
-            elif sweep.parameter is p.pulse_freq:
-                raise ValueError("readout frequency cannot be swept in hardware")
-            elif sweep.parameter is p.pulse_phase:
-                raise NotImplementedError
-                reg = self.get_gen_reg(p.dac.channel, "phase")
-                self.add_sweep(QickSweep(self, reg, sweep.start, sweep.stop, sweep.num))
-            elif sweep.parameter is p.pulse_length:
-                raise NotImplementedError
-            elif sweep.parameter is p.adc_trig_offset:
-                raise NotImplementedError
-            elif sweep.parameter is p.relax_delay:
-                raise NotImplementedError
-            elif sweep.parameter is p.readout_length:
-                raise NotImplementedError
             else:
                 raise NotImplementedError
-
-                # Getting the gen manager for calculating the correct start and end points of the mode register.
-                # Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
-                gen_manager = FullSpeedGenManager(self, dac_ch)
-                sweep_settings = sweep_variables[sweep_variable]
-                start_length = self.us2cycles(sweep_settings[0])
-                end_length = self.us2cycles(sweep_settings[1])
-                start_code = gen_manager.get_mode_code(
-                    length=start_length, outsel="dds"
-                )
-                end_code = gen_manager.get_mode_code(length=end_length, outsel="dds")
-
-                # The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
-                sweep_register = self.get_gen_reg(dac_ch, "mode")
-                self.add_sweep(
-                    QickSweep(
-                        self, sweep_register, start_code, end_code, sweep_settings[2]
-                    )
-                )
 
         self.synci(200)  # Give processor some time to configure pulses
 
