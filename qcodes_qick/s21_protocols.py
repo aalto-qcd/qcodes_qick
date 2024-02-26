@@ -1,11 +1,9 @@
-import itertools
+from __future__ import annotations
 
-import numpy as np
-from qcodes.instrument import ManualParameter
-from qcodes.utils.validators import Ints
-from tqdm.auto import tqdm
+from typing import TYPE_CHECKING, Sequence
 
-from measurements.Protocols import Protocol
+from qcodes import Station
+
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.parameters import (
     DegParameter,
@@ -14,15 +12,26 @@ from qcodes_qick.parameters import (
     SecParameter,
     TProcSecParameter,
 )
-from qick import QickConfig
+from qcodes_qick.protocols import HardwareSweep, NDAveragerProtocol
 from qick.asm_v1 import FullSpeedGenManager
 from qick.averager_program import NDAveragerProgram, QickSweep
 
+if TYPE_CHECKING:
+    from qcodes_qick.instruments import QickInstrument
 
-class S21Protocol(Protocol):
 
-    def __init__(self, dac: DacChannel, adc: AdcChannel, name="S21Protocol"):
-        super().__init__(name)
+class S21Protocol(NDAveragerProtocol):
+
+    def __init__(
+        self,
+        station: Station,
+        parent: QickInstrument,
+        dac: DacChannel,
+        adc: AdcChannel,
+        name="S21Protocol",
+        **kwargs,
+    ):
+        super().__init__(station, parent, name, S21Program, **kwargs)
         self.dac = dac
         self.adc = adc
         self.dac.matching_adc.set(adc.channel)
@@ -83,127 +92,8 @@ class S21Protocol(Protocol):
             channel=self.adc,
         )
 
-        self.reps = ManualParameter(
-            name="reps",
-            instrument=self,
-            label="Measurement repetitions",
-            vals=Ints(min_value=0),
-            initial_value=1000,
-        )
 
-    def run_program(self, soc, cfg: dict[str, float]):
-        """
-        This method runs the program and returns the measurement
-        result. For the NDSweep program, combining both multiple
-        hardware sweeps and software sweeps, this method is implemented
-        fully in the protocol. For RAveragerprograms, see Protocol.run_hybrid_loop_program
-
-        Return:
-            expt_pts:
-            list of arrays containing the coordinate values of
-            each variable for each measurement point
-            avg_q:
-            ND-array of avg_q values containing each measurement q value.
-            avg_i:
-            ND-array of avg_i values containing each measurement i value.
-        """
-        soccfg = QickConfig(soc.get_cfg())
-        software_iterators = {}
-        iterations = 1
-
-        for parameter_name, value in cfg.items():
-            if type(value) == list:
-                software_iterators[parameter_name] = np.linspace(
-                    value[0], value[1], value[2]
-                ).tolist()
-                iterations = iterations * value[2]
-
-        if len(software_iterators) == 0:
-            program = HardwareSweepProgram(soccfg, cfg)
-            expt_pts, avg_i, avg_q = program.acquire(soc, progress=True)
-            expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(
-                expt_pts, avg_i, avg_q
-            )
-            for i in range(len(list(cfg["sweep_variables"]))):
-                if list(cfg["sweep_variables"])[i] == "probe_length":
-                    length_expt_pts = expt_pts[i]
-                    mode_code = length_expt_pts[0] - soccfg.us2cycles(
-                        cfg["sweep_variables"]["probe_length"][0]
-                    )
-                    f = lambda x: soccfg.cycles2us(x - mode_code)
-                    fixed_length_vals = [f(x) for x in length_expt_pts]
-                    expt_pts[i] = fixed_length_vals
-
-            for i in range(avg_i.ndim - len(cfg["sweep_variables"])):
-                avg_i = np.squeeze(avg_i.flatten())
-                avg_q = np.squeeze(avg_q.flatten())
-
-            return expt_pts, avg_i, avg_q
-
-        else:
-
-            iteratorlist = list(software_iterators)
-            hardware_loop_dim = len((cfg["sweep_variables"]))
-
-            total_hardware_sweep_points = 1
-            for sweep_var in cfg["sweep_variables"]:
-                total_hardware_sweep_points = (
-                    total_hardware_sweep_points * cfg["sweep_variables"][sweep_var][2]
-                )
-
-            software_expt_data = [[] for i in range(len(software_iterators))]
-            hardware_expt_data = [[] for i in range(hardware_loop_dim)]
-            i_data = []
-            q_data = []
-
-            for coordinate_point in tqdm(
-                itertools.product(*list(software_iterators.values())), total=iterations
-            ):
-
-                for coordinate_index in range(len(coordinate_point)):
-                    cfg[iteratorlist[coordinate_index]] = coordinate_point[
-                        coordinate_index
-                    ]
-
-                program = HardwareSweepProgram(soccfg, cfg)
-                expt_pts, avg_i, avg_q = program.acquire(soc)
-
-                for i in range(hardware_loop_dim):
-                    if list(cfg["sweep_variables"])[i] == "probe_length":
-                        length_expt_pts = expt_pts[i]
-                        mode_code = length_expt_pts[0] - soccfg.us2cycles(
-                            cfg["sweep_variables"]["probe_length"][0]
-                        )
-                        f = lambda x: soccfg.cycles2us(x - mode_code)
-                        fixed_length_vals = [f(x) for x in length_expt_pts]
-                        expt_pts[i] = fixed_length_vals
-                    else:
-                        expt_pts[i] = expt_pts[i].tolist()
-
-                expt_pts, avg_i, avg_q = self.handle_hybrid_loop_output(
-                    expt_pts, avg_i, avg_q
-                )
-
-                i_data.extend(avg_i.flatten())
-                q_data.extend(avg_q.flatten())
-
-                for i in range(hardware_loop_dim):
-                    hardware_expt_data[i].extend(expt_pts[i])
-                for i in range(len(software_iterators)):
-                    software_expt_data[i].extend(
-                        [
-                            coordinate_point[i]
-                            for x in range(total_hardware_sweep_points)
-                        ]
-                    )
-
-        software_expt_data.reverse()
-        software_expt_data.extend(hardware_expt_data)
-
-        return software_expt_data, i_data, q_data
-
-
-class HardwareSweepProgram(NDAveragerProgram):
+class S21Program(NDAveragerProgram):
     """
     This class performs a hardware loop sweep over one or more registers
     in the board. The limit is seven registers.
@@ -219,39 +109,57 @@ class HardwareSweepProgram(NDAveragerProgram):
     """
 
     def initialize(self):
-        """
-        Initialization of the qick program, and configuration of the ND-sweeps is performed in this method.
-        """
+        p: S21Protocol = self.cfg["protocol"]
+        hardware_sweeps: Sequence[HardwareSweep] = self.cfg.get("hardware_sweeps", ())
 
-        cfg = self.cfg
-
-        # defining local variables.
-        probe_ch = cfg["probe_ch"]
-        freq = self.freq2reg(cfg["probe_freq"], gen_ch=probe_ch, ro_ch=cfg["ro_ch"])
-        phase = self.deg2reg(cfg["probe_phase"], gen_ch=probe_ch)
-        gain = round(cfg["probe_gain"])
-        length = self.us2cycles(cfg["probe_length"], gen_ch=cfg["probe_ch"])
-        sweep_variables = cfg["sweep_variables"]
-
-        # Declare signal generators and readout
-        self.declare_gen(ch=cfg["probe_ch"], nqz=cfg["probe_nqz"], ro_ch=cfg["ro_ch"])
+        self.declare_gen(
+            ch=p.dac.channel,
+            nqz=p.dac.nqz.get(),
+        )
         self.declare_readout(
-            ch=cfg["ro_ch"],
-            length=self.us2cycles(cfg["readout_length"]),
-            freq=cfg["probe_freq"],
-            gen_ch=cfg["probe_ch"],
+            ch=p.adc.channel,
+            length=p.readout_length.get_raw(),
+            sel="product",
+            freq=p.pulse_freq.get() / 1e6,
         )
-
         self.set_pulse_registers(
-            ch=probe_ch, style="const", freq=freq, phase=phase, gain=gain, length=length
+            ch=p.dac.channel,
+            style="const",
+            freq=p.pulse_freq.get_raw(),
+            phase=p.pulse_phase.get_raw(),
+            gain=p.pulse_gain.get_raw(),
+            phrst=0,
+            stdysel="zero",
+            mode="oneshot",
+            length=p.pulse_length.get_raw(),
         )
 
-        for sweep_variable in sweep_variables:
-            if sweep_variable == "probe_length":
+        for sweep in reversed(hardware_sweeps):
+            if sweep.parameter is p.pulse_gain:
+                reg = self.get_gen_reg(p.dac.channel, "gain")
+                self.add_sweep(
+                    QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
+                )
+            elif sweep.parameter is p.pulse_freq:
+                raise ValueError("readout frequency cannot be swept in hardware")
+            elif sweep.parameter is p.pulse_phase:
+                raise NotImplementedError
+                reg = self.get_gen_reg(p.dac.channel, "phase")
+                self.add_sweep(QickSweep(self, reg, sweep.start, sweep.stop, sweep.num))
+            elif sweep.parameter is p.pulse_length:
+                raise NotImplementedError
+            elif sweep.parameter is p.adc_trig_offset:
+                raise NotImplementedError
+            elif sweep.parameter is p.relax_delay:
+                raise NotImplementedError
+            elif sweep.parameter is p.readout_length:
+                raise NotImplementedError
+            else:
+                raise NotImplementedError
 
                 # Getting the gen manager for calculating the correct start and end points of the mode register.
                 # Thus, by utilizing these methods you may ensure that you will not sent an improper mode register.
-                gen_manager = FullSpeedGenManager(self, cfg["probe_ch"])
+                gen_manager = FullSpeedGenManager(self, dac_ch)
                 sweep_settings = sweep_variables[sweep_variable]
                 start_length = self.us2cycles(sweep_settings[0])
                 end_length = self.us2cycles(sweep_settings[1])
@@ -261,41 +169,23 @@ class HardwareSweepProgram(NDAveragerProgram):
                 end_code = gen_manager.get_mode_code(length=end_length, outsel="dds")
 
                 # The register containing the pulse length as the last 16 bits is referred to as the "mode" register.
-                sweep_register = self.get_gen_reg(cfg["probe_ch"], "mode")
+                sweep_register = self.get_gen_reg(dac_ch, "mode")
                 self.add_sweep(
                     QickSweep(
                         self, sweep_register, start_code, end_code, sweep_settings[2]
-                    )
-                )
-            else:
-                sweep_settings = sweep_variables[sweep_variable]
-                sweep_register = self.get_gen_reg(
-                    cfg["probe_ch"], sweep_variable.replace("probe_", "")
-                )
-                self.add_sweep(
-                    QickSweep(
-                        self,
-                        sweep_register,
-                        sweep_settings[0],
-                        sweep_settings[1],
-                        sweep_settings[2],
                     )
                 )
 
         self.synci(200)  # Give processor some time to configure pulses
 
     def body(self):
-        """
-        The main structure of the measurement is just the measurement,
-        but the add_sweep commands in the initialize method add inner loops
-        into the qick program instructions.
-        """
-        cfg = self.cfg
+        p: S21Protocol = self.cfg["protocol"]
 
         self.measure(
-            pulse_ch=cfg["probe_ch"],
-            adcs=[cfg["ro_ch"]],
-            adc_trig_offset=round(cfg["adc_trig_offset"]),
+            adcs=[p.adc.channel],
+            pulse_ch=p.dac.channel,
+            adc_trig_offset=p.adc_trig_offset.get_raw(),
+            t="auto",
             wait=True,
-            syncdelay=self.us2cycles(cfg["relax_delay"]),
+            syncdelay=p.relax_delay.get_raw(),
         )
