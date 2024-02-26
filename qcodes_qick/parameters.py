@@ -5,10 +5,9 @@ from typing import TYPE_CHECKING, Union
 from qcodes import ManualParameter
 from qcodes.validators import Numbers
 
-from qcodes_qick.instruments import QickInstrument
-
 if TYPE_CHECKING:
     from qcodes_qick.channels import AdcChannel, DacChannel
+    from qcodes_qick.instruments import QickInstrument
 
 
 class QuantizedParameter(ManualParameter):

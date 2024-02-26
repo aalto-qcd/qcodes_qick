@@ -1,13 +1,42 @@
+from __future__ import annotations
+
 import itertools
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
-from qcodes import Instrument, Parameter
+from qcodes import Measurement, Parameter, Station
+from qcodes.dataset.experiment_container import Experiment
+from qcodes.instrument import InstrumentModule
 from tqdm.auto import tqdm
+from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.parameters import QuantizedParameter
 from qick import QickConfig
+from qick.asm_v1 import QickProgram
+from qick.averager_program import NDAveragerProgram
+
+if TYPE_CHECKING:
+    from qcodes_qick.instruments import QickInstrument
+
+
+class QickProtocol(InstrumentModule):
+
+    parent: QickInstrument
+
+    def __init__(
+        self,
+        station: Station,
+        parent: QickInstrument,
+        name: str,
+        program: QickProgram,
+        **kwargs,
+    ):
+        super().__init__(parent, name, **kwargs)
+        self.station = station
+        self.program = program
+        parent.add_submodule(name, self)
 
 
 @dataclass
@@ -29,7 +58,41 @@ class HardwareSweep:
         self.values = self.start + self.step * np.arange(num)
 
 
-class Protocol(Instrument):
+class NDAveragerProtocol(QickProtocol):
+
+    program: NDAveragerProgram
+
+    def run(
+        self,
+        experiment: Experiment,
+        software_sweeps: Sequence[SoftwareSweep] = (),
+        hardware_sweeps: Sequence[HardwareSweep] = (),
+    ) -> int:
+
+        meas = Measurement(experiment, self.station, self.name)
+
+        # register the swept parameters
+        setpoints = []
+        for sweep in itertools.chain(software_sweeps, hardware_sweeps):
+            setpoints.append(sweep.parameter)
+            meas.register_parameter(sweep.parameter, paramtype="array")
+
+        # create and register the parameter describing the acquired data
+        iq_parameter = Parameter("iq")
+        meas.register_parameter(iq_parameter, setpoints=setpoints, paramtype="array")
+
+        software_sweep_parameters = [sweep.parameter for sweep in software_sweeps]
+        software_sweep_values = [sweep.values for sweep in software_sweeps]
+
+        with meas.run() as datasaver:
+            for current_values in tqdm_product(*software_sweep_values):
+                iq = 0
+                datasaver.add_result(
+                    *zip(software_sweep_parameters, current_values),
+                    (iq_parameter, iq),
+                )
+
+        return datasaver.run_id
 
     def run_hybrid_loop_program(self, soc, cfg, program):
         # ONLY FOR RAVERAGERPROGRAMS
