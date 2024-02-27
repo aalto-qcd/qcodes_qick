@@ -11,7 +11,7 @@ from qcodes_qick.parameters import (
     SecParameter,
     TProcSecParameter,
 )
-from qcodes_qick.protocols import HardwareSweep, NDAveragerProtocol
+from qcodes_qick.protocol_base import HardwareSweep, NDAveragerProtocol
 from qick.averager_program import NDAveragerProgram, QickSweep
 
 if TYPE_CHECKING:
