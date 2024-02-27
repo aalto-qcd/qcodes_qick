@@ -1,5 +1,6 @@
 from qcodes import ChannelTuple, Instrument
 
+import qick
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qick.pyro import make_proxy
 
@@ -44,3 +45,11 @@ class QickInstrument(Instrument):
     def sec2cycles_tproc(self, sec: float) -> int:
         """Convert time from seconds to the number of tProc clock cycles"""
         return self.soccfg.us2cycles(sec * 1e6)
+    
+    def get_idn(self) -> dict[str, str | None]:
+        return {
+            "vendor": "Xilinx",
+            "model": "ZCU216",
+            "serial": "",
+            "firmware": f"remote QICK library version = {self.soccfg['sw_version']}, local QICK library version = {qick.__version__}",
+        }
