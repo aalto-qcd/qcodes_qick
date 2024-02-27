@@ -47,28 +47,47 @@ class SoftwareSweep:
         start: Union[float, Sequence[float]],
         stop: Optional[float] = None,
         num: Optional[int] = None,
+        skip_first: bool = False,
+        skip_last: bool = False,
     ):
         self.parameter = parameter
+
         if isinstance(start, Sequence):
             self.values = start
         else:
             self.values = np.linspace(start, stop, num)
+        if skip_first:
+            self.values = self.values[1:]
+        if skip_last:
+            self.values = self.values[:-1]
 
 
 class HardwareSweep:
     def __init__(
-        self, parameter: HardwareParameter, start: float, stop: float, num: int
+        self,
+        parameter: HardwareParameter,
+        start: float,
+        stop: float,
+        num: int,
+        skip_first: bool = False,
+        skip_last: bool = False,
     ):
         self.parameter = parameter
-        self.start_int = parameter.float2int(start)
+
         self.step_int = parameter.float2int((stop - start) / (num - 1))
-        self.values_int = self.start_int + self.step_int * np.arange(num)
+        self.values_int = parameter.float2int(start) + self.step_int * np.arange(num)
+        if skip_first:
+            self.values_int = self.values_int[1:]
+        if skip_last: 
+            self.values_int = self.values_int[:-1]
+        self.start_int = self.values_int[0]
         self.stop_int = self.values_int[-1]
+        self.num = len(self.values_int)
+
         self.start = parameter.int2float(self.start_int)
-        self.step = parameter.int2float(self.step_int)
         self.stop = parameter.int2float(self.stop_int)
+        self.step = parameter.int2float(self.step_int)
         self.values = np.array([parameter.int2float(i) for i in self.values_int])
-        self.num = num
 
 
 class NDAveragerProtocol(QickProtocol):
@@ -115,9 +134,9 @@ class NDAveragerProtocol(QickProtocol):
         readouts_per_experiment = program.reads_per_shot
         assert len(adc_channels) == len(readouts_per_experiment)
 
-        # set hardware sweep parameters to start values
-        for sweep in hardware_sweeps:
-            sweep.parameter.set_raw(sweep.start_int)
+        # set sweep parameters to start values
+        for sweep in itertools.chain(software_sweeps, hardware_sweeps):
+            sweep.parameter.set(sweep.values[0])
 
         meas = Measurement(experiment, self.station, self.name)
         setpoints = []
