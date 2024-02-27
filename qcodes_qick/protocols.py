@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter, Station
@@ -38,10 +37,22 @@ class QickProtocol(InstrumentModule):
         parent.add_submodule(name, self)
 
 
-@dataclass
 class SoftwareSweep:
-    parameter: Parameter
-    values: Sequence
+
+    values: Sequence[float]
+
+    def __init__(
+        self,
+        parameter: Parameter,
+        start: Union[float, Sequence[float]],
+        stop: Optional[float] = None,
+        num: Optional[int] = None,
+    ):
+        self.parameter = parameter
+        if isinstance(start, Sequence):
+            self.values = start
+        else:
+            self.values = np.linspace(start, stop, num)
 
 
 class HardwareSweep:
