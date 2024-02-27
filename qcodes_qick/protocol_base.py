@@ -75,7 +75,7 @@ class HardwareSweep:
         self.parameter = parameter
 
         self.step_int = parameter.float2int((stop - start) / (num - 1))
-        self.values_int = parameter.float2int(start) + self.step_int * np.arange(num)
+        self.values_int = parameter.float2int(start) + self.step_int * np.arange(num, dtype=np.int64)
         if skip_first:
             self.values_int = self.values_int[1:]
         if skip_last: 

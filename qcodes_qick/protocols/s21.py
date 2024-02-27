@@ -74,10 +74,10 @@ class S21Protocol(NDAveragerProtocol):
             qick_instrument=self.parent,
         )
 
-        self.readout_length = SecParameter(
-            name="readout_length",
+        self.adc_length = SecParameter(
+            name="adc_length",
             instrument=self,
-            label="Length of the readout",
+            label="Length of ADC acquisition window",
             initial_value=10e-6,
             channel=self.adc,
         )
@@ -108,7 +108,7 @@ class S21Program(NDAveragerProgram):
         )
         self.declare_readout(
             ch=p.adc.channel,
-            length=p.readout_length.get_raw(),
+            length=p.adc_length.get_raw(),
             sel="product",
             freq=p.pulse_freq.get() / 1e6,
         )
