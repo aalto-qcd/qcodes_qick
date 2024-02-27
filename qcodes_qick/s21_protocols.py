@@ -6,7 +6,6 @@ from qcodes import Station
 
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.parameters import (
-    DegParameter,
     GainParameter,
     HzParameter,
     SecParameter,
@@ -39,7 +38,7 @@ class S21Protocol(NDAveragerProtocol):
         self.pulse_gain = GainParameter(
             name="pulse_gain",
             instrument=self,
-            label="DAC gain",
+            label="Pulse gain",
             initial_value=0.5,
         )
 
@@ -48,14 +47,6 @@ class S21Protocol(NDAveragerProtocol):
             instrument=self,
             label="Pulse frequency",
             initial_value=1e9,
-            channel=self.dac,
-        )
-
-        self.pulse_phase = DegParameter(
-            name="pulse_phase",
-            instrument=self,
-            label="Pulse phase",
-            initial_value=0,
             channel=self.dac,
         )
 
@@ -125,7 +116,7 @@ class S21Program(NDAveragerProgram):
             ch=p.dac.channel,
             style="const",
             freq=p.pulse_freq.get_raw(),
-            phase=p.pulse_phase.get_raw(),
+            phase=0,
             gain=p.pulse_gain.get_raw(),
             phrst=0,
             stdysel="zero",

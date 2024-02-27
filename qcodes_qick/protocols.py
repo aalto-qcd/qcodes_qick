@@ -3,18 +3,16 @@ from __future__ import annotations
 import itertools
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter, Station
 from qcodes.dataset.experiment_container import Experiment
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
-from tqdm.auto import tqdm
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.parameters import HardwareParameter
-from qick import QickConfig
 from qick.asm_v1 import QickProgram
 from qick.averager_program import NDAveragerProgram
 
