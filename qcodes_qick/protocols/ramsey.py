@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from qcodes import ManualParameter, Station
-from qcodes.validators import Ints
+from qcodes import Station
 
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.parameters import (
+    DegParameter,
     GainParameter,
     HzParameter,
     SecParameter,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class GaussianPulseProtocol(NDAveragerProtocol):
+class RamseyProtocol(NDAveragerProtocol):
 
     def __init__(
         self,
@@ -28,20 +28,20 @@ class GaussianPulseProtocol(NDAveragerProtocol):
         qubit_dac: DacChannel,
         readout_dac: DacChannel,
         readout_adc: AdcChannel,
-        name="GaussianPulseProtocol",
+        name="RamseyProtocol",
         **kwargs,
     ):
-        super().__init__(station, parent, name, GaussianPulseProgram, **kwargs)
+        super().__init__(station, parent, name, RamseyProgram, **kwargs)
         self.qubit_dac = qubit_dac
         self.readout_dac = readout_dac
         self.readout_adc = readout_adc
         self.readout_dac.matching_adc.set(readout_adc.channel)
         self.readout_adc.matching_dac.set(readout_dac.channel)
 
-        self.qubit_gain = GainParameter(
-            name="qubit_gain",
+        self.half_pi_gain = GainParameter(
+            name="half_pi_gain",
             instrument=self,
-            label="Gain of qubit pulse",
+            label="Gain of pi/2 pulse",
             initial_value=0.5,
         )
 
@@ -69,12 +69,20 @@ class GaussianPulseProtocol(NDAveragerProtocol):
             channel=qubit_dac,
         )
 
-        self.qubit_count = ManualParameter(
-            name="qubit_count",
+        self.qubit_relative_phase = DegParameter(
+            name="qubit_relative_phase",
             instrument=self,
-            label="Number of qubit pulses",
-            vals=Ints(min_value=0),
-            initial_value=1,
+            label="Relative phase between the first and second qubit pulses",
+            initial_value=0,
+            channel=qubit_dac,
+        )
+
+        self.qubit_qubit_gap = TProcSecParameter(
+            name="qubit_qubit_gap",
+            instrument=self,
+            label="Gap between the first and second qubit pulses",
+            initial_value=1e-6,
+            qick_instrument=self.parent,
         )
 
         self.qubit_readout_gap = TProcSecParameter(
@@ -125,7 +133,7 @@ class GaussianPulseProtocol(NDAveragerProtocol):
         )
 
 
-class GaussianPulseProgram(NDAveragerProgram):
+class RamseyProgram(NDAveragerProgram):
     """
     This class performs a hardware loop sweep over one or more registers
     in the board. The limit is seven registers.
@@ -141,7 +149,7 @@ class GaussianPulseProgram(NDAveragerProgram):
     """
 
     def initialize(self):
-        p: GaussianPulseProtocol = self.cfg["protocol"]
+        p: RamseyProtocol = self.cfg["protocol"]
         hardware_sweeps: Sequence[HardwareSweep] = self.cfg.get("hardware_sweeps", ())
 
         self.declare_gen(
@@ -169,11 +177,17 @@ class GaussianPulseProgram(NDAveragerProgram):
             style="arb",
             freq=p.qubit_freq.get_raw(),
             phase=0,
-            gain=p.qubit_gain.get_raw(),
+            gain=p.half_pi_gain.get_raw(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
             waveform="qubit",
+        )
+        self.qubit_relative_phase_reg = self.new_gen_reg(
+            gen_ch=p.qubit_dac.channel,
+            name="qubit_relative_phase",
+            init_val=p.qubit_relative_phase.get(),
+            reg_type="phase",
         )
         self.set_pulse_registers(
             ch=p.readout_dac.channel,
@@ -186,16 +200,16 @@ class GaussianPulseProgram(NDAveragerProgram):
             mode="oneshot",
             length=p.readout_length.get_raw(),
         )
-        self.qubit_readout_gap_reg = self.new_gen_reg(
-            gen_ch=p.readout_dac.channel,
-            name="qubit_readout_gap_reg",
-            init_val=p.qubit_readout_gap.get() * 1e6,
+        self.qubit_qubit_gap_reg = self.new_gen_reg(
+            gen_ch=p.qubit_dac.channel,
+            name="qubit_qubit_gap",
+            init_val=p.qubit_qubit_gap.get() * 1e6,
             reg_type="time",
             tproc_reg=True,
         )
 
         for sweep in reversed(hardware_sweeps):
-            if sweep.parameter is p.qubit_gain:
+            if sweep.parameter is p.half_pi_gain:
                 reg = self.get_gen_reg(p.qubit_dac.channel, "gain")
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
@@ -205,8 +219,11 @@ class GaussianPulseProgram(NDAveragerProgram):
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
                 )
-            elif sweep.parameter is p.qubit_readout_gap:
-                reg = self.qubit_readout_gap_reg
+            elif sweep.parameter is p.qubit_relative_phase:
+                reg = self.qubit_relative_phase_reg
+                self.add_sweep(QickSweep(self, reg, sweep.start, sweep.stop, sweep.num))
+            elif sweep.parameter is p.qubit_qubit_gap:
+                reg = self.qubit_qubit_gap_reg
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start * 1e6, sweep.stop * 1e6, sweep.num)
                 )
@@ -221,12 +238,16 @@ class GaussianPulseProgram(NDAveragerProgram):
         self.synci(200)  # Give processor some time to configure pulses
 
     def body(self):
-        p: GaussianPulseProtocol = self.cfg["protocol"]
+        p: RamseyProtocol = self.cfg["protocol"]
+        qubit_phase_reg = self.get_gen_reg(p.qubit_dac.channel, "phase")
 
-        for _ in range(p.qubit_count.get()):
-            self.pulse(ch=p.qubit_dac.channel, t="auto")
+        qubit_phase_reg.set_to(0)
+        self.pulse(ch=p.qubit_dac.channel, t="auto")
         self.sync_all()
-        self.sync(self.qubit_readout_gap_reg.page, self.qubit_readout_gap_reg.addr)
+        self.sync(self.qubit_qubit_gap_reg.page, self.qubit_qubit_gap_reg.addr)
+        qubit_phase_reg.set_to(self.qubit_relative_phase_reg)
+        self.pulse(ch=p.qubit_dac.channel, t="auto")
+        self.sync_all(t=p.qubit_readout_gap.get_raw())
         self.measure(
             adcs=[p.readout_adc.channel],
             pulse_ch=p.readout_dac.channel,
