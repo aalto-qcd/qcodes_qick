@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from qick.asm_v1 import QickProgram
 
 
-class QickPulse(InstrumentModule):
+class QickInstruction(InstrumentModule):
 
     parent: QickInstrument
 

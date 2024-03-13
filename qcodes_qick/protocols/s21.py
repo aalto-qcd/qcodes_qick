@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Sequence
 
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qcodes_qick.pulses.readout import ReadoutPulse
+from qcodes_qick.instructions.readout_pulse import ReadoutPulse
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class S21Protocol(SweepProtocol):
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        self.pulses = {readout_pulse}
+        self.instructions = {readout_pulse}
         self.readout_pulse = readout_pulse
 
     def generate_program(
