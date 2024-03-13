@@ -14,6 +14,7 @@ from qcodes_qick.parameters import (
 )
 from qcodes_qick.protocol_base import HardwareSweep, NDAveragerProtocol
 from qick.averager_program import NDAveragerProgram, QickSweep
+from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -30,7 +31,7 @@ class GaussianPulseProtocol(NDAveragerProtocol):
         name="GaussianPulseProtocol",
         **kwargs,
     ):
-        super().__init__(parent, name, GaussianPulseProgram, **kwargs)
+        super().__init__(parent, name, **kwargs)
         self.qubit_dac = qubit_dac
         self.readout_dac = readout_dac
         self.readout_adc = readout_adc
@@ -122,6 +123,9 @@ class GaussianPulseProtocol(NDAveragerProtocol):
             initial_value=1e-3,
             qick_instrument=self.parent,
         )
+
+    def generate_program(self, soccfg: QickConfig, cfg: dict) -> GaussianPulseProgram:
+        return GaussianPulseProgram(soccfg, cfg)
 
 
 class GaussianPulseProgram(NDAveragerProgram):

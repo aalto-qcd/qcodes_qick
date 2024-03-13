@@ -11,6 +11,7 @@ from qcodes_qick.parameters import (
 )
 from qcodes_qick.protocol_base import HardwareSweep, NDAveragerProtocol
 from qick.averager_program import NDAveragerProgram, QickSweep
+from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -26,7 +27,7 @@ class S21Protocol(NDAveragerProtocol):
         name="S21Protocol",
         **kwargs,
     ):
-        super().__init__(parent, name, S21Program, **kwargs)
+        super().__init__(parent, name, **kwargs)
         self.dac = dac
         self.adc = adc
         self.dac.matching_adc.set(adc.channel)
@@ -78,6 +79,9 @@ class S21Protocol(NDAveragerProtocol):
             initial_value=10e-6,
             channel=self.adc,
         )
+
+    def generate_program(self, soccfg: QickConfig, cfg: dict) -> S21Program:
+        return S21Program(soccfg, cfg)
 
 
 class S21Program(NDAveragerProgram):
