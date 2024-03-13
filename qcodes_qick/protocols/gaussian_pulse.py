@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from qcodes import ManualParameter, Station
+from qcodes import ManualParameter
 from qcodes.validators import Ints
 
 from qcodes_qick.channels import AdcChannel, DacChannel
@@ -23,7 +23,6 @@ class GaussianPulseProtocol(NDAveragerProtocol):
 
     def __init__(
         self,
-        station: Station,
         parent: QickInstrument,
         qubit_dac: DacChannel,
         readout_dac: DacChannel,
@@ -31,7 +30,7 @@ class GaussianPulseProtocol(NDAveragerProtocol):
         name="GaussianPulseProtocol",
         **kwargs,
     ):
-        super().__init__(station, parent, name, GaussianPulseProgram, **kwargs)
+        super().__init__(parent, name, GaussianPulseProgram, **kwargs)
         self.qubit_dac = qubit_dac
         self.readout_dac = readout_dac
         self.readout_adc = readout_adc

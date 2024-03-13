@@ -5,8 +5,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
-from qcodes import ManualParameter, Measurement, Parameter, Station
-from qcodes.dataset.experiment_container import Experiment
+from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from tqdm.contrib.itertools import product as tqdm_product
@@ -25,14 +24,12 @@ class QickProtocol(InstrumentModule):
 
     def __init__(
         self,
-        station: Station,
         parent: QickInstrument,
         name: str,
         program_class: type[QickProgram],
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        self.station = station
         self.program_class = program_class
         parent.add_submodule(name, self)
 
@@ -96,13 +93,12 @@ class NDAveragerProtocol(QickProtocol):
 
     def __init__(
         self,
-        station: Station,
         parent: QickInstrument,
         name: str,
         program_class: type[NDAveragerProgram],
         **kwargs,
     ):
-        super().__init__(station, parent, name, program_class, **kwargs)
+        super().__init__(parent, name, program_class, **kwargs)
 
         self.hard_avgs = ManualParameter(
             name="hard_avgs",
@@ -122,7 +118,7 @@ class NDAveragerProtocol(QickProtocol):
 
     def run(
         self,
-        experiment: Experiment,
+        meas: Measurement,
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_sweeps: Sequence[HardwareSweep] = (),
     ) -> int:
@@ -138,10 +134,8 @@ class NDAveragerProtocol(QickProtocol):
         for sweep in itertools.chain(software_sweeps, hardware_sweeps):
             sweep.parameter.set(sweep.values[0])
 
-        meas = Measurement(experiment, self.station, self.name)
-        setpoints = []
-
         # register the sweep parameters
+        setpoints = []
         for sweep in itertools.chain(software_sweeps, hardware_sweeps):
             setpoints.append(sweep.parameter)
             meas.register_parameter(sweep.parameter, paramtype="array")

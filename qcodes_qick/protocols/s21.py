@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from qcodes import Station
-
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.parameters import (
     GainParameter,
@@ -22,14 +20,13 @@ class S21Protocol(NDAveragerProtocol):
 
     def __init__(
         self,
-        station: Station,
         parent: QickInstrument,
         dac: DacChannel,
         adc: AdcChannel,
         name="S21Protocol",
         **kwargs,
     ):
-        super().__init__(station, parent, name, S21Program, **kwargs)
+        super().__init__(parent, name, S21Program, **kwargs)
         self.dac = dac
         self.adc = adc
         self.dac.matching_adc.set(adc.channel)

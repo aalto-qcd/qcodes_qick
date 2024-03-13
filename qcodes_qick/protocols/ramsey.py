@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from qcodes import Station
-
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.parameters import (
     DegParameter,
@@ -23,7 +21,6 @@ class RamseyProtocol(NDAveragerProtocol):
 
     def __init__(
         self,
-        station: Station,
         parent: QickInstrument,
         qubit_dac: DacChannel,
         readout_dac: DacChannel,
@@ -31,7 +28,7 @@ class RamseyProtocol(NDAveragerProtocol):
         name="RamseyProtocol",
         **kwargs,
     ):
-        super().__init__(station, parent, name, RamseyProgram, **kwargs)
+        super().__init__(parent, name, RamseyProgram, **kwargs)
         self.qubit_dac = qubit_dac
         self.readout_dac = readout_dac
         self.readout_adc = readout_adc
