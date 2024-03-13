@@ -11,7 +11,9 @@ from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from tqdm.contrib.itertools import product as tqdm_product
 
+from qcodes_qick.channels import DacChannel
 from qcodes_qick.parameters import HardwareParameter
+from qcodes_qick.pulse_base import QickPulse
 from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import QickConfig
 
@@ -23,13 +25,9 @@ class QickProtocol(InstrumentModule):
 
     parent: QickInstrument
 
-    def __init__(
-        self,
-        parent: QickInstrument,
-        name: str,
-        **kwargs,
-    ):
+    def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
+        self.pulses: set[QickPulse] = {}
         parent.add_submodule(name, self)
 
 
@@ -104,7 +102,6 @@ class SweepProtocol(ABC, QickProtocol):
             vals=Ints(min_value=0),
             initial_value=1000,
         )
-
         self.soft_avgs = ManualParameter(
             name="soft_avgs",
             instrument=self,
@@ -232,3 +229,22 @@ class SweepProgram(NDAveragerProgram):
             "soft_avgs": protocol.soft_avgs.get(),
         }
         super().__init__(soccfg, cfg)
+
+    def initialize(self):
+        dacs: set[DacChannel] = set.union(
+            *(pulse.dacs for pulse in self.protocol.pulses)
+        )
+        for dac in dacs:
+            self.declare_gen(ch=dac.channel, nqz=dac.nqz.get())
+
+        for pulse in self.protocol.pulses:
+            pulse.initialize(self)
+
+        for sweep in reversed(self.hardware_sweeps):
+            if isinstance(sweep.parameter.instrument, QickPulse):
+                pulse = sweep.parameter.instrument
+                pulse.add_sweep(self, sweep)
+            else:
+                raise NotImplementedError
+
+        self.synci(200)  # Give processor some time to configure pulses
