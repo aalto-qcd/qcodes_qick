@@ -10,7 +10,6 @@ from qcodes_qick.parameters import (
 )
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 from qcodes_qick.pulse_base import QickPulse
-from qick.asm_v1 import AcquireProgram
 from qick.averager_program import QickSweep
 
 
@@ -80,7 +79,7 @@ class ReadoutPulse(QickPulse):
             channel=self.adc,
         )
 
-    def initialize(self, program: AcquireProgram):
+    def initialize(self, program: SweepProgram):
         program.set_pulse_registers(
             ch=self.dac.channel,
             style="const",
@@ -97,9 +96,17 @@ class ReadoutPulse(QickPulse):
             length=self.adc_length.get_raw(),
             freq=self.freq.get() / 1e6,
         )
+        self.wait_before_reg = program.new_gen_reg(
+            gen_ch=self.dac.channel,
+            name="qubit_readout_gap_reg",
+            init_val=self.wait_before.get() * 1e6,
+            reg_type="time",
+            tproc_reg=True,
+        )
 
-    def play(self, program: AcquireProgram, wait_for_adc: bool):
-        program.sync_all(t=self.wait_before.get_raw())
+    def play(self, program: SweepProgram, wait_for_adc: bool):
+        program.sync_all()
+        program.sync(self.wait_before_reg.page, self.wait_before_reg.addr)
         program.measure(
             adcs=[self.adc.channel],
             pulse_ch=self.dac.channel,
@@ -114,6 +121,11 @@ class ReadoutPulse(QickPulse):
             reg = program.get_gen_reg(self.dac.channel, "gain")
             program.add_sweep(
                 QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
+            )
+        elif sweep.parameter is self.wait_before:
+            reg = self.wait_before_reg
+            program.add_sweep(
+                QickSweep(program, reg, sweep.start * 1e6, sweep.stop * 1e6, sweep.num)
             )
         else:
             raise NotImplementedError
