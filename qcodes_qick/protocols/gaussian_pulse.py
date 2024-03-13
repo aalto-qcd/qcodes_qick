@@ -126,19 +126,6 @@ class GaussianPulseProtocol(NDAveragerProtocol):
 
 
 class GaussianPulseProgram(NDAveragerProgram):
-    """
-    This class performs a hardware loop sweep over one or more registers
-    in the board. The limit is seven registers.
-
-
-    Methods
-    -------
-    initialize(self):
-        Initializes the program and defines important variables and registers.
-        The sweeps are defined by self.add_sweep calls.
-    body(self):
-        Defines the structure of the actual measurement and will be looped over reps times.
-    """
 
     def initialize(self):
         p: GaussianPulseProtocol = self.cfg["protocol"]
