@@ -9,11 +9,11 @@ from qcodes_qick.parameters import (
     TProcSecParameter,
 )
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
-from qcodes_qick.pulse_base import QickPulse
+from qcodes_qick.instruction_base import QickInstruction
 from qick.averager_program import QickSweep
 
 
-class ReadoutPulse(QickPulse):
+class ReadoutPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,

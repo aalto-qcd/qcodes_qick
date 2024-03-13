@@ -6,8 +6,8 @@ from qcodes import ManualParameter
 from qcodes.validators import Ints
 
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qcodes_qick.pulse_base import QickPulse
-from qcodes_qick.pulses.readout import ReadoutPulse
+from qcodes_qick.instruction_base import QickInstruction
+from qcodes_qick.instructions.readout_pulse import ReadoutPulse
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class GaussianPulseProtocol(SweepProtocol):
     def __init__(
         self,
         parent: QickInstrument,
-        qubit_pulse: QickPulse,
+        qubit_pulse: QickInstruction,
         readout_pulse: ReadoutPulse,
         name="GaussianPulseProtocol",
         **kwargs,
@@ -27,7 +27,7 @@ class GaussianPulseProtocol(SweepProtocol):
         super().__init__(parent, name, **kwargs)
         self.qubit_pulse = qubit_pulse
         self.readout_pulse = readout_pulse
-        self.pulses = {qubit_pulse, readout_pulse}
+        self.instructions = {qubit_pulse, readout_pulse}
 
         self.qubit_pulse_count = ManualParameter(
             name="qubit_pulse_count",

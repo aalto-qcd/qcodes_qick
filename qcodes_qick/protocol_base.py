@@ -13,7 +13,7 @@ from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.channels import DacChannel
 from qcodes_qick.parameters import HardwareParameter
-from qcodes_qick.pulse_base import QickPulse
+from qcodes_qick.instruction_base import QickInstruction
 from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import QickConfig
 
@@ -27,7 +27,7 @@ class QickProtocol(InstrumentModule):
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
-        self.pulses: set[QickPulse] = {}
+        self.instructions: set[QickInstruction] = {}
         parent.add_submodule(name, self)
 
 
@@ -232,16 +232,16 @@ class SweepProgram(NDAveragerProgram):
 
     def initialize(self):
         dacs: set[DacChannel] = set.union(
-            *(pulse.dacs for pulse in self.protocol.pulses)
+            *(pulse.dacs for pulse in self.protocol.instructions)
         )
         for dac in dacs:
             self.declare_gen(ch=dac.channel, nqz=dac.nqz.get())
 
-        for pulse in self.protocol.pulses:
+        for pulse in self.protocol.instructions:
             pulse.initialize(self)
 
         for sweep in reversed(self.hardware_sweeps):
-            if isinstance(sweep.parameter.instrument, QickPulse):
+            if isinstance(sweep.parameter.instrument, QickInstruction):
                 pulse = sweep.parameter.instrument
                 pulse.add_sweep(self, sweep)
             else:
