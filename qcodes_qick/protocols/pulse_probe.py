@@ -9,15 +9,15 @@ from qcodes_qick.parameters import (
     SecParameter,
     TProcSecParameter,
 )
-from qcodes_qick.protocol_base import HardwareSweep, NDAveragerProtocol
-from qick.averager_program import NDAveragerProgram, QickSweep
+from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
+from qick.averager_program import QickSweep
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class PulseProbeProtocol(NDAveragerProtocol):
+class PulseProbeProtocol(SweepProtocol):
 
     def __init__(
         self,
@@ -105,66 +105,67 @@ class PulseProbeProtocol(NDAveragerProtocol):
             qick_instrument=self.parent,
         )
 
-    def generate_program(self, soccfg: QickConfig, cfg: dict) -> PulseProbeProgram:
-        return PulseProbeProgram(soccfg, cfg)
+    def generate_program(
+        self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
+    ):
+        return PulseProbeProgram(soccfg, self, hardware_sweeps)
 
 
-class PulseProbeProgram(NDAveragerProgram):
+class PulseProbeProgram(SweepProgram):
+
+    protocol: PulseProbeProtocol
 
     def initialize(self):
-        p: PulseProbeProtocol = self.cfg["protocol"]
-        hardware_sweeps: Sequence[HardwareSweep] = self.cfg.get("hardware_sweeps", ())
-
         self.declare_gen(
-            ch=p.qubit_dac.channel,
-            nqz=p.qubit_dac.nqz.get(),
+            ch=self.protocol.qubit_dac.channel,
+            nqz=self.protocol.qubit_dac.nqz.get(),
         )
         self.declare_gen(
-            ch=p.readout_dac.channel,
-            nqz=p.readout_dac.nqz.get(),
+            ch=self.protocol.readout_dac.channel,
+            nqz=self.protocol.readout_dac.nqz.get(),
         )
         self.declare_readout(
-            ch=p.readout_adc.channel,
-            length=p.readout_length.get_raw(),
+            ch=self.protocol.readout_adc.channel,
+            length=self.protocol.readout_length.get_raw(),
             sel="product",
-            freq=p.readout_freq.get() / 1e6,
+            freq=self.protocol.readout_freq.get() / 1e6,
         )
         self.set_pulse_registers(
-            ch=p.qubit_dac.channel,
+            ch=self.protocol.qubit_dac.channel,
             style="const",
-            freq=p.qubit_freq.get_raw(),
+            freq=self.protocol.qubit_freq.get_raw(),
             phase=0,
-            gain=p.qubit_gain.get_raw(),
+            gain=self.protocol.qubit_gain.get_raw(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            length=p.qubit_length.get_raw(),
+            length=self.protocol.qubit_length.get_raw(),
         )
         self.set_pulse_registers(
-            ch=p.readout_dac.channel,
+            ch=self.protocol.readout_dac.channel,
             style="const",
-            freq=p.readout_freq.get_raw(),
+            freq=self.protocol.readout_freq.get_raw(),
             phase=0,
-            gain=p.readout_gain.get_raw(),
+            gain=self.protocol.readout_gain.get_raw(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            length=p.readout_length.get_raw(),
+            length=self.protocol.readout_length.get_raw(),
         )
 
-        for sweep in reversed(hardware_sweeps):
-            if sweep.parameter is p.qubit_gain:
-                reg = self.get_gen_reg(p.qubit_dac.channel, "gain")
+        for sweep in reversed(self.hardware_sweeps):
+            if sweep.parameter is self.protocol.qubit_gain:
+                reg = self.get_gen_reg(self.protocol.qubit_dac.channel, "gain")
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
                 )
-            elif sweep.parameter is p.qubit_freq:
-                reg = self.get_gen_reg(p.qubit_dac.channel, "freq")
+            elif sweep.parameter is self.protocol.qubit_freq:
+                reg = self.get_gen_reg(self.protocol.qubit_dac.channel, "freq")
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
                 )
-            elif sweep.parameter is p.readout_gain:
-                reg = self.get_gen_reg(p.readout_dac.channel, "gain")
+            elif sweep.parameter is self.protocol.readout_gain:
+                reg = self.get_gen_reg(self.protocol.readout_dac.channel, "gain")
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
                 )
@@ -174,15 +175,13 @@ class PulseProbeProgram(NDAveragerProgram):
         self.synci(200)  # Give processor some time to configure pulses
 
     def body(self):
-        p: PulseProbeProtocol = self.cfg["protocol"]
-
-        self.pulse(ch=p.qubit_dac.channel, t="auto")
-        self.sync_all(t=p.qubit_readout_gap.get_raw())
+        self.pulse(ch=self.protocol.qubit_dac.channel, t="auto")
+        self.sync_all(t=self.protocol.qubit_readout_gap.get_raw())
         self.measure(
-            adcs=[p.readout_adc.channel],
-            pulse_ch=p.readout_dac.channel,
-            adc_trig_offset=p.adc_trig_offset.get_raw(),
+            adcs=[self.protocol.readout_adc.channel],
+            pulse_ch=self.protocol.readout_dac.channel,
+            adc_trig_offset=self.protocol.adc_trig_offset.get_raw(),
             t="auto",
             wait=True,
-            syncdelay=p.relax_delay.get_raw(),
+            syncdelay=self.protocol.relax_delay.get_raw(),
         )

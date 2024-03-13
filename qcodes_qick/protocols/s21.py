@@ -9,15 +9,15 @@ from qcodes_qick.parameters import (
     SecParameter,
     TProcSecParameter,
 )
-from qcodes_qick.protocol_base import HardwareSweep, NDAveragerProtocol
-from qick.averager_program import NDAveragerProgram, QickSweep
+from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
+from qick.averager_program import QickSweep
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class S21Protocol(NDAveragerProtocol):
+class S21Protocol(SweepProtocol):
 
     def __init__(
         self,
@@ -80,41 +80,42 @@ class S21Protocol(NDAveragerProtocol):
             channel=self.adc,
         )
 
-    def generate_program(self, soccfg: QickConfig, cfg: dict) -> S21Program:
-        return S21Program(soccfg, cfg)
+    def generate_program(
+        self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
+    ):
+        return S21Program(soccfg, self, hardware_sweeps)
 
 
-class S21Program(NDAveragerProgram):
+class S21Program(SweepProgram):
+
+    protocol: S21Protocol
 
     def initialize(self):
-        p: S21Protocol = self.cfg["protocol"]
-        hardware_sweeps: Sequence[HardwareSweep] = self.cfg.get("hardware_sweeps", ())
-
         self.declare_gen(
-            ch=p.dac.channel,
-            nqz=p.dac.nqz.get(),
+            ch=self.protocol.dac.channel,
+            nqz=self.protocol.dac.nqz.get(),
         )
         self.declare_readout(
-            ch=p.adc.channel,
-            length=p.adc_length.get_raw(),
+            ch=self.protocol.adc.channel,
+            length=self.protocol.adc_length.get_raw(),
             sel="product",
-            freq=p.pulse_freq.get() / 1e6,
+            freq=self.protocol.pulse_freq.get() / 1e6,
         )
         self.set_pulse_registers(
-            ch=p.dac.channel,
+            ch=self.protocol.dac.channel,
             style="const",
-            freq=p.pulse_freq.get_raw(),
+            freq=self.protocol.pulse_freq.get_raw(),
             phase=0,
-            gain=p.pulse_gain.get_raw(),
+            gain=self.protocol.pulse_gain.get_raw(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            length=p.pulse_length.get_raw(),
+            length=self.protocol.pulse_length.get_raw(),
         )
 
-        for sweep in reversed(hardware_sweeps):
-            if sweep.parameter is p.pulse_gain:
-                reg = self.get_gen_reg(p.dac.channel, "gain")
+        for sweep in reversed(self.hardware_sweeps):
+            if sweep.parameter is self.protocol.pulse_gain:
+                reg = self.get_gen_reg(self.protocol.dac.channel, "gain")
                 self.add_sweep(
                     QickSweep(self, reg, sweep.start_int, sweep.stop_int, sweep.num)
                 )
@@ -124,13 +125,11 @@ class S21Program(NDAveragerProgram):
         self.synci(200)  # Give processor some time to configure pulses
 
     def body(self):
-        p: S21Protocol = self.cfg["protocol"]
-
         self.measure(
-            adcs=[p.adc.channel],
-            pulse_ch=p.dac.channel,
-            adc_trig_offset=p.adc_trig_offset.get_raw(),
+            adcs=[self.protocol.adc.channel],
+            pulse_ch=self.protocol.dac.channel,
+            adc_trig_offset=self.protocol.adc_trig_offset.get_raw(),
             t="auto",
             wait=True,
-            syncdelay=p.relax_delay.get_raw(),
+            syncdelay=self.protocol.relax_delay.get_raw(),
         )

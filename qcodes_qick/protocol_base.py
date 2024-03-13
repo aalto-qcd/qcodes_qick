@@ -87,7 +87,7 @@ class HardwareSweep:
         self.values = np.array([parameter.int2float(i) for i in self.values_int])
 
 
-class NDAveragerProtocol(ABC, QickProtocol):
+class SweepProtocol(ABC, QickProtocol):
 
     def __init__(
         self,
@@ -114,7 +114,11 @@ class NDAveragerProtocol(ABC, QickProtocol):
         )
 
     @abstractmethod
-    def generate_program(self, soccfg: QickConfig, cfg: dict) -> NDAveragerProgram: ...
+    def generate_program(
+        self,
+        soccfg: QickConfig,
+        hardware_sweeps: Sequence[HardwareSweep] = (),
+    ) -> SweepProgram: ...
 
     def run(
         self,
@@ -124,8 +128,7 @@ class NDAveragerProtocol(ABC, QickProtocol):
     ) -> int:
 
         # instantiate the program just to obtain the ADC channel numbers and the number of readouts per experiment
-        cfg = {"reps": 1, "protocol": self}
-        program = self.generate_program(self.parent.soccfg, cfg)
+        program = self.generate_program(self.parent.soccfg)
         adc_channels = program.ro_chs.keys()
         readouts_per_experiment = program.reads_per_shot
         assert len(adc_channels) == len(readouts_per_experiment)
@@ -199,14 +202,7 @@ class NDAveragerProtocol(ABC, QickProtocol):
         hardware_sweeps: Sequence[HardwareSweep],
         progress: bool = True,
     ):
-
-        cfg = {
-            "reps": self.hard_avgs.get(),
-            "soft_avgs": self.soft_avgs.get(),
-            "hardware_sweeps": hardware_sweeps,
-            "protocol": self,
-        }
-        program = self.generate_program(self.parent.soccfg, cfg)
+        program = self.generate_program(self.parent.soccfg, hardware_sweeps)
         _, avg_di, avg_dq = program.acquire(
             self.parent.soc, load_pulses=True, progress=progress
         )
@@ -219,3 +215,20 @@ class NDAveragerProtocol(ABC, QickProtocol):
 
         iq = np.concatenate([i + 1j * q for i, q in zip(avg_di, avg_dq)])
         return sweep_coordinates, iq
+
+
+class SweepProgram(NDAveragerProgram):
+
+    def __init__(
+        self,
+        soccfg: QickConfig,
+        protocol: SweepProtocol,
+        hardware_sweeps: Sequence[HardwareSweep] = (),
+    ):
+        self.protocol = protocol
+        self.hardware_sweeps = hardware_sweeps
+        cfg = {
+            "reps": protocol.hard_avgs.get(),
+            "soft_avgs": protocol.soft_avgs.get(),
+        }
+        super().__init__(soccfg, cfg)
