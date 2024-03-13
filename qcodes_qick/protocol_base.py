@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -11,8 +12,8 @@ from qcodes.validators import Ints
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.parameters import HardwareParameter
-from qick.asm_v1 import QickProgram
 from qick.averager_program import NDAveragerProgram
+from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -26,11 +27,9 @@ class QickProtocol(InstrumentModule):
         self,
         parent: QickInstrument,
         name: str,
-        program_class: type[QickProgram],
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        self.program_class = program_class
         parent.add_submodule(name, self)
 
 
@@ -72,10 +71,11 @@ class HardwareSweep:
         self.parameter = parameter
 
         self.step_int = parameter.float2int((stop - start) / (num - 1))
-        self.values_int = parameter.float2int(start) + self.step_int * np.arange(num, dtype=np.int64)
+        start_int = parameter.float2int(start)
+        self.values_int = start_int + self.step_int * np.arange(num, dtype=np.int64)
         if skip_first:
             self.values_int = self.values_int[1:]
-        if skip_last: 
+        if skip_last:
             self.values_int = self.values_int[:-1]
         self.start_int = self.values_int[0]
         self.stop_int = self.values_int[-1]
@@ -87,18 +87,15 @@ class HardwareSweep:
         self.values = np.array([parameter.int2float(i) for i in self.values_int])
 
 
-class NDAveragerProtocol(QickProtocol):
-
-    program_class: type[NDAveragerProgram]
+class NDAveragerProtocol(ABC, QickProtocol):
 
     def __init__(
         self,
         parent: QickInstrument,
         name: str,
-        program_class: type[NDAveragerProgram],
         **kwargs,
     ):
-        super().__init__(parent, name, program_class, **kwargs)
+        super().__init__(parent, name, **kwargs)
 
         self.hard_avgs = ManualParameter(
             name="hard_avgs",
@@ -116,6 +113,9 @@ class NDAveragerProtocol(QickProtocol):
             initial_value=1,
         )
 
+    @abstractmethod
+    def generate_program(self, soccfg: QickConfig, cfg: dict) -> NDAveragerProgram: ...
+
     def run(
         self,
         meas: Measurement,
@@ -125,7 +125,7 @@ class NDAveragerProtocol(QickProtocol):
 
         # instantiate the program just to obtain the ADC channel numbers and the number of readouts per experiment
         cfg = {"reps": 1, "protocol": self}
-        program = self.program_class(self.parent.soccfg, cfg)
+        program = self.generate_program(self.parent.soccfg, cfg)
         adc_channels = program.ro_chs.keys()
         readouts_per_experiment = program.reads_per_shot
         assert len(adc_channels) == len(readouts_per_experiment)
@@ -206,7 +206,7 @@ class NDAveragerProtocol(QickProtocol):
             "hardware_sweeps": hardware_sweeps,
             "protocol": self,
         }
-        program = self.program_class(self.parent.soccfg, cfg)
+        program = self.generate_program(self.parent.soccfg, cfg)
         _, avg_di, avg_dq = program.acquire(
             self.parent.soc, load_pulses=True, progress=progress
         )
