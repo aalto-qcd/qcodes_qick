@@ -14,14 +14,14 @@ if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class GaussianPulseProtocol(SweepProtocol):
+class PulseProbeProtocol(SweepProtocol):
 
     def __init__(
         self,
         parent: QickInstrument,
         qubit_pulse: QickInstruction,
         readout_pulse: ReadoutPulse,
-        name="GaussianPulseProtocol",
+        name="PulseProbeProtocol",
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
@@ -40,12 +40,12 @@ class GaussianPulseProtocol(SweepProtocol):
     def generate_program(
         self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
     ):
-        return GaussianPulseProgram(soccfg, self, hardware_sweeps)
+        return PulseProbeProgram(soccfg, self, hardware_sweeps)
 
 
-class GaussianPulseProgram(SweepProgram):
+class PulseProbeProgram(SweepProgram):
 
-    protocol: GaussianPulseProtocol
+    protocol: PulseProbeProtocol
 
     def body(self):
         for _ in range(self.protocol.qubit_pulse_count.get()):
