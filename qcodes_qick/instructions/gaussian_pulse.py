@@ -17,7 +17,6 @@ class GaussianPulse(QickInstruction):
         **kwargs: Any
     ):
         super().__init__(parent, name, **kwargs)
-        self.dacs = {dac}
         self.dac = dac
 
         self.gain = GainParameter(

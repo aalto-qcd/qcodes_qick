@@ -25,9 +25,9 @@ class PulseProbeProtocol(SweepProtocol):
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
+        self.instructions = {qubit_pulse, readout_pulse}
         self.qubit_pulse = qubit_pulse
         self.readout_pulse = readout_pulse
-        self.instructions = {qubit_pulse, readout_pulse}
 
         self.qubit_pulse_count = ManualParameter(
             name="qubit_pulse_count",

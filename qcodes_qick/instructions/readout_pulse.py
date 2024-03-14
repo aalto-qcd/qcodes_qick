@@ -25,8 +25,6 @@ class ReadoutPulse(QickInstruction):
         super().__init__(parent, name, **kwargs)
         dac.matching_adc.set(adc.channel)
         adc.matching_dac.set(dac.channel)
-        self.dacs = {dac}
-        self.adcs = {adc}
         self.dac = dac
         self.adc = adc
 

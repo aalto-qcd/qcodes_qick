@@ -13,7 +13,6 @@ class SetPhase(QickInstruction):
         self, parent: QickInstrument, dac: DacChannel, name="SetPhase", **kwargs: Any
     ):
         super().__init__(parent, name, **kwargs)
-        self.dacs = {dac}
         self.dac = dac
 
         self.phase = DegParameter(

@@ -16,7 +16,6 @@ from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
-    from qcodes_qick.channels import DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.parameters import HardwareParameter
 
@@ -231,19 +230,17 @@ class SweepProgram(NDAveragerProgram):
         super().__init__(soccfg, cfg)
 
     def initialize(self):
-        dacs: set[DacChannel] = set.union(
-            *(pulse.dacs for pulse in self.protocol.instructions)
-        )
-        for dac in dacs:
-            self.declare_gen(ch=dac.channel, nqz=dac.nqz.get())
+        for instruction in self.protocol.instructions:
+            dac = instruction.dac
+            if dac is not None:
+                self.declare_gen(ch=dac.channel, nqz=dac.nqz.get())
 
-        for pulse in self.protocol.instructions:
-            pulse.initialize(self)
+        for instruction in self.protocol.instructions:
+            instruction.initialize(self)
 
         for sweep in reversed(self.hardware_sweeps):
             if isinstance(sweep.parameter.instrument, QickInstruction):
-                pulse = sweep.parameter.instrument
-                pulse.add_sweep(self, sweep)
+                sweep.parameter.instrument.add_sweep(self, sweep)
             else:
                 raise NotImplementedError
 
