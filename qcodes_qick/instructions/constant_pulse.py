@@ -5,7 +5,6 @@ from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 from qcodes_qick.instruction_base import QickInstruction
-from qick.asm_v1 import QickProgram
 from qick.averager_program import QickSweep
 
 
@@ -42,7 +41,7 @@ class ConstantPulse(QickInstruction):
             channel=self.dac,
         )
 
-    def initialize(self, program: QickProgram):
+    def initialize(self, program: SweepProgram):
         program.set_pulse_registers(
             ch=self.dac.channel,
             style="const",
@@ -55,7 +54,7 @@ class ConstantPulse(QickInstruction):
             length=self.length.get_raw(),
         )
 
-    def play(self, program: QickProgram):
+    def play(self, program: SweepProgram):
         program.pulse(ch=self.dac.channel, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
@@ -66,7 +65,7 @@ class ConstantPulse(QickInstruction):
             )
         elif sweep.parameter is self.freq:
             reg = program.get_gen_reg(self.dac.channel, "freq")
-            self.add_sweep(
+            program.add_sweep(
                 QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
             )
         else:

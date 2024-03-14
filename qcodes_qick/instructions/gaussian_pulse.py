@@ -5,7 +5,6 @@ from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 from qcodes_qick.instruction_base import QickInstruction
-from qick.asm_v1 import QickProgram
 from qick.averager_program import QickSweep
 
 
@@ -49,7 +48,7 @@ class GaussianPulse(QickInstruction):
             channel=self.dac,
         )
 
-    def initialize(self, program: QickProgram):
+    def initialize(self, program: SweepProgram):
         program.add_gauss(
             ch=self.dac.channel,
             name="qubit",
@@ -68,7 +67,7 @@ class GaussianPulse(QickInstruction):
             waveform="qubit",
         )
 
-    def play(self, program: QickProgram):
+    def play(self, program: SweepProgram):
         program.pulse(ch=self.dac.channel, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):

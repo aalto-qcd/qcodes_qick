@@ -8,7 +8,6 @@ if TYPE_CHECKING:
     from qcodes_qick.channels import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
-    from qick.asm_v1 import QickProgram
 
 
 class QickInstruction(InstrumentModule):
@@ -21,10 +20,10 @@ class QickInstruction(InstrumentModule):
         self.adcs: set[AdcChannel] = {}
         parent.add_submodule(name, self)
 
-    def initialize(self, program: QickProgram):
+    def initialize(self, program: SweepProgram):
         pass
 
-    def play(self, program: QickProgram):
+    def play(self, program: SweepProgram):
         pass
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
