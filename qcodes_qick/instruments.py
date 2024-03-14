@@ -45,7 +45,7 @@ class QickInstrument(Instrument):
     def sec2cycles_tproc(self, sec: float) -> int:
         """Convert time from seconds to the number of tProc clock cycles"""
         return self.soccfg.us2cycles(sec * 1e6)
-    
+
     def get_idn(self) -> dict[str, str | None]:
         return {
             "vendor": "Xilinx",

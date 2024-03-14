@@ -6,11 +6,11 @@ from qcodes import ManualParameter
 from qcodes.validators import Ints
 
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qcodes_qick.instruction_base import QickInstruction
-from qcodes_qick.instructions.readout_pulse import ReadoutPulse
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
+    from qcodes_qick.instruction_base import QickInstruction
+    from qcodes_qick.instructions.readout_pulse import ReadoutPulse
     from qcodes_qick.instruments import QickInstrument
 
 

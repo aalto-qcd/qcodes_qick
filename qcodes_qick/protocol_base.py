@@ -11,14 +11,14 @@ from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from tqdm.contrib.itertools import product as tqdm_product
 
-from qcodes_qick.channels import DacChannel
-from qcodes_qick.parameters import HardwareParameter
 from qcodes_qick.instruction_base import QickInstruction
 from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
+    from qcodes_qick.channels import DacChannel
     from qcodes_qick.instruments import QickInstrument
+    from qcodes_qick.parameters import HardwareParameter
 
 
 class QickProtocol(InstrumentModule):
