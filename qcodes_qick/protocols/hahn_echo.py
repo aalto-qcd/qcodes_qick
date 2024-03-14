@@ -176,7 +176,6 @@ class HahnEchoProgram(SweepProgram):
         )
         self.qubit_qubit_gap_reg = self.new_gen_reg(
             gen_ch=self.protocol.qubit_dac.channel,
-            name="qubit_qubit_gap_reg",
             init_val=self.protocol.qubit_qubit_gap.get() * 1e6,
             reg_type="time",
             tproc_reg=True,
