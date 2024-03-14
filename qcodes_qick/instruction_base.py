@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from qcodes.instrument import InstrumentModule
 
@@ -16,8 +16,8 @@ class QickInstruction(InstrumentModule):
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs: Any):
         super().__init__(parent, name, **kwargs)
-        self.dacs: set[DacChannel] = {}
-        self.adcs: set[AdcChannel] = {}
+        self.dac: Optional[DacChannel] = None
+        self.adc: Optional[AdcChannel] = None
         parent.add_submodule(name, self)
 
     def initialize(self, program: SweepProgram):

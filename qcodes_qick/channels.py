@@ -24,7 +24,6 @@ class DacChannel(InstrumentChannel):
             vals=Ints(-1, self.parent.adc_count - 1),
             initial_value=-1,
         )
-
         self.nqz = ManualParameter(
             name="nqz",
             instrument=self,

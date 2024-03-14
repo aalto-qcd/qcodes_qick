@@ -13,8 +13,8 @@ class Delay(QickInstruction):
         self, parent: QickInstrument, dac: DacChannel, name="Delay", **kwargs: Any
     ):
         super().__init__(parent, name, **kwargs)
-        self.dacs = {dac}
         self.dac = dac
+
         self.time = TProcSecParameter(
             name="time",
             instrument=self,
