@@ -98,7 +98,6 @@ class ReadoutPulse(QickInstruction):
         )
         self.wait_before_reg = program.new_gen_reg(
             gen_ch=self.dac.channel,
-            name="qubit_readout_gap_reg",
             init_val=self.wait_before.get() * 1e6,
             reg_type="time",
             tproc_reg=True,
