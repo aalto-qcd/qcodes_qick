@@ -7,20 +7,14 @@ from qcodes import (
     load_or_create_experiment,
 )
 
+from qcodes_qick import HardwareSweep, QickInstrument, SoftwareSweep
 from qcodes_qick.instructions import *
-from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.protocol_base import HardwareSweep, SoftwareSweep
 from qcodes_qick.protocols import *
 
-experiment_name = "BF4-CD2"
-sample_name = "cavity16_3D1_10-19"
+experiment_name = "loopback"
+sample_name = "none"
 wiring = [
-    "dc = directional coupler ZUDC20-02183-S+",
-    "FS725_10MHz - ZCU216-INPUT_REF_CLK",
-    "ZCU216-DAC0_231 - balun_1-4GHz - 10in - ZX60-123LN-S+ - VLF-3400+ - dc-out",
-    "ZCU216-DAC0_230 - balun_5-6GHz - 6in - 10dB - VHF-3100+ - dc-cpl",
-    "dc-in - 50in - sideloader2-25",
-    "sideloader2-2 - VHF4400+ - 50in - balun_5-6GHz - ZCU216-ADC0_226",
+    "ZCU216-DAC0_230 - balun_5-6GHz - balun_5-6GHz - ZCU216-ADC0_226",
 ]
 
 initialise_or_create_database_at(f"./database/{experiment_name}.db")
@@ -28,7 +22,7 @@ experiment = load_or_create_experiment(experiment_name, sample_name)
 
 station = Station()
 station.metadata["wiring"] = wiring
-qick_instrument = QickInstrument("QickInstrument")
+qick_instrument = QickInstrument("QickInstrument", "10.0.100.16")
 station.add_component(qick_instrument)
 
 readout_dac = qick_instrument.dacs[0]
