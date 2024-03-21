@@ -7,13 +7,13 @@ from qick.pyro import make_proxy
 
 class QickInstrument(Instrument):
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, ns_host: str, ns_port=8888,**kwargs):
         super().__init__(name, **kwargs)
 
         # Use the IP address and port of the Pyro4 nameserver to get:
         #   soc: Pyro4.Proxy pointing to the QickSoc object on the board
         #   soccfg: QickConfig containing the current configuration of the board
-        self.soc, self.soccfg = make_proxy(ns_host="10.0.100.16", ns_port=8888)
+        self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         self.dac_count = len(self.soccfg["gens"])
         self.adc_count = len(self.soccfg["readouts"])
