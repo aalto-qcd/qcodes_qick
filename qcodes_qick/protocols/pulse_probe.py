@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 
 class PulseProbeProtocol(SweepProtocol):
-
     def __init__(
         self,
         parent: QickInstrument,
@@ -44,7 +43,6 @@ class PulseProbeProtocol(SweepProtocol):
 
 
 class PulseProbeProgram(SweepProgram):
-
     protocol: PulseProbeProtocol
 
     def body(self):

@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 
 class HahnEchoProtocol(SweepProtocol):
-
     def __init__(
         self,
         parent: QickInstrument,
@@ -38,7 +37,6 @@ class HahnEchoProtocol(SweepProtocol):
 
 
 class HahnEchoProgram(SweepProgram):
-
     protocol: HahnEchoProtocol
 
     def body(self):

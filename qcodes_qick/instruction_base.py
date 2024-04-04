@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 
 
 class QickInstruction(InstrumentModule):
-
     parent: QickInstrument
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs: Any):

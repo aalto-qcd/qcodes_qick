@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 
 class RamseyProtocol(SweepProtocol):
-
     def __init__(
         self,
         parent: QickInstrument,
@@ -37,7 +36,6 @@ class RamseyProtocol(SweepProtocol):
 
 
 class RamseyProgram(SweepProgram):
-
     protocol: RamseyProtocol
 
     def body(self):

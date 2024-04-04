@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 
 class QickProtocol(InstrumentModule):
-
     parent: QickInstrument
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
@@ -31,7 +30,6 @@ class QickProtocol(InstrumentModule):
 
 
 class SoftwareSweep:
-
     values: Sequence[float]
 
     def __init__(
@@ -85,7 +83,6 @@ class HardwareSweep:
 
 
 class SweepProtocol(ABC, QickProtocol):
-
     def __init__(
         self,
         parent: QickInstrument,
@@ -122,7 +119,6 @@ class SweepProtocol(ABC, QickProtocol):
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_sweeps: Sequence[HardwareSweep] = (),
     ) -> int:
-
         # instantiate the program just to obtain the ADC channel numbers and the number of readouts per experiment
         program = self.generate_program(self.parent.soccfg)
         adc_channels = program.ro_chs.keys()
@@ -173,7 +169,6 @@ class SweepProtocol(ABC, QickProtocol):
                 soft_sweep_values = [sweep.values for sweep in software_sweeps]
 
                 for current_values in tqdm_product(*soft_sweep_values):
-
                     # set software sweep parameters to current values
                     for parameter, value in zip(soft_parameters, current_values):
                         parameter.set(value)
@@ -214,7 +209,6 @@ class SweepProtocol(ABC, QickProtocol):
 
 
 class SweepProgram(NDAveragerProgram):
-
     def __init__(
         self,
         soccfg: QickConfig,

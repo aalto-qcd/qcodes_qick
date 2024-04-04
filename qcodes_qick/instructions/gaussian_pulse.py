@@ -14,7 +14,7 @@ class GaussianPulse(QickInstruction):
         parent: QickInstrument,
         dac: DacChannel,
         name="GaussianPulse",
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(parent, name, **kwargs)
         self.dac = dac

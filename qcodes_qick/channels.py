@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 
 class DacChannel(InstrumentChannel):
-
     parent: QickInstrument
 
     def __init__(self, parent: QickInstrument, name: str, channel: int, **kwargs):
@@ -61,7 +60,6 @@ class DacChannel(InstrumentChannel):
 
 
 class AdcChannel(InstrumentChannel):
-
     parent: QickInstrument
 
     def __init__(self, parent: QickInstrument, name: str, channel: int, **kwargs):
