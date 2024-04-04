@@ -6,8 +6,7 @@ from qick.pyro import make_proxy
 
 
 class QickInstrument(Instrument):
-
-    def __init__(self, name: str, ns_host: str, ns_port=8888,**kwargs):
+    def __init__(self, name: str, ns_host: str, ns_port=8888, **kwargs):
         super().__init__(name, **kwargs)
 
         # Use the IP address and port of the Pyro4 nameserver to get:

@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 
 
 class S21Protocol(SweepProtocol):
-
     def __init__(
         self,
         parent: QickInstrument,
@@ -30,7 +29,6 @@ class S21Protocol(SweepProtocol):
 
 
 class S21Program(SweepProgram):
-
     protocol: S21Protocol
 
     def body(self):

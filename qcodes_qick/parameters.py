@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
 
 class HardwareParameter(ABC, ManualParameter):
-
     def __init__(self, name: str, **kwargs):
         super().__init__(
             name, get_parser=self.int2float, set_parser=self.float2int, **kwargs

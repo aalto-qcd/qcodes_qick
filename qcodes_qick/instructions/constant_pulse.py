@@ -14,7 +14,7 @@ class ConstantPulse(QickInstruction):
         parent: QickInstrument,
         dac: DacChannel,
         name="ConstantPulse",
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(parent, name, **kwargs)
         self.dac = dac
