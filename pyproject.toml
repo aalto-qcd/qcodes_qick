@@ -5,3 +5,6 @@ requires-python = ">=3.8"
 
 [tool.setuptools]
 packages = ["qcodes_qick"]
+
+[tool.ruff.lint.per-file-ignores]
+"example_scripts/*" = ["F401", "F403", "F405"]
