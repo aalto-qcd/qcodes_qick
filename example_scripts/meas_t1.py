@@ -8,6 +8,6 @@ p.run(
     Measurement(experiment, station, name),
     hardware_sweeps=[
         HardwareSweep(readout_pulse.wait_before, 0, 2e-3, 101, skip_first=True),
-        HardwareSweep(pi_pulse.gain, 0, 0.76, 101),
+        HardwareSweep(pi_pulse.gain, 0, pi_pulse.gain.get(), 2),
     ],
 )
