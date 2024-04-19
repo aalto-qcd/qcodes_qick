@@ -1,3 +1,4 @@
+from __future__ import annotations
 from qcodes import ChannelTuple, Instrument
 
 import qick
