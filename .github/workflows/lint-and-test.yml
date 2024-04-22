@@ -1,4 +1,4 @@
-name: Lint and check for compile errors
+name: Lint and test
 on: [push, pull_request]
 
 jobs:
