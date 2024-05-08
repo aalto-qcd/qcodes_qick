@@ -17,18 +17,15 @@ class HahnEchoProtocol(SweepProtocol):
         self,
         parent: QickInstrument,
         half_pi_pulse: QickInstruction,
-        pi_pulse: QickInstruction,
         readout_pulse: ReadoutPulse,
         name="HahnEchoProtocol",
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        assert half_pi_pulse.dac is pi_pulse.dac
         self.half_pi_pulse = half_pi_pulse
-        self.pi_pulse = pi_pulse
         self.readout_pulse = readout_pulse
-        self.delay = Delay(parent, pi_pulse.dac)
-        self.instructions = {half_pi_pulse, pi_pulse, readout_pulse, self.delay}
+        self.delay = Delay(parent, half_pi_pulse.dac)
+        self.instructions = {half_pi_pulse, readout_pulse, self.delay}
 
     def generate_program(
         self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
@@ -42,7 +39,8 @@ class HahnEchoProgram(SweepProgram):
     def body(self):
         self.protocol.half_pi_pulse.play(self)
         self.protocol.delay.play(self)
-        self.protocol.pi_pulse.play(self)
+        self.protocol.half_pi_pulse.play(self)
+        self.protocol.half_pi_pulse.play(self)
         self.protocol.delay.play(self)
         self.protocol.half_pi_pulse.play(self)
         self.protocol.readout_pulse.play(self, wait_for_adc=True)
