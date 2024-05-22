@@ -26,6 +26,7 @@ class QickProtocol(InstrumentModule):
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
         self.instructions: set[QickInstruction] = {}
+        assert parent.tproc_version.get() == 1
         parent.add_submodule(name, self)
 
 

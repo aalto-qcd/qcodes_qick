@@ -17,6 +17,7 @@ class QickInstruction(InstrumentModule):
         super().__init__(parent, name, **kwargs)
         self.dac: Optional[DacChannel] = None
         self.adc: Optional[AdcChannel] = None
+        assert parent.tproc_version.get() == 1
         parent.add_submodule(name, self)
 
     def initialize(self, program: SweepProgram):
