@@ -68,4 +68,4 @@ class ConstantPulse(QickInstruction):
                 QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
             )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
