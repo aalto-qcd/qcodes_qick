@@ -32,6 +32,7 @@ class Delay(QickInstruction):
         )
 
     def play(self, program: SweepProgram):
+        assert self in program.protocol.instructions
         program.sync_all()
         program.sync(self.time_reg.page, self.time_reg.addr)
 

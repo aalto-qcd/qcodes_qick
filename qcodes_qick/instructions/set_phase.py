@@ -32,6 +32,7 @@ class SetPhase(QickInstruction):
         )
 
     def play(self, program: SweepProgram):
+        assert self in program.protocol.instructions
         self.dac_phase_reg.set_to(self.phase_reg)
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
