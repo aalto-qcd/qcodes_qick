@@ -66,7 +66,7 @@ class QickInstrument(Instrument):
     def get_idn(self) -> dict[str, str | None]:
         return {
             "vendor": "Xilinx",
-            "model": "ZCU216",
-            "serial": "",
-            "firmware": f"remote QICK library version = {self.soccfg['sw_version']}, local QICK library version = {qick.__version__}",
+            "model": self.soccfg["board"],
+            "serial": None,
+            "firmware": f"remote QICK library version = {self.soccfg['sw_version']}, local QICK library version = {qick.__version__}, firmware timestamp = {self.soccfg['fw_timestamp']}",
         }
