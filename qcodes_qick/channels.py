@@ -7,6 +7,7 @@ from qcodes.utils.validators import Ints
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
+    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class DacChannel(InstrumentChannel):
@@ -30,6 +31,9 @@ class DacChannel(InstrumentChannel):
             vals=Ints(1, 2),
             initial_value=1,
         )
+
+    def initialize(self, program: SweepProgram):
+        program.declare_gen(ch=self.channel, nqz=self.nqz.get())
 
     def reg2hz(self, reg: int) -> float:
         """Convert a DAC frequency from the register value (int) to Hz"""

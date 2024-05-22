@@ -227,7 +227,7 @@ class SweepProgram(NDAveragerProgram):
         for instruction in self.protocol.instructions:
             dac = instruction.dac
             if dac is not None:
-                self.declare_gen(ch=dac.channel, nqz=dac.nqz.get())
+                dac.initialize(self)
 
         for instruction in self.protocol.instructions:
             instruction.initialize(self)
