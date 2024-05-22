@@ -54,6 +54,7 @@ class ConstantPulse(QickInstruction):
         )
 
     def play(self, program: SweepProgram):
+        assert self in program.protocol.instructions
         program.pulse(ch=self.dac.channel, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
