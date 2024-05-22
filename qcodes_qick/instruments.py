@@ -1,7 +1,8 @@
 from __future__ import annotations
-from qcodes import ChannelTuple, Instrument
 
 import qick
+from qcodes import ChannelTuple, Instrument
+from qcodes.parameters import Parameter
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qick.pyro import make_proxy
 
@@ -14,6 +15,22 @@ class QickInstrument(Instrument):
         #   soc: Pyro4.Proxy pointing to the QickSoc object on the board
         #   soccfg: QickConfig containing the current configuration of the board
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
+
+        assert len(self.soccfg["tprocs"]) == 1
+        tproc_type = self.soccfg["tprocs"][0]["type"]
+        if tproc_type == "axis_tproc64x32_x8":
+            tproc_version = 1
+        elif tproc_type == "qick_processor":
+            tproc_version = 2
+        else:
+            raise NotImplementedError(f"unsupported tProc type: {tproc_type}")
+
+        self.tproc_version = Parameter(
+            name="tproc_version",
+            instrument=self,
+            label="tProc version",
+            initial_cache_value=tproc_version,
+        )
 
         self.dac_count = len(self.soccfg["gens"])
         self.adc_count = len(self.soccfg["readouts"])
