@@ -26,4 +26,4 @@ class QickInstruction(InstrumentModule):
         pass
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        raise NotImplementedError
+        raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")

@@ -236,6 +236,6 @@ class SweepProgram(NDAveragerProgram):
             if isinstance(sweep.parameter.instrument, QickInstruction):
                 sweep.parameter.instrument.add_sweep(self, sweep)
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
 
         self.synci(200)  # Give processor some time to configure pulses
