@@ -3,8 +3,11 @@ from __future__ import annotations
 import qick
 from qcodes import ChannelTuple, Instrument
 from qcodes.parameters import Parameter
-from qcodes_qick.channels import AdcChannel, DacChannel
+from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
+
+from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.muxed_dac import MuxedDacChannel
 
 
 class QickInstrument(Instrument):
@@ -32,23 +35,30 @@ class QickInstrument(Instrument):
             initial_cache_value=tproc_version,
         )
 
-        self.dac_count = len(self.soccfg["gens"])
-        self.adc_count = len(self.soccfg["readouts"])
-
+        dac_list = []
+        for channel in range(len(self.soccfg["gens"])):
+            generator_type = self.soccfg["gens"][channel]["type"]
+            manager_class = QickProgramV2.gentypes[generator_type]
+            if manager_class == StandardGenManager:
+                dac_list.append(DacChannel(self, f"dac{channel}", channel))
+            elif manager_class == MultiplexedGenManager:
+                dac_list.append(MuxedDacChannel(self, f"dac{channel}", channel))
+            else:
+                NotImplementedError(f"unsupported generator type: {generator_type}")
         self.dacs = ChannelTuple(
             parent=self,
             name="dacs",
             chan_type=DacChannel,
-            chan_list=[
-                DacChannel(self, f"dac{ch}", ch) for ch in range(self.dac_count)
-            ],
+            chan_list=dac_list,
         )
+
         self.adcs = ChannelTuple(
             parent=self,
             name="adcs",
             chan_type=AdcChannel,
             chan_list=[
-                AdcChannel(self, f"adc{ch}", ch) for ch in range(self.adc_count)
+                AdcChannel(self, f"adc{channel}", channel)
+                for channel in range(len(self.soccfg["readouts"]))
             ],
         )
 

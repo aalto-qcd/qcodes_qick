@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes import InstrumentChannel, ManualParameter
+from qcodes import InstrumentChannel, ManualParameter, Parameter
 from qcodes.utils.validators import Ints
 
 if TYPE_CHECKING:
@@ -17,11 +17,18 @@ class DacChannel(InstrumentChannel):
         super().__init__(parent, name, **kwargs)
         self.channel = channel
 
+        self.type = Parameter(
+            name="type",
+            instrument=self,
+            label="Generator type",
+            initial_cache_value=parent.soccfg["gens"][channel]["type"],
+        )
+
         self.matching_adc = ManualParameter(
             name="matching_adc",
             instrument=self,
             label="Channel number of the ADC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, self.parent.adc_count - 1),
+            vals=Ints(-1, len(self.parent.soccfg["gens"]) - 1),
             initial_value=-1,
         )
         self.nqz = ManualParameter(
@@ -74,7 +81,7 @@ class AdcChannel(InstrumentChannel):
             name="matching_dac",
             instrument=self,
             label="Channel number of the DAC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, self.parent.dac_count - 1),
+            vals=Ints(-1, len(self.parent.soccfg["readouts"]) - 1),
             initial_value=-1,
         )
 
