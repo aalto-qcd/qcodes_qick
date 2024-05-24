@@ -25,7 +25,7 @@ class Delay(QickInstruction):
 
     def initialize(self, program: SweepProgram):
         self.time_reg = program.new_gen_reg(
-            gen_ch=self.dac.channel,
+            gen_ch=self.dac.channel_num,
             init_val=self.time.get() * 1e6,
             reg_type="time",
             tproc_reg=True,

@@ -122,9 +122,9 @@ class SweepProtocol(ABC, QickProtocol):
     ) -> int:
         # instantiate the program just to obtain the ADC channel numbers and the number of readouts per experiment
         program = self.generate_program(self.parent.soccfg)
-        adc_channels = program.ro_chs.keys()
+        adc_channel_nums = program.ro_chs.keys()
         readouts_per_experiment = program.reads_per_shot
-        assert len(adc_channels) == len(readouts_per_experiment)
+        assert len(adc_channel_nums) == len(readouts_per_experiment)
 
         # set sweep parameters to start values
         for sweep in itertools.chain(software_sweeps, hardware_sweeps):
@@ -138,16 +138,16 @@ class SweepProtocol(ABC, QickProtocol):
 
         # create and register the parameters representing the acquired data
         iq_parameters = []
-        for i, channel in enumerate(adc_channels):
+        for i, channel_num in enumerate(adc_channel_nums):
             for readout_number in range(readouts_per_experiment[i]):
                 name = "iq"
                 if readouts_per_experiment[i] > 1:
                     name += f"{readout_number}"
-                if len(adc_channels) > 1:
-                    name += f"_ch{channel}"
+                if len(adc_channel_nums) > 1:
+                    name += f"_ch{channel_num}"
                 iq_parameters.append(Parameter(name))
                 meas.register_parameter(
-                    iq_parameters[channel], setpoints=setpoints, paramtype="array"
+                    iq_parameters[-1], setpoints=setpoints, paramtype="array"
                 )
 
         with meas.run() as datasaver:

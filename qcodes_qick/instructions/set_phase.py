@@ -24,9 +24,9 @@ class SetPhase(QickInstruction):
         )
 
     def initialize(self, program: SweepProgram):
-        self.dac_phase_reg = program.get_gen_reg(self.dac.channel, "phase")
+        self.dac_phase_reg = program.get_gen_reg(self.dac.channel_num, "phase")
         self.phase_reg = program.new_gen_reg(
-            gen_ch=self.dac.channel,
+            gen_ch=self.dac.channel_num,
             init_val=self.phase.get(),
             reg_type="phase",
         )

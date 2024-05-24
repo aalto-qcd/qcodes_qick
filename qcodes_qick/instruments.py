@@ -36,13 +36,13 @@ class QickInstrument(Instrument):
         )
 
         dac_list = []
-        for channel in range(len(self.soccfg["gens"])):
-            generator_type = self.soccfg["gens"][channel]["type"]
+        for channel_num in range(len(self.soccfg["gens"])):
+            generator_type = self.soccfg["gens"][channel_num]["type"]
             manager_class = QickProgramV2.gentypes[generator_type]
             if manager_class == StandardGenManager:
-                dac_list.append(DacChannel(self, f"dac{channel}", channel))
+                dac_list.append(DacChannel(self, f"dac{channel_num}", channel_num))
             elif manager_class == MultiplexedGenManager:
-                dac_list.append(MuxedDacChannel(self, f"dac{channel}", channel))
+                dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
             else:
                 NotImplementedError(f"unsupported generator type: {generator_type}")
         self.dacs = ChannelTuple(
@@ -57,8 +57,8 @@ class QickInstrument(Instrument):
             name="adcs",
             chan_type=AdcChannel,
             chan_list=[
-                AdcChannel(self, f"adc{channel}", channel)
-                for channel in range(len(self.soccfg["readouts"]))
+                AdcChannel(self, f"adc{channel_num}", channel_num)
+                for channel_num in range(len(self.soccfg["readouts"]))
             ],
         )
 

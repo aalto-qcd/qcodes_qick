@@ -49,13 +49,13 @@ class GaussianPulse(QickInstruction):
 
     def initialize(self, program: SweepProgram):
         program.add_gauss(
-            ch=self.dac.channel,
+            ch=self.dac.channel_num,
             name=self.full_name,
             sigma=self.sigma.get_raw(),
             length=self.length.get_raw(),
         )
         program.set_pulse_registers(
-            ch=self.dac.channel,
+            ch=self.dac.channel_num,
             style="arb",
             freq=self.freq.get_raw(),
             phase=0,
@@ -68,16 +68,16 @@ class GaussianPulse(QickInstruction):
 
     def play(self, program: SweepProgram):
         assert self in program.protocol.instructions
-        program.pulse(ch=self.dac.channel, t="auto")
+        program.pulse(ch=self.dac.channel_num, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dac.channel, "gain")
+            reg = program.get_gen_reg(self.dac.channel_num, "gain")
             program.add_sweep(
                 QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
             )
         elif sweep.parameter is self.freq:
-            reg = program.get_gen_reg(self.dac.channel, "freq")
+            reg = program.get_gen_reg(self.dac.channel_num, "freq")
             self.add_sweep(
                 QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
             )

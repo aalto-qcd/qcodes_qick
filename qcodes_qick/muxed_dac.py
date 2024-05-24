@@ -35,8 +35,8 @@ class MuxedDacTone(InstrumentChannel):
 
 
 class MuxedDacChannel(DacChannel):
-    def __init__(self, parent: QickInstrument, name: str, channel: int, **kwargs):
-        super().__init__(parent, name, channel, **kwargs)
+    def __init__(self, parent: QickInstrument, name: str, channel_num: int, **kwargs):
+        super().__init__(parent, name, channel_num, **kwargs)
 
         self.tones = ChannelTuple(
             parent=self,
@@ -44,13 +44,13 @@ class MuxedDacChannel(DacChannel):
             chan_type=MuxedDacTone,
             chan_list=[
                 MuxedDacTone(self, f"tone{i}")
-                for i in range(parent.soccfg["gens"][channel]["n_tones"])
+                for i in range(parent.soccfg["gens"][channel_num]["n_tones"])
             ],
         )
 
     def initialize(self, program: AbsQickProgram):
         program.declare_gen(
-            ch=self.channel,
+            ch=self.channel_num,
             nqz=self.nqz.get(),
             mux_freqs=[tone.freq.get() / 1e6 for tone in self.tones],
             mux_gains=[tone.gain.get() for tone in self.tones],

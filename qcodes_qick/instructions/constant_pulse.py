@@ -42,7 +42,7 @@ class ConstantPulse(QickInstruction):
 
     def initialize(self, program: SweepProgram):
         program.set_pulse_registers(
-            ch=self.dac.channel,
+            ch=self.dac.channel_num,
             style="const",
             freq=self.freq.get_raw(),
             phase=0,
@@ -55,16 +55,16 @@ class ConstantPulse(QickInstruction):
 
     def play(self, program: SweepProgram):
         assert self in program.protocol.instructions
-        program.pulse(ch=self.dac.channel, t="auto")
+        program.pulse(ch=self.dac.channel_num, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dac.channel, "gain")
+            reg = program.get_gen_reg(self.dac.channel_num, "gain")
             program.add_sweep(
                 QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
             )
         elif sweep.parameter is self.freq:
-            reg = program.get_gen_reg(self.dac.channel, "freq")
+            reg = program.get_gen_reg(self.dac.channel_num, "freq")
             program.add_sweep(
                 QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
             )

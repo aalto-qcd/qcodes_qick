@@ -23,8 +23,8 @@ class ReadoutPulse(QickInstruction):
         **kwargs: Any,
     ):
         super().__init__(parent, name, **kwargs)
-        dac.matching_adc.set(adc.channel)
-        adc.matching_dac.set(dac.channel)
+        dac.matching_adc.set(adc.channel_num)
+        adc.matching_dac.set(dac.channel_num)
         self.dac = dac
         self.adc = adc
 
@@ -79,7 +79,7 @@ class ReadoutPulse(QickInstruction):
 
     def initialize(self, program: SweepProgram):
         program.set_pulse_registers(
-            ch=self.dac.channel,
+            ch=self.dac.channel_num,
             style="const",
             freq=self.freq.get_raw(),
             phase=0,
@@ -90,12 +90,12 @@ class ReadoutPulse(QickInstruction):
             length=self.length.get_raw(),
         )
         program.declare_readout(
-            ch=self.adc.channel,
+            ch=self.adc.channel_num,
             length=self.adc_length.get_raw(),
             freq=self.freq.get() / 1e6,
         )
         self.wait_before_reg = program.new_gen_reg(
-            gen_ch=self.dac.channel,
+            gen_ch=self.dac.channel_num,
             init_val=self.wait_before.get() * 1e6,
             reg_type="time",
             tproc_reg=True,
@@ -105,8 +105,8 @@ class ReadoutPulse(QickInstruction):
         program.sync_all()
         program.sync(self.wait_before_reg.page, self.wait_before_reg.addr)
         program.measure(
-            adcs=[self.adc.channel],
-            pulse_ch=self.dac.channel,
+            adcs=[self.adc.channel_num],
+            pulse_ch=self.dac.channel_num,
             adc_trig_offset=self.adc_trig_offset.get_raw(),
             t="auto",
             wait=wait_for_adc,
@@ -115,7 +115,7 @@ class ReadoutPulse(QickInstruction):
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dac.channel, "gain")
+            reg = program.get_gen_reg(self.dac.channel_num, "gain")
             program.add_sweep(
                 QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
             )
