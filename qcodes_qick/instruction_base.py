@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Sequence
 
 from qcodes.instrument import InstrumentModule
 
@@ -15,8 +15,8 @@ class QickInstruction(InstrumentModule):
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs: Any):
         super().__init__(parent, name, **kwargs)
-        self.dac: Optional[DacChannel] = None
-        self.adc: Optional[AdcChannel] = None
+        self.dacs: Sequence[DacChannel] = []
+        self.adcs: Sequence[AdcChannel] = []
         assert parent.tproc_version.get() == 1
         parent.add_submodule(name, self)
 

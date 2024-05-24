@@ -25,8 +25,8 @@ class RamseyProtocol(SweepProtocol):
         super().__init__(parent, name, **kwargs)
         self.half_pi_pulse = half_pi_pulse
         self.readout_pulse = readout_pulse
-        self.delay = Delay(parent, half_pi_pulse.dac)
-        self.set_phase = SetPhase(parent, half_pi_pulse.dac)
+        self.delay = Delay(parent, half_pi_pulse.dacs[0])
+        self.set_phase = SetPhase(parent, half_pi_pulse.dacs[0])
         self.instructions = {half_pi_pulse, readout_pulse, self.delay, self.set_phase}
 
     def generate_program(

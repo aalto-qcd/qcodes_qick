@@ -13,20 +13,20 @@ class SetPhase(QickInstruction):
         self, parent: QickInstrument, dac: DacChannel, name="SetPhase", **kwargs: Any
     ):
         super().__init__(parent, name, **kwargs)
-        self.dac = dac
+        self.dacs = [dac]
 
         self.phase = DegParameter(
             name="phase",
             instrument=self,
             label="phase",
             initial_value=0,
-            channel=self.dac,
+            channel=self.dacs[0],
         )
 
     def initialize(self, program: SweepProgram):
-        self.dac_phase_reg = program.get_gen_reg(self.dac.channel_num, "phase")
+        self.dac_phase_reg = program.get_gen_reg(self.dacs[0].channel_num, "phase")
         self.phase_reg = program.new_gen_reg(
-            gen_ch=self.dac.channel_num,
+            gen_ch=self.dacs[0].channel_num,
             init_val=self.phase.get(),
             reg_type="phase",
         )

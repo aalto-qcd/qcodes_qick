@@ -13,7 +13,7 @@ class Delay(QickInstruction):
         self, parent: QickInstrument, dac: DacChannel, name="Delay", **kwargs: Any
     ):
         super().__init__(parent, name, **kwargs)
-        self.dac = dac
+        self.dacs = [dac]
 
         self.time = TProcSecParameter(
             name="time",
@@ -25,7 +25,7 @@ class Delay(QickInstruction):
 
     def initialize(self, program: SweepProgram):
         self.time_reg = program.new_gen_reg(
-            gen_ch=self.dac.channel_num,
+            gen_ch=self.dacs[0].channel_num,
             init_val=self.time.get() * 1e6,
             reg_type="time",
             tproc_reg=True,
