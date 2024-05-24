@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
 from qcodes.utils.validators import Ints
+from qick.qick_asm import AbsQickProgram
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class DacChannel(InstrumentChannel):
@@ -39,7 +39,7 @@ class DacChannel(InstrumentChannel):
             initial_value=1,
         )
 
-    def initialize(self, program: SweepProgram):
+    def initialize(self, program: AbsQickProgram):
         program.declare_gen(ch=self.channel, nqz=self.nqz.get())
 
     def reg2hz(self, reg: int) -> float:
