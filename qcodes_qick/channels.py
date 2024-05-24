@@ -15,7 +15,7 @@ class DacChannel(InstrumentChannel):
 
     def __init__(self, parent: QickInstrument, name: str, channel_num: int, **kwargs):
         super().__init__(parent, name, **kwargs)
-        self.channe_num = channel_num
+        self.channel_num = channel_num
 
         self.type = Parameter(
             name="type",
