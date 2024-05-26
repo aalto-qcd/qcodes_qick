@@ -37,14 +37,14 @@ class QickInstrument(Instrument):
 
         dac_list = []
         for channel_num in range(len(self.soccfg["gens"])):
-            generator_type = self.soccfg["gens"][channel_num]["type"]
-            manager_class = QickProgramV2.gentypes[generator_type]
+            dac_type = self.soccfg["gens"][channel_num]["type"]
+            manager_class = QickProgramV2.gentypes[dac_type]
             if manager_class == StandardGenManager:
                 dac_list.append(DacChannel(self, f"dac{channel_num}", channel_num))
             elif manager_class == MultiplexedGenManager:
                 dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
             else:
-                NotImplementedError(f"unsupported generator type: {generator_type}")
+                NotImplementedError(f"unsupported DAC type: {dac_type}")
         self.dacs = ChannelTuple(
             parent=self,
             name="dacs",
