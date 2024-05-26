@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from qcodes.instrument import InstrumentModule
 
@@ -11,21 +11,21 @@ if TYPE_CHECKING:
 
 
 class QickInstruction(InstrumentModule):
+    """Base class for an instruction.
+
+    Parameters
+    ----------
+    parent : QickInstrument
+        Make me a submodule of this QickInstrument.
+    name : str
+        My unique name.
+    **kwargs : dict, optional
+        Keyword arguments to pass on to InstrumentBase.__init__.
+    """
+
     parent: QickInstrument
 
-    def __init__(self, parent: QickInstrument, name: str, **kwargs: Any):
-        """
-        Parameters
-        ----------
-        parent : QickInstrument
-            Make me a submodule of this QickInstrument.
-        adc : AdcChannel
-            The ADC channel to use.
-        name : str
-            My unique name.
-        **kwargs : dict, optional
-            Keyword arguments to pass on to InstrumentBase.__init__.
-        """
+    def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
         self.dacs: Sequence[DacChannel] = []
         self.adcs: Sequence[AdcChannel] = []
@@ -39,7 +39,6 @@ class QickInstruction(InstrumentModule):
         ----------
         program : SweepProgram
         """
-        pass
 
     def play(self, program: SweepProgram):
         """Append me to a program.
@@ -48,7 +47,6 @@ class QickInstruction(InstrumentModule):
         ----------
         program : SweepProgram
         """
-        pass
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         """Add a sweep over one of my parameters to a program.

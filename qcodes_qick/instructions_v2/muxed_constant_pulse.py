@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Ints
@@ -18,25 +18,27 @@ if TYPE_CHECKING:
 
 
 class MuxedConstantPulse(QickInstruction):
+    """Frequency-multiplexed rectangular pulse.
+
+    Parameters
+    ----------
+    parent : QickInstrument
+        Make me a submodule of this QickInstrument.
+    dac : MuxedDacChannel
+        The DAC channel to use.
+    name : str
+        My unique name.
+    **kwargs : dict, optional
+        Keyword arguments to pass on to InstrumentBase.__init__.
+    """
+
     def __init__(
         self,
         parent: QickInstrument,
         dac: MuxedDacChannel,
         name="MuxedConstantPulse",
-        **kwargs: Any,
+        **kwargs,
     ):
-        """
-        Parameters
-        ----------
-        parent : QickInstrument
-            Make me a submodule of this QickInstrument.
-        dac : MuxedDacChannel
-            The DAC channel to use.
-        name : str
-            My unique name.
-        **kwargs : dict, optional
-            Keyword arguments to pass on to InstrumentBase.__init__.
-        """
         super().__init__(parent, name, **kwargs)
         assert isinstance(dac, MuxedDacChannel)
         self.dacs = [dac]

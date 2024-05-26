@@ -1,5 +1,3 @@
-from typing import Any
-
 from qick.averager_program import QickSweep
 
 from qcodes_qick.channels import DacChannel
@@ -10,25 +8,27 @@ from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 
 
 class Delay(QickInstruction):
+    """Add a delay to a DAC channel.
+
+    Parameters
+    ----------
+    parent : QickInstrument
+        Make me a submodule of this QickInstrument.
+    dac : DacChannel
+        The DAC channel to add the delay to.
+    name : str
+        My unique name.
+    **kwargs : dict, optional
+        Keyword arguments to pass on to InstrumentBase.__init__.
+    """
+
     def __init__(
         self,
         parent: QickInstrument,
         dac: DacChannel,
         name="Delay",
-        **kwargs: Any,
+        **kwargs,
     ):
-        """
-        Parameters
-        ----------
-        parent : QickInstrument
-            Make me a submodule of this QickInstrument.
-        dac : DacChannel
-            The DAC channel to add the delay to.
-        name : str
-            My unique name.
-        **kwargs : dict, optional
-            Keyword arguments to pass on to InstrumentBase.__init__.
-        """
         super().__init__(parent, name, **kwargs)
         self.dacs = [dac]
 

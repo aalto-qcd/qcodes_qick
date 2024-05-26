@@ -1,5 +1,3 @@
-from typing import Any
-
 from qick.averager_program import QickSweep
 
 from qcodes_qick.channels import AdcChannel, DacChannel
@@ -15,28 +13,30 @@ from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 
 
 class ReadoutPulse(QickInstruction):
+    """Generate a rectangular pulse and trigger an ADC channel.
+
+    Parameters
+    ----------
+    parent : QickInstrument
+        Make me a submodule of this QickInstrument.
+    dac : DacChannel
+        The DAC channel to use.
+    adc : AdcChannel
+        The ADC channel to use.
+    name : str
+        My unique name.
+    **kwargs : dict, optional
+        Keyword arguments to pass on to InstrumentBase.__init__.
+    """
+
     def __init__(
         self,
         parent: QickInstrument,
         dac: DacChannel,
         adc: AdcChannel,
         name="ReadoutPulse",
-        **kwargs: Any,
+        **kwargs,
     ):
-        """
-        Parameters
-        ----------
-        parent : QickInstrument
-            Make me a submodule of this QickInstrument.
-        dac : DacChannel
-            The DAC channel to use.
-        adc : AdcChannel
-            The ADC channel to use.
-        name : str
-            My unique name.
-        **kwargs : dict, optional
-            Keyword arguments to pass on to InstrumentBase.__init__.
-        """
         super().__init__(parent, name, **kwargs)
         dac.matching_adc.set(adc.channel_num)
         adc.matching_dac.set(dac.channel_num)
@@ -148,6 +148,7 @@ class ReadoutPulse(QickInstruction):
         ----------
         program : SweepProgram
         sweep: HardwareSweep
+
         """
         if sweep.parameter is self.gain:
             reg = program.get_gen_reg(self.dacs[0].channel_num, "gain")

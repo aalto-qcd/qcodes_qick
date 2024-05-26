@@ -51,30 +51,30 @@ class DacChannel(InstrumentChannel):
         program.declare_gen(ch=self.channel_num, nqz=self.nqz.get())
 
     def reg2hz(self, reg: int) -> float:
-        """Convert a DAC frequency from the register value (int) to Hz"""
+        """Convert a DAC frequency from the register value (int) to Hz."""
         return self.parent.soccfg.reg2freq(reg, self.channel_num) * 1e6
 
     def hz2reg(self, hz: float) -> int:
-        """Convert a DAC frequency from Hz to the register value (int)"""
+        """Convert a DAC frequency from Hz to the register value (int)."""
         adc_channel = self.matching_adc.get()
         if adc_channel == -1:
             adc_channel = None
         return self.parent.soccfg.freq2reg(hz / 1e6, self.channel_num, adc_channel)
 
     def reg2deg(self, reg: int) -> float:
-        """Convert a DAC phase from the register value (int) to degrees"""
+        """Convert a DAC phase from the register value (int) to degrees."""
         return self.parent.soccfg.reg2deg(reg, self.channel_num)
 
     def deg2reg(self, deg: float) -> int:
-        """Convert a DAC phase from degrees to the register value (int)"""
+        """Convert a DAC phase from degrees to the register value (int)."""
         return self.parent.soccfg.deg2reg(deg, self.channel_num)
 
     def cycles2sec(self, reg: int) -> float:
-        """Convert time from the number of DAC clock cycles to seconds"""
+        """Convert time from the number of DAC clock cycles to seconds."""
         return self.parent.soccfg.cycles2us(reg, gen_ch=self.channel_num) / 1e6
 
     def sec2cycles(self, sec: float) -> int:
-        """Convert time from seconds to the number of DAC clock cycles"""
+        """Convert time from seconds to the number of DAC clock cycles."""
         return self.parent.soccfg.us2cycles(sec * 1e6, gen_ch=self.channel_num)
 
 
@@ -129,20 +129,20 @@ class AdcChannel(InstrumentChannel):
         )
 
     def reg2hz(self, reg: int) -> float:
-        """Convert ADC frequency from the register value (int) to Hz"""
+        """Convert ADC frequency from the register value (int) to Hz."""
         return self.parent.soccfg.reg2freq_adc(reg, self.channel_num) * 1e6
 
     def hz2reg(self, hz: float) -> int:
-        """Convert ADC frequency from Hz to the register value (int)"""
+        """Convert ADC frequency from Hz to the register value (int)."""
         dac_channel = self.matching_dac.get()
         if dac_channel == -1:
             dac_channel = None
         return self.parent.soccfg.freq2reg_adc(hz / 1e6, self.channel_num, dac_channel)
 
     def cycles2sec(self, reg: int) -> float:
-        """Convert time from the number of ADC clock cycles to seconds"""
+        """Convert time from the number of ADC clock cycles to seconds."""
         return self.parent.soccfg.cycles2us(reg, ro_ch=self.channel_num) / 1e6
 
     def sec2cycles(self, sec: float) -> int:
-        """Convert time from seconds to the number of ADC clock cycles"""
+        """Convert time from seconds to the number of ADC clock cycles."""
         return self.parent.soccfg.us2cycles(sec * 1e6, ro_ch=self.channel_num)
