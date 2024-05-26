@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import ChannelTuple, InstrumentChannel
-from qick.qick_asm import AbsQickProgram
 
 from qcodes_qick.channels import DacChannel
 from qcodes_qick.parameters import GainParameter, HzParameter
 
 if TYPE_CHECKING:
+    from qick.qick_asm import AbsQickProgram
+
     from qcodes_qick.instruments import QickInstrument
 
 

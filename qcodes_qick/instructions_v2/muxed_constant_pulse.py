@@ -1,15 +1,20 @@
-from typing import Any, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Ints
 from qcodes.validators import Sequence as SequenceValidator
-from qick.asm_v2 import QickSweep
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.muxed_dac import MuxedDacChannel
 from qcodes_qick.parameters import SecParameter
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+
+if TYPE_CHECKING:
+    from qick.asm_v2 import QickSweep
+
+    from qcodes_qick.instruments import QickInstrument
+    from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
 
 
 class MuxedConstantPulse(QickInstruction):
@@ -72,7 +77,7 @@ class MuxedConstantPulse(QickInstruction):
             length=self.length.get() * 1e6,
         )
 
-    def play(self, program: SweepProgram, t: Union[float, QickSweep, str] = "auto"):
+    def play(self, program: SweepProgram, t: float | QickSweep | str = "auto"):
         """Append me to a program.
 
         Parameters

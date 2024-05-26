@@ -9,13 +9,14 @@ from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from qick.asm_v2 import AveragerProgramV2
-from qick.qick_asm import QickConfig
 from tqdm.contrib.itertools import product as tqdm_product
 
-from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 
 if TYPE_CHECKING:
+    from qick.qick_asm import QickConfig
+
+    from qcodes_qick.channels import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.parameters import HardwareParameter
 

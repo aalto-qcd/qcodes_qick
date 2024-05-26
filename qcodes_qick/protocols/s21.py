@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
-from qick.qick_asm import QickConfig
-
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
 
 if TYPE_CHECKING:
+    from qick.qick_asm import QickConfig
+
     from qcodes_qick.instructions.readout_pulse import ReadoutPulse
     from qcodes_qick.instruments import QickInstrument
 

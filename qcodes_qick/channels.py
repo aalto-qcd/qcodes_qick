@@ -4,11 +4,12 @@ from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
 from qcodes.utils.validators import Ints
-from qick.qick_asm import AbsQickProgram
 
 from qcodes_qick.parameters import HzParameter, SecParameter
 
 if TYPE_CHECKING:
+    from qick.qick_asm import AbsQickProgram
+
     from qcodes_qick.instruments import QickInstrument
 
 

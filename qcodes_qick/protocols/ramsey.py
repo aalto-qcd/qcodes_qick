@@ -9,6 +9,8 @@ from qcodes_qick.instructions.set_phase import SetPhase
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
 
 if TYPE_CHECKING:
+    from qick.qick_asm import QickConfig
+
     from qcodes_qick.instruction_base import QickInstruction
     from qcodes_qick.instructions.readout_pulse import ReadoutPulse
     from qcodes_qick.instruments import QickInstrument
