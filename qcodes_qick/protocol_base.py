@@ -11,6 +11,7 @@ from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from tqdm.contrib.itertools import product as tqdm_product
 
+from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.instruction_base import QickInstruction
 from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import QickConfig
@@ -218,6 +219,12 @@ class SweepProgram(NDAveragerProgram):
     ):
         self.protocol = protocol
         self.hardware_sweeps = hardware_sweeps
+        self.dacs: set[DacChannel] = set().union(
+            instruction.dacs for instruction in self.protocol.instructions
+        )
+        self.adcs: set[AdcChannel] = set().union(
+            instruction.adcs for instruction in self.protocol.instructions
+        )
         cfg = {
             "reps": protocol.hard_avgs.get(),
             "soft_avgs": protocol.soft_avgs.get(),
@@ -225,9 +232,10 @@ class SweepProgram(NDAveragerProgram):
         super().__init__(soccfg, cfg)
 
     def initialize(self):
-        for instruction in self.protocol.instructions:
-            for dac in instruction.dacs:
-                dac.initialize(self)
+        for dac in self.dacs:
+            dac.initialize(self)
+        for adc in self.adcs:
+            adc.initialize(self)
 
         for instruction in self.protocol.instructions:
             instruction.initialize(self)

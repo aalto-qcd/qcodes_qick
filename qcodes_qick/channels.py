@@ -6,6 +6,8 @@ from qcodes import InstrumentChannel, ManualParameter, Parameter
 from qcodes.utils.validators import Ints
 from qick.qick_asm import AbsQickProgram
 
+from qcodes_qick.parameters import HzParameter, SecParameter
+
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
@@ -20,10 +22,9 @@ class DacChannel(InstrumentChannel):
         self.type = Parameter(
             name="type",
             instrument=self,
-            label="Generator type",
+            label="DAC type",
             initial_cache_value=parent.soccfg["gens"][channel_num]["type"],
         )
-
         self.matching_adc = ManualParameter(
             name="matching_adc",
             instrument=self,
@@ -40,6 +41,12 @@ class DacChannel(InstrumentChannel):
         )
 
     def initialize(self, program: AbsQickProgram):
+        """Add initialization commands to a program.
+
+        Parameters
+        ----------
+        program : AbsQickProgram
+        """
         program.declare_gen(ch=self.channel_num, nqz=self.nqz.get())
 
     def reg2hz(self, reg: int) -> float:
@@ -83,6 +90,41 @@ class AdcChannel(InstrumentChannel):
             label="Channel number of the DAC to match the frequency unit to. -1 means don't perform any matching.",
             vals=Ints(-1, len(self.parent.soccfg["readouts"]) - 1),
             initial_value=-1,
+        )
+        self.freq = HzParameter(
+            name="freq",
+            instrument=self,
+            label="LO frequency for digital downconversion",
+            initial_value=1e9,
+        )
+        self.length = SecParameter(
+            name="length",
+            instrument=self,
+            label="Readout length",
+            initial_value=10e-6,
+        )
+
+    def initialize(self, program: AbsQickProgram):
+        """Add initialization commands to a program.
+
+        Parameters
+        ----------
+        program : AbsQickProgram
+        """
+        if self.parent.tproc_version.get() == 1:
+            length = self.length.get_raw()
+        else:
+            length = self.length.get() * 1e6
+        if self.matching_dac.get() == -1:
+            gen_ch = None
+        else:
+            gen_ch = self.matching_dac.get()
+        program.declare_readout(
+            ch=self.channel_num,
+            freq=self.freq.get() / 1e6,
+            phase=0,
+            length=length,
+            gen_ch=gen_ch,
         )
 
     def reg2hz(self, reg: int) -> float:
