@@ -1,6 +1,9 @@
 from typing import Any
 
+from qick.averager_program import QickSweep
+
 from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.instruction_base import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import (
     GainParameter,
@@ -9,8 +12,6 @@ from qcodes_qick.parameters import (
     TProcSecParameter,
 )
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
-from qcodes_qick.instruction_base import QickInstruction
-from qick.averager_program import QickSweep
 
 
 class ReadoutPulse(QickInstruction):

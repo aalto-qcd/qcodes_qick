@@ -1,7 +1,8 @@
 from typing import Any, Union
 
 from qcodes.parameters import ManualParameter, Parameter
-from qcodes.validators import Ints, Sequence as SequenceValidator
+from qcodes.validators import Ints
+from qcodes.validators import Sequence as SequenceValidator
 from qick.asm_v2 import QickSweep
 
 from qcodes_qick.instruction_base_v2 import QickInstruction

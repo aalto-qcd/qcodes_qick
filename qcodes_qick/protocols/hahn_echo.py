@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
 
+from qick.qick_asm import QickConfig
+
 from qcodes_qick.instructions.delay import Delay
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruction_base import QickInstruction

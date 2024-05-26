@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Sequence
 
 from qcodes import ManualParameter
 from qcodes.validators import Ints
+from qick.qick_asm import QickConfig
 
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruction_base import QickInstruction
