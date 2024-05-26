@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import itertools
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
+from qick.averager_program import NDAveragerProgram
+from qick.qick_asm import QickConfig
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.channels import AdcChannel, DacChannel
 from qcodes_qick.instruction_base import QickInstruction
-from qick.averager_program import NDAveragerProgram
-from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -26,7 +25,7 @@ class QickProtocol(InstrumentModule):
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
-        self.instructions: set[QickInstruction] = {}
+        self.instructions: Sequence[QickInstruction] = []
         assert parent.tproc_version.get() == 1
         parent.add_submodule(name, self)
 
@@ -237,7 +236,7 @@ class SweepProgram(NDAveragerProgram):
         for adc in self.adcs:
             adc.initialize(self)
 
-        for instruction in self.protocol.instructions:
+        for instruction in set(self.protocol.instructions):
             instruction.initialize(self)
 
         for sweep in reversed(self.hardware_sweeps):

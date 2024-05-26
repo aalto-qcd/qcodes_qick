@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import itertools
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
@@ -26,7 +25,7 @@ class QickProtocol(InstrumentModule):
 
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
-        self.instructions: set[QickInstruction] = {}
+        self.instructions: Sequence[QickInstruction] = []
         assert parent.tproc_version.get() == 2
         parent.add_submodule(name, self)
 

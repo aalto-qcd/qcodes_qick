@@ -19,7 +19,7 @@ class S21Protocol(SweepProtocol):
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        self.instructions = {readout_pulse}
+        self.instructions = [readout_pulse]
         self.readout_pulse = readout_pulse
 
     def generate_program(

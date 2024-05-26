@@ -27,7 +27,7 @@ class RamseyProtocol(SweepProtocol):
         self.readout_pulse = readout_pulse
         self.delay = Delay(parent, half_pi_pulse.dacs[0])
         self.set_phase = SetPhase(parent, half_pi_pulse.dacs[0])
-        self.instructions = {half_pi_pulse, readout_pulse, self.delay, self.set_phase}
+        self.instructions = [half_pi_pulse, readout_pulse, self.delay, self.set_phase]
 
     def generate_program(
         self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()

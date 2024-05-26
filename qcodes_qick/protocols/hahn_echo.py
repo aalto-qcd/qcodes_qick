@@ -25,7 +25,7 @@ class HahnEchoProtocol(SweepProtocol):
         self.half_pi_pulse = half_pi_pulse
         self.readout_pulse = readout_pulse
         self.delay = Delay(parent, half_pi_pulse.dacs[0])
-        self.instructions = {half_pi_pulse, readout_pulse, self.delay}
+        self.instructions = [half_pi_pulse, readout_pulse, self.delay]
 
     def generate_program(
         self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
