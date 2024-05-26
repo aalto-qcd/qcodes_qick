@@ -25,7 +25,6 @@ class MuxedDacTone(InstrumentChannel):
             initial_value=1e9,
             channel=parent,
         )
-
         self.gain = GainParameter(
             name="gain",
             instrument=self,
