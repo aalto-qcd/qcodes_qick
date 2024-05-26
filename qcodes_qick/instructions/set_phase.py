@@ -10,8 +10,24 @@ from qick.averager_program import QickSweep
 
 class SetPhase(QickInstruction):
     def __init__(
-        self, parent: QickInstrument, dac: DacChannel, name="SetPhase", **kwargs: Any
+        self,
+        parent: QickInstrument,
+        dac: DacChannel,
+        name="SetPhase",
+        **kwargs: Any,
     ):
+        """
+        Parameters
+        ----------
+        parent : QickInstrument
+            Make me a submodule of this QickInstrument.
+        dac : DacChannel
+            The DAC channel to use.
+        name : str
+            My unique name.
+        **kwargs : dict, optional
+            Keyword arguments to pass on to InstrumentBase.__init__.
+        """
         super().__init__(parent, name, **kwargs)
         self.dacs = [dac]
 
@@ -24,6 +40,12 @@ class SetPhase(QickInstruction):
         )
 
     def initialize(self, program: SweepProgram):
+        """Add initialization commands to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        """
         self.dac_phase_reg = program.get_gen_reg(self.dacs[0].channel_num, "phase")
         self.phase_reg = program.new_gen_reg(
             gen_ch=self.dacs[0].channel_num,
@@ -32,10 +54,23 @@ class SetPhase(QickInstruction):
         )
 
     def play(self, program: SweepProgram):
+        """Append me to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        """
         assert self in program.protocol.instructions
         self.dac_phase_reg.set_to(self.phase_reg)
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
+        """Add a sweep over one of my parameters to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        sweep: HardwareSweep
+        """
         if sweep.parameter is self.phase:
             reg = self.phase_reg
             program.add_sweep(

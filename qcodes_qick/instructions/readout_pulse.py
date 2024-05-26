@@ -22,6 +22,20 @@ class ReadoutPulse(QickInstruction):
         name="ReadoutPulse",
         **kwargs: Any,
     ):
+        """
+        Parameters
+        ----------
+        parent : QickInstrument
+            Make me a submodule of this QickInstrument.
+        dac : DacChannel
+            The DAC channel to use.
+        adc : AdcChannel
+            The ADC channel to use.
+        name : str
+            My unique name.
+        **kwargs : dict, optional
+            Keyword arguments to pass on to InstrumentBase.__init__.
+        """
         super().__init__(parent, name, **kwargs)
         dac.matching_adc.set(adc.channel_num)
         adc.matching_dac.set(dac.channel_num)
@@ -78,6 +92,12 @@ class ReadoutPulse(QickInstruction):
         )
 
     def initialize(self, program: SweepProgram):
+        """Add initialization commands to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        """
         program.set_pulse_registers(
             ch=self.dacs[0].channel_num,
             style="const",
@@ -102,6 +122,13 @@ class ReadoutPulse(QickInstruction):
         )
 
     def play(self, program: SweepProgram, wait_for_adc: bool):
+        """Append me to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        """
+        assert self in program.protocol.instructions
         program.sync_all()
         program.sync(self.wait_before_reg.page, self.wait_before_reg.addr)
         program.measure(
@@ -114,6 +141,13 @@ class ReadoutPulse(QickInstruction):
         program.sync_all(t=self.wait_after.get_raw())
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
+        """Add a sweep over one of my parameters to a program.
+
+        Parameters
+        ----------
+        program : SweepProgram
+        sweep: HardwareSweep
+        """
         if sweep.parameter is self.gain:
             reg = program.get_gen_reg(self.dacs[0].channel_num, "gain")
             program.add_sweep(
