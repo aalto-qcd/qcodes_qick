@@ -9,6 +9,7 @@ from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
 from qick.asm_v2 import AveragerProgramV2
+from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -152,40 +153,21 @@ class SweepProtocol(ABC, QickProtocol):
                 )
 
         with meas.run() as datasaver:
-            soft_parameters = [sweep.parameter for sweep in software_sweeps]
-            hard_parameters = [sweep.parameter for sweep in hardware_sweeps]
-
             if len(software_sweeps) == 0:
-                hard_coordinates, iq = self.run_hardware_sweeps(
-                    hardware_sweeps, progress=True
+                result = self.run_hardware_sweeps(
+                    hardware_sweeps, iq_parameters, progress=True
                 )
-
-                result = []
-                for parameter, value in zip(hard_parameters, hard_coordinates):
-                    result.append((parameter, value))
-                for parameter, value in zip(iq_parameters, iq):
-                    result.append((parameter, value))
                 datasaver.add_result(*result)
-
             else:
                 soft_sweep_values = [sweep.values for sweep in software_sweeps]
-
                 for current_values in tqdm_product(*soft_sweep_values):
-                    # set software sweep parameters to current values
-                    for parameter, value in zip(soft_parameters, current_values):
-                        parameter.set(value)
-
-                    hard_coordinates, iq = self.run_hardware_sweeps(
-                        hardware_sweeps, progress=False
+                    for sweep, value in zip(software_sweeps, current_values):
+                        sweep.parameter.set(value)
+                    result = self.run_hardware_sweeps(
+                        hardware_sweeps, iq_parameters, progress=False
                     )
-
-                    result = []
-                    for parameter, value in zip(soft_parameters, current_values):
-                        result.append((parameter, value))
-                    for parameter, value in zip(hard_parameters, hard_coordinates):
-                        result.append((parameter, value))
-                    for parameter, value in zip(iq_parameters, iq):
-                        result.append((parameter, value))
+                    for sweep, value in zip(software_sweeps, current_values):
+                        result.append((sweep.parameter, value))
                     datasaver.add_result(*result)
 
         return datasaver.run_id
@@ -193,21 +175,28 @@ class SweepProtocol(ABC, QickProtocol):
     def run_hardware_sweeps(
         self,
         hardware_sweeps: Sequence[HardwareSweep],
+        iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
         program = self.generate_program(self.parent.soccfg, hardware_sweeps)
-        _, avg_di, avg_dq = program.acquire(
-            self.parent.soc, load_pulses=True, progress=progress
-        )
 
-        # Make a list[np.ndarray] of all the coordinate points of the N-dimensional sweep.
-        # sweep_coordinates[n] contains the value of hardware_sweeps[n].parameter used in each experiment.
-        # sweep_coordinates[n].shape = (sweep.num for sweep in hardware_sweeps)
+        result = []
+        iq = AcquireMixin.acquire(
+            self=program,
+            soc=self.parent.soc,
+            soft_avgs=self.soft_avgs.get(),
+            progress=progress,
+        )
+        iq = np.concatenate(iq).dot([1, 1j])
+        for parameter, value in zip(iq_parameters, iq):
+            result.append((parameter, value))
+
         sweep_values = [sweep.values for sweep in hardware_sweeps]
         sweep_coordinates = np.meshgrid(*sweep_values, indexing="ij")
+        for sweep, value in zip(hardware_sweeps, sweep_coordinates):
+            result.append((sweep.parameter, value))
 
-        iq = np.concatenate([i + 1j * q for i, q in zip(avg_di, avg_dq)])
-        return sweep_coordinates, iq
+        return result
 
 
 class SweepProgram(AveragerProgramV2):
