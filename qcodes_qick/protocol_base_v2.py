@@ -247,3 +247,28 @@ class SweepProgram(AveragerProgramV2):
                 raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
 
         self.synci(200)  # Give processor some time to configure pulses
+
+
+class SimpleSweepProtocol(SweepProtocol):
+    def __init__(
+        self,
+        parent: QickInstrument,
+        instructions: Sequence[QickInstruction],
+        name="SimpleSweepProtocol",
+        **kwargs,
+    ):
+        super().__init__(parent, name, **kwargs)
+        self.instructions = instructions
+
+    def generate_program(
+        self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
+    ):
+        return SimpleSweepProgram(soccfg, self, hardware_sweeps)
+
+
+class SimpleSweepProgram(SweepProgram):
+    protocol: SimpleSweepProtocol
+
+    def body(self):
+        for instruction in self.protocol.instructions:
+            instruction.play(self)

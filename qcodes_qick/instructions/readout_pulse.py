@@ -122,7 +122,7 @@ class ReadoutPulse(QickInstruction):
             tproc_reg=True,
         )
 
-    def play(self, program: SweepProgram, wait_for_adc: bool):
+    def play(self, program: SweepProgram, wait_for_adc: bool = True):
         """Append me to a program.
 
         Parameters
