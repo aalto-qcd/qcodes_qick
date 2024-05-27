@@ -30,7 +30,7 @@ class DacChannel(InstrumentChannel):
             name="matching_adc",
             instrument=self,
             label="Channel number of the ADC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, len(self.parent.soccfg["gens"]) - 1),
+            vals=Ints(-1, len(self.parent.soccfg["readouts"]) - 1),
             initial_value=-1,
         )
         self.nqz = ManualParameter(
@@ -89,7 +89,7 @@ class AdcChannel(InstrumentChannel):
             name="matching_dac",
             instrument=self,
             label="Channel number of the DAC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, len(self.parent.soccfg["readouts"]) - 1),
+            vals=Ints(-1, len(self.parent.soccfg["gens"]) - 1),
             initial_value=-1,
         )
         self.freq = HzParameter(
