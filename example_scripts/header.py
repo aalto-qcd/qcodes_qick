@@ -22,7 +22,7 @@ experiment = load_or_create_experiment(experiment_name, sample_name)
 
 station = Station()
 station.metadata["wiring"] = wiring
-qick_instrument = QickInstrument("QickInstrument", "10.0.100.16")
+qick_instrument = QickInstrument("10.0.100.16")
 station.add_component(qick_instrument)
 
 readout_dac = qick_instrument.dacs[0]

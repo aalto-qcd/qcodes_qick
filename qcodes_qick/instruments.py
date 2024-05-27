@@ -11,7 +11,7 @@ from qcodes_qick.muxed_dac import MuxedDacChannel
 
 
 class QickInstrument(Instrument):
-    def __init__(self, name: str, ns_host: str, ns_port=8888, **kwargs):
+    def __init__(self, ns_host: str, ns_port=8888, name="QickInstrument", **kwargs):
         super().__init__(name, **kwargs)
 
         # Use the IP address and port of the Pyro4 nameserver to get:
