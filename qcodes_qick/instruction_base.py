@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Sequence
 
 from qcodes.instrument import InstrumentModule
+from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
     from qcodes_qick.channels import AdcChannel, DacChannel
@@ -17,6 +18,10 @@ class QickInstruction(InstrumentModule):
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
+    dacs : Sequence[DacChannel]
+        The DAC channels to use.
+    adcs : Sequence[AdcChannel]
+        The ADC channels to use.
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -25,12 +30,32 @@ class QickInstruction(InstrumentModule):
 
     parent: QickInstrument
 
-    def __init__(self, parent: QickInstrument, name: str, **kwargs):
+    def __init__(
+        self,
+        parent: QickInstrument,
+        dacs: Sequence[DacChannel] = (),
+        adcs: Sequence[AdcChannel] = (),
+        name: str = "QickInstruction",
+        **kwargs,
+    ):
         super().__init__(parent, name, **kwargs)
-        self.dacs: Sequence[DacChannel] = []
-        self.adcs: Sequence[AdcChannel] = []
         assert parent.tproc_version.get() == 1
         parent.add_submodule(name, self)
+        self.dacs = dacs
+        self.adcs = adcs
+
+        self.dac_channel_nums = Parameter(
+            name="dac_channel_nums",
+            instrument=self,
+            label="DAC channel numbers",
+            initial_cache_value=[dac.channel_num for dac in dacs],
+        )
+        self.adc_channel_nums = Parameter(
+            name="adc_channel_nums",
+            instrument=self,
+            label="ADC channel numbers",
+            initial_cache_value=[adc.channel_num for adc in adcs],
+        )
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.

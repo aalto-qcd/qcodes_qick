@@ -29,8 +29,7 @@ class SetPhase(QickInstruction):
         name="SetPhase",
         **kwargs,
     ):
-        super().__init__(parent, name, **kwargs)
-        self.dacs = [dac]
+        super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
         self.phase = DegParameter(
             name="phase",

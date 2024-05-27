@@ -39,16 +39,9 @@ class MuxedConstantPulse(QickInstruction):
         name="MuxedConstantPulse",
         **kwargs,
     ):
-        super().__init__(parent, name, **kwargs)
+        super().__init__(parent, dacs=[dac], name=name, **kwargs)
         assert isinstance(dac, MuxedDacChannel)
-        self.dacs = [dac]
 
-        self.dac_channel_num = Parameter(
-            name="dac_channel_num",
-            instrument=self,
-            label="DAC channel number",
-            initial_cache_value=dac.channel_num,
-        )
         self.length = SecParameter(
             name="length",
             instrument=self,

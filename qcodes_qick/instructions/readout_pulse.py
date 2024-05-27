@@ -37,11 +37,9 @@ class ReadoutPulse(QickInstruction):
         name="ReadoutPulse",
         **kwargs,
     ):
-        super().__init__(parent, name, **kwargs)
+        super().__init__(parent, dacs=[dac], adcs=[adc], name=name, **kwargs)
         dac.matching_adc.set(adc.channel_num)
         adc.matching_dac.set(dac.channel_num)
-        self.dacs = [dac]
-        self.adcs = [adc]
 
         self.gain = GainParameter(
             name="gain",

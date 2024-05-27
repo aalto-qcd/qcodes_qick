@@ -29,8 +29,7 @@ class Delay(QickInstruction):
         name="Delay",
         **kwargs,
     ):
-        super().__init__(parent, name, **kwargs)
-        self.dacs = [dac]
+        super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
         self.time = TProcSecParameter(
             name="time",
