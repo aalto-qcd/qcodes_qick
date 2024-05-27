@@ -97,12 +97,14 @@ class AdcChannel(InstrumentChannel):
             instrument=self,
             label="LO frequency for digital downconversion",
             initial_value=1e9,
+            channel=self,
         )
         self.length = SecParameter(
             name="length",
             instrument=self,
             label="Readout length",
             initial_value=10e-6,
+            channel=self,
         )
 
     def initialize(self, program: AbsQickProgram):

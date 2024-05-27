@@ -220,10 +220,10 @@ class SweepProgram(NDAveragerProgram):
         self.protocol = protocol
         self.hardware_sweeps = hardware_sweeps
         self.dacs: set[DacChannel] = set().union(
-            instruction.dacs for instruction in self.protocol.instructions
+            *(instruction.dacs for instruction in self.protocol.instructions)
         )
         self.adcs: set[AdcChannel] = set().union(
-            instruction.adcs for instruction in self.protocol.instructions
+            *(instruction.adcs for instruction in self.protocol.instructions)
         )
         cfg = {
             "reps": protocol.hard_avgs.get(),
