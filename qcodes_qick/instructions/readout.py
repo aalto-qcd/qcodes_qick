@@ -70,7 +70,7 @@ class Readout(QickInstruction):
         self.wait_for_adc = ManualParameter(
             name="wait_for_adc",
             instrument=self,
-            label="Pause tProc execution until the end of the ADC readout window",
+            label="Pause tProc execution until the end of the ADC readout window to prevent loop counters from getting incremented before the data is available",
             vals=Bool(),
             initial_value=True,
         )
@@ -100,13 +100,13 @@ class Readout(QickInstruction):
         assert self in program.protocol.instructions
         program.sync_all()
         program.sync(self.wait_before_reg.page, self.wait_before_reg.addr)
-        program.measure(
+        program.trigger(
             adcs=[self.adcs[0].channel_num],
-            pulse_ch=self.dacs[0].channel_num,
             adc_trig_offset=self.adc_trig_offset.get_raw(),
-            t="auto",
-            wait=self.wait_for_adc.get(),
         )
+        program.pulse(ch=self.dacs[0].channel_num, t="auto")
+        if self.wait_for_adc.get():
+            program.wait_all()
         program.sync_all(t=self.wait_after.get_raw())
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
