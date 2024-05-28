@@ -1,28 +1,24 @@
+from qcodes.parameters import Parameter
 from qick.averager_program import QickSweep
 
-from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.channels import AdcChannel
 from qcodes_qick.instruction_base import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import (
-    GainParameter,
-    HzParameter,
-    SecParameter,
-    TProcSecParameter,
-)
+from qcodes_qick.parameters import TProcSecParameter
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 
 
-class ReadoutPulse(QickInstruction):
-    """Generate a rectangular pulse and trigger an ADC channel.
+class Readout(QickInstruction):
+    """Generate a specified pulse and trigger an ADC channel.
 
     Parameters
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
-    dac : DacChannel
-        The DAC channel to use.
+    pulse : QickInstruction
+        The pulse to generate.
     adc : AdcChannel
-        The ADC channel to use.
+        The ADC channel to trigger.
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -32,34 +28,22 @@ class ReadoutPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: DacChannel,
+        pulse: QickInstruction,
         adc: AdcChannel,
-        name="ReadoutPulse",
+        name="Readout",
         **kwargs,
     ):
-        super().__init__(parent, dacs=[dac], adcs=[adc], name=name, **kwargs)
-        dac.matching_adc.set(adc.channel_num)
-        adc.matching_dac.set(dac.channel_num)
+        super().__init__(parent, dacs=pulse.dacs, adcs=[adc], name=name, **kwargs)
+        assert len(self.dacs) == 1
+        assert self.dacs[0].matching_adc.get() == self.adcs[0].channel_num
+        assert self.adcs[0].matching_dac.get() == self.dacs[0].channel_num
+        self.pulse = pulse
 
-        self.gain = GainParameter(
-            name="gain",
+        self.pulse_name = Parameter(
+            name="pulse_name",
             instrument=self,
-            label="Pulse gain",
-            initial_value=0.5,
-        )
-        self.freq = HzParameter(
-            name="freq",
-            instrument=self,
-            label="Pulse frequency",
-            initial_value=1e9,
-            channel=self.dacs[0],
-        )
-        self.length = SecParameter(
-            name="length",
-            instrument=self,
-            label="Pulse length",
-            initial_value=10e-6,
-            channel=self.dacs[0],
+            label="Name of the readout pulse",
+            initial_cache_value=self.pulse.full_name,
         )
         self.wait_before = TProcSecParameter(
             name="wait_before",
@@ -82,13 +66,7 @@ class ReadoutPulse(QickInstruction):
             initial_value=0,
             qick_instrument=self.parent,
         )
-        self.adc_length = SecParameter(
-            name="adc_length",
-            instrument=self,
-            label="Length of the ADC acquisition window",
-            initial_value=10e-6,
-            channel=self.adcs[0],
-        )
+
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
@@ -97,22 +75,7 @@ class ReadoutPulse(QickInstruction):
         ----------
         program : SweepProgram
         """
-        program.set_pulse_registers(
-            ch=self.dacs[0].channel_num,
-            style="const",
-            freq=self.freq.get_raw(),
-            phase=0,
-            gain=self.gain.get_raw(),
-            phrst=0,
-            stdysel="zero",
-            mode="oneshot",
-            length=self.length.get_raw(),
-        )
-        program.declare_readout(
-            ch=self.adcs[0].channel_num,
-            length=self.adc_length.get_raw(),
-            freq=self.freq.get() / 1e6,
-        )
+        self.pulse.initialize(program)
         self.wait_before_reg = program.new_gen_reg(
             gen_ch=self.dacs[0].channel_num,
             init_val=self.wait_before.get() * 1e6,
@@ -148,12 +111,7 @@ class ReadoutPulse(QickInstruction):
         sweep: HardwareSweep
 
         """
-        if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dacs[0].channel_num, "gain")
-            program.add_sweep(
-                QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
-            )
-        elif sweep.parameter is self.wait_before:
+        if sweep.parameter is self.wait_before:
             reg = self.wait_before_reg
             program.add_sweep(
                 QickSweep(program, reg, sweep.start * 1e6, sweep.stop * 1e6, sweep.num)

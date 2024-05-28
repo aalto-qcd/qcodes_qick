@@ -102,7 +102,7 @@ class AdcChannel(InstrumentChannel):
         self.length = SecParameter(
             name="length",
             instrument=self,
-            label="Readout length",
+            label="Readout window length",
             initial_value=10e-6,
             channel=self,
         )

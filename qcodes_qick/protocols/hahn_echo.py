@@ -7,7 +7,7 @@ from qcodes_qick.protocol_base import SimpleSweepProtocol
 
 if TYPE_CHECKING:
     from qcodes_qick.instruction_base import QickInstruction
-    from qcodes_qick.instructions.readout_pulse import ReadoutPulse
+    from qcodes_qick.instructions.readout import Readout
     from qcodes_qick.instruments import QickInstrument
 
 
@@ -16,7 +16,7 @@ class HahnEchoProtocol(SimpleSweepProtocol):
         self,
         parent: QickInstrument,
         half_pi_pulse: QickInstruction,
-        readout_pulse: ReadoutPulse,
+        readout: Readout,
         name="HahnEchoProtocol",
         **kwargs,
     ):
@@ -30,7 +30,7 @@ class HahnEchoProtocol(SimpleSweepProtocol):
                 half_pi_pulse,
                 self.delay,
                 half_pi_pulse,
-                readout_pulse,
+                readout,
             ],
             name=name,
             **kwargs,

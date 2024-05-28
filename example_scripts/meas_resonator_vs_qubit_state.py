@@ -1,9 +1,9 @@
-from header import *
+from .header import *
 
 name = os.path.basename(__file__)[:-3]
 
 readout_pulse.gain.set(0.1)
-p = PulseProbeProtocol(qick_instrument, pi_pulse, readout_pulse)
+p = PulseProbeProtocol(qick_instrument, pi_pulse, readout)
 p.hard_avgs.set(100)
 p.run(
     Measurement(experiment, station, name),
