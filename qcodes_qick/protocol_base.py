@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Sequence, Union
 
@@ -33,18 +32,25 @@ class QickProtocol(InstrumentModule):
 
 
 class SoftwareSweep:
+    parameters: Sequence[Parameter]
     values: Sequence[float]
 
     def __init__(
         self,
-        parameter: Parameter,
+        parameters: Parameter | Sequence[Parameter],
         start: Union[float, Sequence[float]],
         stop: Optional[float] = None,
         num: Optional[int] = None,
         skip_first: bool = False,
         skip_last: bool = False,
     ):
-        self.parameter = parameter
+        if isinstance(parameters, Parameter):
+            self.parameters = [parameters]
+        else:
+            self.parameters = parameters
+
+        # make sure that all parameters have the same unit
+        assert len({parameter.unit for parameter in self.parameters}) == 1
 
         if isinstance(start, Sequence):
             self.values = start
@@ -128,13 +134,15 @@ class SweepProtocol(ABC, QickProtocol):
         readouts_per_experiment = program.reads_per_shot
         assert len(adc_channel_nums) == len(readouts_per_experiment)
 
-        # set sweep parameters to start values
-        for sweep in itertools.chain(software_sweeps, hardware_sweeps):
-            sweep.parameter.set(sweep.values[0])
-
-        # register the sweep parameters
+        # Initialize and register the sweep parameters
         setpoints = []
-        for sweep in itertools.chain(software_sweeps, hardware_sweeps):
+        for sweep in software_sweeps:
+            for parameter in sweep.parameters:
+                parameter.set(sweep.values[0])
+                setpoints.append(parameter)
+                meas.register_parameter(parameter, paramtype="array")
+        for sweep in hardware_sweeps:
+            sweep.parameter.set(sweep.values[0])
             setpoints.append(sweep.parameter)
             meas.register_parameter(sweep.parameter, paramtype="array")
 
@@ -162,12 +170,14 @@ class SweepProtocol(ABC, QickProtocol):
                 soft_sweep_values = [sweep.values for sweep in software_sweeps]
                 for current_values in tqdm_product(*soft_sweep_values):
                     for sweep, value in zip(software_sweeps, current_values):
-                        sweep.parameter.set(value)
+                        for parameter in sweep.parameters:
+                            parameter.set(value)
                     result = self.run_hardware_sweeps(
                         hardware_sweeps, iq_parameters, progress=False
                     )
                     for sweep, value in zip(software_sweeps, current_values):
-                        result.append((sweep.parameter, value))
+                        for parameter in sweep.parameters:
+                            result.append((parameter, value))
                     datasaver.add_result(*result)
 
         return datasaver.run_id

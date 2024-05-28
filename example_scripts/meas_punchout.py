@@ -12,6 +12,6 @@ p.run(
     Measurement(experiment, station, name),
     software_sweeps=[
         SoftwareSweep(readout_pulse.gain, 0, 1, 21, skip_first=True, skip_last=True),
-        SoftwareSweep(readout_pulse.freq, 6.317e9, 6.323e9, 121),
+        SoftwareSweep([readout_pulse.freq, readout_adc.freq], 6.317e9, 6.323e9, 121),
     ],
 )
