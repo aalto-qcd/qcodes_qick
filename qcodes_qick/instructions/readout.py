@@ -1,4 +1,5 @@
-from qcodes.parameters import Parameter
+from qcodes.parameters import ManualParameter, Parameter
+from qcodes.validators import Bool
 from qick.averager_program import QickSweep
 
 from qcodes_qick.channels import AdcChannel
@@ -66,6 +67,13 @@ class Readout(QickInstruction):
             initial_value=0,
             qick_instrument=self.parent,
         )
+        self.wait_for_adc = ManualParameter(
+            name="wait_for_adc",
+            instrument=self,
+            label="Pause tProc execution until the end of the ADC readout window",
+            vals=Bool(),
+            initial_value=True,
+        )
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
@@ -82,7 +90,7 @@ class Readout(QickInstruction):
             tproc_reg=True,
         )
 
-    def play(self, program: SweepProgram, wait_for_adc: bool = True):
+    def play(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
@@ -97,7 +105,7 @@ class Readout(QickInstruction):
             pulse_ch=self.dacs[0].channel_num,
             adc_trig_offset=self.adc_trig_offset.get_raw(),
             t="auto",
-            wait=wait_for_adc,
+            wait=self.wait_for_adc.get(),
         )
         program.sync_all(t=self.wait_after.get_raw())
 

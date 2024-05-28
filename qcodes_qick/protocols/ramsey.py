@@ -47,4 +47,4 @@ class RamseyProgram(SweepProgram):
         self.protocol.delay.play(self)
         self.protocol.set_phase.play(self)
         self.protocol.half_pi_pulse.play(self)
-        self.protocol.readout.play(self, wait_for_adc=True)
+        self.protocol.readout.play(self)

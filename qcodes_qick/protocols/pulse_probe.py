@@ -49,4 +49,4 @@ class PulseProbeProgram(SweepProgram):
     def body(self):
         for _ in range(self.protocol.qubit_pulse_count.get()):
             self.protocol.qubit_pulse.play(self)
-        self.protocol.readout.play(self, wait_for_adc=True)
+        self.protocol.readout.play(self)
