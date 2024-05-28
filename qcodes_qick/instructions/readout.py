@@ -67,7 +67,6 @@ class Readout(QickInstruction):
             qick_instrument=self.parent,
         )
 
-
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
 
@@ -117,4 +116,6 @@ class Readout(QickInstruction):
                 QickSweep(program, reg, sweep.start * 1e6, sweep.stop * 1e6, sweep.num)
             )
         else:
-            raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
+            raise NotImplementedError(
+                f"cannot perform a hardware sweep over {sweep.parameter.name}"
+            )

@@ -81,4 +81,6 @@ class QickInstruction(InstrumentModule):
         program : SweepProgram
         sweep: HardwareSweep
         """
-        raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
+        raise NotImplementedError(
+            f"cannot perform a hardware sweep over {sweep.parameter.name}"
+        )

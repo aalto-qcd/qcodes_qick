@@ -77,4 +77,6 @@ class SetPhase(QickInstruction):
                 QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
             )
         else:
-            raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
+            raise NotImplementedError(
+                f"cannot perform a hardware sweep over {sweep.parameter.name}"
+            )

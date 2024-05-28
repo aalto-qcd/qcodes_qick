@@ -78,4 +78,6 @@ class Delay(QickInstruction):
                 QickSweep(self, reg, sweep.start * 1e6, sweep.stop * 1e6, sweep.num)
             )
         else:
-            raise NotImplementedError(f"cannot sweep over {sweep.parameter.name}")
+            raise NotImplementedError(
+                f"cannot perform a hardware sweep over {sweep.parameter.name}"
+            )
