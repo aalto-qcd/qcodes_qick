@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes.parameters import ManualParameter, Parameter
+from qcodes.parameters import ManualParameter
 from qcodes.validators import Ints
 from qcodes.validators import Sequence as SequenceValidator
 

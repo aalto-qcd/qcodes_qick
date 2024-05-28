@@ -26,6 +26,7 @@ ignore = [
     "ERA001",   # Found commented-out code
     "FBT001",   # Boolean-typed positional argument in function definition
     "FBT002",   # Boolean default positional argument in function definition
+    "ISC001",   # Implicitly concatenated string literals on one line
     "PD011",    # Use `.to_numpy()` instead of `.values`
     "PLR0912",  # Too many branches
     "PLR0913",  # Too many arguments in function definition
