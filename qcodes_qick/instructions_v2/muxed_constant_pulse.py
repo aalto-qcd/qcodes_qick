@@ -72,18 +72,14 @@ class MuxedConstantPulse(QickInstruction):
             length=self.length.get() * 1e6,
         )
 
-    def play(self, program: SweepProgram, t: float | QickSweep | str = "auto"):
+    def play(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
         ----------
         program : SweepProgram
-        t : float, QickSweep, or "auto"
-            Time in seconds. "auto" means the end of the last pulse on the DAC channel.
         """
-        if not isinstance(t, str):
-            t *= 1e6
-        program.pulse(self.dacs[0].channel_num, self.full_name, t)
+        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         """Add a sweep over one of my parameters to a program.
