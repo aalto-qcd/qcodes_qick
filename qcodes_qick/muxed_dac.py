@@ -23,7 +23,7 @@ class MuxedDacTone(InstrumentChannel):
             name="freq",
             instrument=self,
             label="Frequency of the tone",
-            initial_value=1e9,
+            initial_value=0,
             channel=parent,
         )
         self.gain = GainParameter(

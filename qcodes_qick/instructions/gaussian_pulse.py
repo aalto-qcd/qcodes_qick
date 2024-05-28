@@ -41,7 +41,7 @@ class GaussianPulse(QickInstruction):
             name="freq",
             instrument=self,
             label="Pulse frequency",
-            initial_value=1e9,
+            initial_value=0,
             channel=self.dacs[0],
         )
         self.sigma = SecParameter(

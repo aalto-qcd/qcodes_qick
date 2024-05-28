@@ -96,7 +96,7 @@ class AdcChannel(InstrumentChannel):
             name="freq",
             instrument=self,
             label="LO frequency for digital downconversion",
-            initial_value=1e9,
+            initial_value=0,
             channel=self,
         )
         self.length = SecParameter(
