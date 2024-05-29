@@ -7,11 +7,12 @@ import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
-from qick.averager_program import NDAveragerProgram
+from qick.asm_v2 import AveragerProgramV2
 from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
-from qcodes_qick.instruction_base import QickInstruction
+from qcodes_qick.instruction_base_v2 import QickInstruction
+from qcodes_qick.parameters import TProcSecParameter
 
 if TYPE_CHECKING:
     from qick.qick_asm import QickConfig
@@ -27,7 +28,7 @@ class QickProtocol(InstrumentModule):
     def __init__(self, parent: QickInstrument, name: str, **kwargs):
         super().__init__(parent, name, **kwargs)
         self.instructions: Sequence[QickInstruction] = []
-        assert parent.tproc_version.get() == 1
+        assert parent.tproc_version.get() == 2
         parent.add_submodule(name, self)
 
 
@@ -114,6 +115,27 @@ class SweepProtocol(ABC, QickProtocol):
             vals=Ints(min_value=0),
             initial_value=1,
         )
+        self.final_delay = TProcSecParameter(
+            name="final_delay",
+            instrument=self,
+            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
+            initial_value=1e-6,
+            qick_instrument=self.parent,
+        )
+        self.final_wait = TProcSecParameter(
+            name="final_wait",
+            instrument=self,
+            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
+            initial_value=0,
+            qick_instrument=self.parent,
+        )
+        self.initial_delay = TProcSecParameter(
+            name="initial_delay",
+            instrument=self,
+            label="Delay time to add to the timeline before starting to run the loops, to allow enough time for tProc to execute your initialization commands",
+            initial_value=1e-6,
+            qick_instrument=self.parent,
+        )
 
     @abstractmethod
     def generate_program(
@@ -128,7 +150,7 @@ class SweepProtocol(ABC, QickProtocol):
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_sweeps: Sequence[HardwareSweep] = (),
     ) -> int:
-        # initialize and register the sweep parameters
+        # Initialize and register the sweep parameters
         setpoints = []
         for sweep in software_sweeps:
             for parameter in sweep.parameters:
@@ -140,7 +162,7 @@ class SweepProtocol(ABC, QickProtocol):
             setpoints.append(sweep.parameter)
             meas.register_parameter(sweep.parameter, paramtype="array")
 
-        # generate the program just to obtain the ADC channel numbers and the number of readouts per experiment
+        # instantiate the program just to obtain the ADC channel numbers and the number of readouts per experiment
         program = self.generate_program(self.parent.soccfg)
         adc_channel_nums = program.ro_chs.keys()
         readouts_per_experiment = program.reads_per_shot
@@ -170,20 +192,15 @@ class SweepProtocol(ABC, QickProtocol):
             else:
                 soft_sweep_values = [sweep.values for sweep in software_sweeps]
                 for current_values in tqdm_product(*soft_sweep_values):
-                    # update the software sweep parameters
                     for sweep, value in zip(software_sweeps, current_values):
                         for parameter in sweep.parameters:
                             parameter.set(value)
-
                     result = self.run_hardware_sweeps(
                         hardware_sweeps, iq_parameters, progress=False
                     )
-
-                    # append the values of the software sweep parameters to the result
                     for sweep, value in zip(software_sweeps, current_values):
                         for parameter in sweep.parameters:
                             result.append((parameter, value))
-
                     datasaver.add_result(*result)
 
         return datasaver.run_id
@@ -215,7 +232,7 @@ class SweepProtocol(ABC, QickProtocol):
         return result
 
 
-class SweepProgram(NDAveragerProgram):
+class SweepProgram(AveragerProgramV2):
     def __init__(
         self,
         soccfg: QickConfig,
@@ -230,13 +247,15 @@ class SweepProgram(NDAveragerProgram):
         self.adcs: set[AdcChannel] = set().union(
             *(instruction.adcs for instruction in self.protocol.instructions)
         )
-        cfg = {
-            "reps": protocol.hard_avgs.get(),
-            "soft_avgs": protocol.soft_avgs.get(),
-        }
-        super().__init__(soccfg, cfg)
+        super().__init__(
+            soccfg,
+            reps=protocol.hard_avgs.get(),
+            final_delay=protocol.final_delay.get() * 1e6,
+            final_wait=protocol.final_wait.get() * 1e6,
+            initial_delay=protocol.initial_delay.get() * 1e6,
+        )
 
-    def initialize(self):
+    def initialize(self, cfg: dict):
         for dac in self.dacs:
             dac.initialize(self)
         for adc in self.adcs:
@@ -245,15 +264,13 @@ class SweepProgram(NDAveragerProgram):
         for instruction in set(self.protocol.instructions):
             instruction.initialize(self)
 
-        for sweep in reversed(self.hardware_sweeps):
+        for sweep in self.hardware_sweeps:
             if isinstance(sweep.parameter.instrument, QickInstruction):
                 sweep.parameter.instrument.add_sweep(self, sweep)
             else:
                 raise NotImplementedError(
                     f"cannot perform a hardware sweep over {sweep.parameter.name}"
                 )
-
-        self.synci(200)  # Give processor some time to configure pulses
 
 
 class SimpleSweepProtocol(SweepProtocol):
@@ -276,6 +293,6 @@ class SimpleSweepProtocol(SweepProtocol):
 class SimpleSweepProgram(SweepProgram):
     protocol: SimpleSweepProtocol
 
-    def body(self):
+    def body(self, cfg: dict):
         for instruction in self.protocol.instructions:
             instruction.play(self)

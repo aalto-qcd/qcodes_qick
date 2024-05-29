@@ -22,21 +22,26 @@ experiment = load_or_create_experiment(experiment_name, sample_name)
 
 station = Station()
 station.metadata["wiring"] = wiring
-qick_instrument = QickInstrument("QickInstrument", "10.0.100.16")
+qick_instrument: QickInstrument = QickInstrument("10.0.100.16")
 station.add_component(qick_instrument)
 
 readout_dac = qick_instrument.dacs[0]
-readout_dac.nqz.set(2)
 readout_adc = qick_instrument.adcs[0]
+readout_dac.matching_adc.set(readout_adc.channel_num)
+readout_adc.matching_dac.set(readout_dac.channel_num)
+readout_dac.nqz.set(2)
 
-readout_pulse = ReadoutPulse(qick_instrument, readout_dac, readout_adc)
+readout_pulse = ConstantPulse(qick_instrument, readout_dac, "readout_pulse")
 readout_pulse.gain.set(0.4)
 readout_pulse.freq.set(6.3203e9)
 readout_pulse.length.set(10e-6)
-readout_pulse.wait_before.set(100e-9)
-readout_pulse.wait_after.set(2e-3)
-readout_pulse.adc_trig_offset.set(0.5e-6)
-readout_pulse.adc_length.set(readout_pulse.length.get())
+readout_adc.freq.set(readout_pulse.freq.get())
+readout_adc.length.set(readout_pulse.length.get())
+
+readout = Readout(qick_instrument, readout_pulse, readout_adc)
+readout.wait_before.set(100e-9)
+readout.wait_after.set(2e-3)
+readout.adc_trig_offset.set(0.5e-6)
 
 qubit_dac = qick_instrument.dacs[4]
 qubit_dac.nqz.set(1)

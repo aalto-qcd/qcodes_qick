@@ -1,12 +1,12 @@
-from header import *
+from .header import *
 
 name = os.path.basename(__file__)[:-3]
 
 qubit_pulse = ConstantPulse(qick_instrument, qubit_dac)
 qubit_pulse.length(100e-6)
 readout_pulse.gain.set(0.1)
-readout_pulse.wait_after.set(10e-6)
-p = PulseProbeProtocol(qick_instrument, qubit_pulse, readout_pulse)
+readout.wait_after.set(10e-6)
+p = PulseProbeProtocol(qick_instrument, qubit_pulse, readout)
 p.hard_avgs(1000)
 p.run(
     Measurement(experiment, station, name),

@@ -1,14 +1,12 @@
-from qick.averager_program import QickSweep
-
 from qcodes_qick.channels import DacChannel
-from qcodes_qick.instruction_base import QickInstruction
+from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import DegParameter
-from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
+from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
+from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
 
 
-class SetPhase(QickInstruction):
-    """Set the phase of the LO of a DAC channel.
+class ConstantPulse(QickInstruction):
+    """Rectangular pulse.
 
     Parameters
     ----------
@@ -26,16 +24,29 @@ class SetPhase(QickInstruction):
         self,
         parent: QickInstrument,
         dac: DacChannel,
-        name="SetPhase",
+        name="ConstantPulse",
         **kwargs,
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
-        self.phase = DegParameter(
-            name="phase",
+        self.gain = GainParameter(
+            name="gain",
             instrument=self,
-            label="phase",
+            label="Pulse gain",
+            initial_value=0.5,
+        )
+        self.freq = HzParameter(
+            name="freq",
+            instrument=self,
+            label="Pulse frequency",
             initial_value=0,
+            channel=self.dacs[0],
+        )
+        self.length = SecParameter(
+            name="length",
+            instrument=self,
+            label="Pulse length",
+            initial_value=400e-9,
             channel=self.dacs[0],
         )
 
@@ -46,11 +57,17 @@ class SetPhase(QickInstruction):
         ----------
         program : SweepProgram
         """
-        self.dac_phase_reg = program.get_gen_reg(self.dacs[0].channel_num, "phase")
-        self.phase_reg = program.new_gen_reg(
-            gen_ch=self.dacs[0].channel_num,
-            init_val=self.phase.get(),
-            reg_type="phase",
+        program.add_pulse(
+            ch=self.dacs[0].channel_num,
+            name=self.full_name,
+            style="const",
+            freq=self.freq.get() / 1e6,
+            phase=0,
+            gain=self.gain.get(),
+            phrst=0,
+            stdysel="zero",
+            mode="oneshot",
+            length=self.length.get() * 1e6,
         )
 
     def play(self, program: SweepProgram):
@@ -61,7 +78,7 @@ class SetPhase(QickInstruction):
         program : SweepProgram
         """
         assert self in program.protocol.instructions
-        self.dac_phase_reg.set_to(self.phase_reg)
+        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         """Add a sweep over one of my parameters to a program.
@@ -71,12 +88,6 @@ class SetPhase(QickInstruction):
         program : SweepProgram
         sweep: HardwareSweep
         """
-        if sweep.parameter is self.phase:
-            reg = self.phase_reg
-            program.add_sweep(
-                QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
-            )
-        else:
-            raise NotImplementedError(
-                f"cannot perform a hardware sweep over {sweep.parameter.name}"
-            )
+        raise NotImplementedError(
+            f"cannot perform a hardware sweep over {sweep.parameter.name}"
+        )

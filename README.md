@@ -15,14 +15,14 @@ A [QCoDeS](https://microsoft.github.io/Qcodes/) driver for [QICK](https://qick-d
 4. Check the connection and the channel number assignment:
     ```python
     from qcodes_qick import QickInstrument
-    qick_instrument = QickInstrument("QickInstrument", "ip.address.of.board")
+    qick_instrument = QickInstrument("ip.address.of.board")
     print(qick_instrument.soccfg)
     ```
 5. Copy the scripts in the folder [`example_scripts`](https://github.com/aalto-qcd/qcodes_qick/tree/main/example_scripts) into your folder.
 6. Edit [`header.py`](https://github.com/aalto-qcd/qcodes_qick/blob/main/example_scripts/header.py):
     - Specify the IP address of the board by editing the line like
       ```python
-      qick_instrument = QickInstrument("QickInstrument", "ip.address.of.board")
+      qick_instrument = QickInstrument("ip.address.of.board")
       ```
     - Specify DAC/ADC channel numbers by editing the lines like
       ```python

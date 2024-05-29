@@ -1,8 +1,8 @@
-from header import *
+from .header import *
 
 name = os.path.basename(__file__)[:-3]
 
-p = PulseProbeProtocol(qick_instrument, pi_pulse, readout_pulse)
+p = PulseProbeProtocol(qick_instrument, pi_pulse, readout)
 p.qubit_pulse_count(10)
 p.hard_avgs(1000)
 p.soft_avgs(1)

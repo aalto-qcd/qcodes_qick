@@ -1,6 +1,6 @@
 import importlib
-import pkgutil
 import os
+import pkgutil
 
 
 def import_submodules(module_name: str, module_path: str):

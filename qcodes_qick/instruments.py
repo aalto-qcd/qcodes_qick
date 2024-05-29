@@ -3,12 +3,15 @@ from __future__ import annotations
 import qick
 from qcodes import ChannelTuple, Instrument
 from qcodes.parameters import Parameter
-from qcodes_qick.channels import AdcChannel, DacChannel
+from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
+
+from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.muxed_dac import MuxedDacChannel
 
 
 class QickInstrument(Instrument):
-    def __init__(self, name: str, ns_host: str, ns_port=8888, **kwargs):
+    def __init__(self, ns_host: str, ns_port=8888, name="QickInstrument", **kwargs):
         super().__init__(name, **kwargs)
 
         # Use the IP address and port of the Pyro4 nameserver to get:
@@ -32,23 +35,30 @@ class QickInstrument(Instrument):
             initial_cache_value=tproc_version,
         )
 
-        self.dac_count = len(self.soccfg["gens"])
-        self.adc_count = len(self.soccfg["readouts"])
-
+        dac_list = []
+        for channel_num in range(len(self.soccfg["gens"])):
+            dac_type = self.soccfg["gens"][channel_num]["type"]
+            manager_class = QickProgramV2.gentypes[dac_type]
+            if manager_class == StandardGenManager:
+                dac_list.append(DacChannel(self, f"dac{channel_num}", channel_num))
+            elif manager_class == MultiplexedGenManager:
+                dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
+            else:
+                NotImplementedError(f"unsupported DAC type: {dac_type}")
         self.dacs = ChannelTuple(
             parent=self,
             name="dacs",
             chan_type=DacChannel,
-            chan_list=[
-                DacChannel(self, f"dac{ch}", ch) for ch in range(self.dac_count)
-            ],
+            chan_list=dac_list,
         )
+
         self.adcs = ChannelTuple(
             parent=self,
             name="adcs",
             chan_type=AdcChannel,
             chan_list=[
-                AdcChannel(self, f"adc{ch}", ch) for ch in range(self.adc_count)
+                AdcChannel(self, f"adc{channel_num}", channel_num)
+                for channel_num in range(len(self.soccfg["readouts"]))
             ],
         )
 
@@ -56,11 +66,11 @@ class QickInstrument(Instrument):
         self.add_submodule("adcs", self.adcs)
 
     def cycles2sec_tproc(self, reg: int) -> float:
-        """Convert time from the number of tProc clock cycles to seconds"""
+        """Convert time from the number of tProc clock cycles to seconds."""
         return self.soccfg.cycles2us(reg) / 1e6
 
     def sec2cycles_tproc(self, sec: float) -> int:
-        """Convert time from seconds to the number of tProc clock cycles"""
+        """Convert time from seconds to the number of tProc clock cycles."""
         return self.soccfg.us2cycles(sec * 1e6)
 
     def get_idn(self) -> dict[str, str | None]:

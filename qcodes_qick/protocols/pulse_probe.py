@@ -6,11 +6,12 @@ from qcodes import ManualParameter
 from qcodes.validators import Ints
 
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
-from qick.qick_asm import QickConfig
 
 if TYPE_CHECKING:
+    from qick.qick_asm import QickConfig
+
     from qcodes_qick.instruction_base import QickInstruction
-    from qcodes_qick.instructions.readout_pulse import ReadoutPulse
+    from qcodes_qick.instructions.readout import Readout
     from qcodes_qick.instruments import QickInstrument
 
 
@@ -19,14 +20,14 @@ class PulseProbeProtocol(SweepProtocol):
         self,
         parent: QickInstrument,
         qubit_pulse: QickInstruction,
-        readout_pulse: ReadoutPulse,
+        readout: Readout,
         name="PulseProbeProtocol",
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        self.instructions = {qubit_pulse, readout_pulse}
+        self.instructions = [qubit_pulse, readout]
         self.qubit_pulse = qubit_pulse
-        self.readout_pulse = readout_pulse
+        self.readout = readout
 
         self.qubit_pulse_count = ManualParameter(
             name="qubit_pulse_count",
@@ -48,4 +49,4 @@ class PulseProbeProgram(SweepProgram):
     def body(self):
         for _ in range(self.protocol.qubit_pulse_count.get()):
             self.protocol.qubit_pulse.play(self)
-        self.protocol.readout_pulse.play(self, wait_for_adc=True)
+        self.protocol.readout.play(self)

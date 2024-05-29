@@ -39,7 +39,7 @@ class QickInstruction(InstrumentModule):
         **kwargs,
     ):
         super().__init__(parent, name, **kwargs)
-        assert parent.tproc_version.get() == 1
+        assert parent.tproc_version.get() == 2
         parent.add_submodule(name, self)
         self.dacs = dacs
         self.adcs = adcs
