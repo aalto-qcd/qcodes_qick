@@ -170,7 +170,6 @@ class SweepProtocol(ABC, QickProtocol):
             else:
                 soft_sweep_values = [sweep.values for sweep in software_sweeps]
                 for current_values in tqdm_product(*soft_sweep_values):
-
                     # update the software sweep parameters
                     for sweep, value in zip(software_sweeps, current_values):
                         for parameter in sweep.parameters:

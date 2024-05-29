@@ -5,5 +5,5 @@ from qcodes_qick.instructions_v2.readout import Readout
 __all__ = [
     "ConstantPulse",
     "MuxedConstantPulse",
-    "Readout"
+    "Readout",
 ]
