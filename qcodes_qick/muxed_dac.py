@@ -54,4 +54,5 @@ class MuxedDacChannel(DacChannel):
             nqz=self.nqz.get(),
             mux_freqs=[tone.freq.get() / 1e6 for tone in self.tones],
             mux_gains=[tone.gain.get() for tone in self.tones],
+            ro_ch=self.matching_adc.get(),
         )

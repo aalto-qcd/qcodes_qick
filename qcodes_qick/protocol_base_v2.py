@@ -12,6 +12,7 @@ from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
+from qcodes_qick.parameters import TProcSecParameter
 
 if TYPE_CHECKING:
     from qick.qick_asm import QickConfig
@@ -113,6 +114,27 @@ class SweepProtocol(ABC, QickProtocol):
             label="Number of software repetitions to average over",
             vals=Ints(min_value=0),
             initial_value=1,
+        )
+        self.final_delay = TProcSecParameter(
+            name="final_delay",
+            instrument=self,
+            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
+            initial_value=1e-6,
+            qick_instrument=self.parent,
+        )
+        self.final_wait = TProcSecParameter(
+            name="final_wait",
+            instrument=self,
+            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
+            initial_value=0,
+            qick_instrument=self.parent,
+        )
+        self.initial_delay = TProcSecParameter(
+            name="initial_delay",
+            instrument=self,
+            label="Delay time to add to the timeline before starting to run the loops, to allow enough time for tProc to execute your initialization commands",
+            initial_value=1e-6,
+            qick_instrument=self.parent,
         )
 
     @abstractmethod
@@ -225,13 +247,15 @@ class SweepProgram(AveragerProgramV2):
         self.adcs: set[AdcChannel] = set().union(
             *(instruction.adcs for instruction in self.protocol.instructions)
         )
-        cfg = {
-            "reps": protocol.hard_avgs.get(),
-            "soft_avgs": protocol.soft_avgs.get(),
-        }
-        super().__init__(soccfg, cfg)
+        super().__init__(
+            soccfg,
+            reps=protocol.hard_avgs.get(),
+            final_delay=protocol.final_delay.get() * 1e6,
+            final_wait=protocol.final_wait.get() * 1e6,
+            initial_delay=protocol.initial_delay.get() * 1e6,
+        )
 
-    def initialize(self):
+    def initialize(self, cfg: dict):
         for dac in self.dacs:
             dac.initialize(self)
         for adc in self.adcs:
@@ -240,15 +264,13 @@ class SweepProgram(AveragerProgramV2):
         for instruction in set(self.protocol.instructions):
             instruction.initialize(self)
 
-        for sweep in reversed(self.hardware_sweeps):
+        for sweep in self.hardware_sweeps:
             if isinstance(sweep.parameter.instrument, QickInstruction):
                 sweep.parameter.instrument.add_sweep(self, sweep)
             else:
                 raise NotImplementedError(
                     f"cannot perform a hardware sweep over {sweep.parameter.name}"
                 )
-
-        self.synci(200)  # Give processor some time to configure pulses
 
 
 class SimpleSweepProtocol(SweepProtocol):
@@ -271,6 +293,6 @@ class SimpleSweepProtocol(SweepProtocol):
 class SimpleSweepProgram(SweepProgram):
     protocol: SimpleSweepProtocol
 
-    def body(self):
+    def body(self, cfg: dict):
         for instruction in self.protocol.instructions:
             instruction.play(self)

@@ -14,6 +14,7 @@ ignore = [
     "ANN101",   # Missing type annotation for `self` in method
     "ANN201",   # Missing return type annotation for public function
     "ANN204",   # Missing return type annotation for special method
+    "ARG002",   # Unused method argument
     "C901",     # Too complex
     "COM812",   # Trailing comma missing
     "D100",     # Missing docstring in public module

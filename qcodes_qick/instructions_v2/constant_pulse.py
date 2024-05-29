@@ -1,28 +1,20 @@
-from __future__ import annotations
+from qick.averager_program import QickSweep
 
-from typing import TYPE_CHECKING
-
-from qcodes.parameters import ManualParameter
-from qcodes.validators import Ints
-from qcodes.validators import Sequence as SequenceValidator
-
+from qcodes_qick.channels import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.muxed_dac import MuxedDacChannel
-from qcodes_qick.parameters import SecParameter
-
-if TYPE_CHECKING:
-    from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.instruments import QickInstrument
+from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
+from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
 
 
-class MuxedConstantPulse(QickInstruction):
-    """Frequency-multiplexed rectangular pulse.
+class ConstantPulse(QickInstruction):
+    """Rectangular pulse.
 
     Parameters
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
-    dac : MuxedDacChannel
+    dac : DacChannel
         The DAC channel to use.
     name : str
         My unique name.
@@ -33,26 +25,31 @@ class MuxedConstantPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: MuxedDacChannel,
-        name="MuxedConstantPulse",
+        dac: DacChannel,
+        name="ConstantPulse",
         **kwargs,
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
-        assert isinstance(dac, MuxedDacChannel)
 
+        self.gain = GainParameter(
+            name="gain",
+            instrument=self,
+            label="Pulse gain",
+            initial_value=0.5,
+        )
+        self.freq = HzParameter(
+            name="freq",
+            instrument=self,
+            label="Pulse frequency",
+            initial_value=0,
+            channel=self.dacs[0],
+        )
         self.length = SecParameter(
             name="length",
             instrument=self,
             label="Pulse length",
-            initial_value=10e-6,
+            initial_value=400e-9,
             channel=self.dacs[0],
-        )
-        self.tone_nums = ManualParameter(
-            name="tone_nums",
-            instrument=self,
-            label="List of tone numbers to generate",
-            initial_value=[0],
-            vals=SequenceValidator(Ints(0, len(self.dacs[0].tones) - 1)),
         )
 
     def initialize(self, program: SweepProgram):
@@ -66,7 +63,12 @@ class MuxedConstantPulse(QickInstruction):
             ch=self.dacs[0].channel_num,
             name=self.full_name,
             style="const",
-            mask=self.tone_nums.get(),
+            freq=self.freq.get() / 1e6,
+            phase=0,
+            gain=self.gain.get(),
+            phrst=0,
+            stdysel="zero",
+            mode="oneshot",
             length=self.length.get() * 1e6,
         )
 
@@ -77,6 +79,7 @@ class MuxedConstantPulse(QickInstruction):
         ----------
         program : SweepProgram
         """
+        assert self in program.protocol.instructions
         program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
