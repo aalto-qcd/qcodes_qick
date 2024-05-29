@@ -1,5 +1,3 @@
-from qick.averager_program import QickSweep
-
 from qcodes_qick.channels import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
