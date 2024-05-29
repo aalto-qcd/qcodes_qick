@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from qcodes import ManualParameter
 from qcodes.validators import Numbers
@@ -27,7 +27,7 @@ class HardwareParameter(ABC, ManualParameter):
 class HzParameter(HardwareParameter):
     """Frequency parameter with automatic rounding to a multiple of the frequency unit of the specified DAC/ADC channel. The `get_raw()` method returns the register value (int) that should be sent to QICK."""
 
-    def __init__(self, name: str, channel: Union[DacChannel, AdcChannel], **kwargs):
+    def __init__(self, name: str, channel: DacChannel | AdcChannel, **kwargs):
         self.channel = channel
         super().__init__(name, unit="Hz", **kwargs)
 
@@ -55,7 +55,7 @@ class DegParameter(HardwareParameter):
 class SecParameter(HardwareParameter):
     """Time parameter with automatic rounding to a multiple of the clock period of the specified DAC/ADC channel. The `get_raw()` method returns the time in the number of clock cycles."""
 
-    def __init__(self, name: str, channel: Union[DacChannel, AdcChannel], **kwargs):
+    def __init__(self, name: str, channel: DacChannel | AdcChannel, **kwargs):
         self.channel = channel
         super().__init__(name=name, unit="sec", **kwargs)
 

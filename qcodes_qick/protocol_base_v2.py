@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
@@ -39,9 +39,9 @@ class SoftwareSweep:
     def __init__(
         self,
         parameters: Parameter | Sequence[Parameter],
-        start: Union[float, Sequence[float]],
-        stop: Optional[float] = None,
-        num: Optional[int] = None,
+        start: float | Sequence[float],
+        stop: float | None = None,
+        num: int | None = None,
         skip_first: bool = False,
         skip_last: bool = False,
     ):
@@ -255,7 +255,7 @@ class SweepProgram(AveragerProgramV2):
             initial_delay=protocol.initial_delay.get() * 1e6,
         )
 
-    def initialize(self, cfg: dict):
+    def initialize(self, cfg: dict):  # noqa: ARG002
         for dac in self.dacs:
             dac.initialize(self)
         for adc in self.adcs:
@@ -293,6 +293,6 @@ class SimpleSweepProtocol(SweepProtocol):
 class SimpleSweepProgram(SweepProgram):
     protocol: SimpleSweepProtocol
 
-    def body(self, cfg: dict):
+    def body(self, cfg: dict):  # noqa: ARG002
         for instruction in self.protocol.instructions:
             instruction.play(self)

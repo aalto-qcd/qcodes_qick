@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
@@ -38,9 +38,9 @@ class SoftwareSweep:
     def __init__(
         self,
         parameters: Parameter | Sequence[Parameter],
-        start: Union[float, Sequence[float]],
-        stop: Optional[float] = None,
-        num: Optional[int] = None,
+        start: float | Sequence[float],
+        stop: float | None = None,
+        num: int | None = None,
         skip_first: bool = False,
         skip_last: bool = False,
     ):
