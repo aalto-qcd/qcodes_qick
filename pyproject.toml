@@ -28,6 +28,7 @@ ignore = [
     "FBT002",   # Boolean default positional argument in function definition
     "ISC001",   # Implicitly concatenated string literals on one line
     "PD011",    # Use `.to_numpy()` instead of `.values`
+    "PERF401",  # Use a list comprehension to create a transformed list
     "PLR0912",  # Too many branches
     "PLR0913",  # Too many arguments in function definition
     "PLR2004",  # Magic value used in comparison, consider replacing with a constant variable
