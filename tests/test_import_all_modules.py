@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def import_submodules(module_name: str, module_path: Path):
-    for _, name, _ in pkgutil.iter_modules([module_path]):
+    for _, name, _ in pkgutil.iter_modules([str(module_path)]):
         submodule_name = module_name + "." + name
         submodule_path = module_path / name
         importlib.import_module(submodule_name)
