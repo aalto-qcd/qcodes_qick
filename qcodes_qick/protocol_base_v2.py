@@ -316,7 +316,7 @@ class SweepProtocol(ABC, QickProtocol):
 
                 # Add hardware sweep parameters to the result
                 sweep_values = [sweep.values for sweep in hardware_sweeps]
-                sweep_values.append(program.get_time_axis(channel_index))
+                sweep_values.append(program.get_time_axis(channel_index) / 1e6)
                 sweep_coordinates = np.meshgrid(*sweep_values, indexing="ij")
                 for sweep, value in zip(hardware_sweeps, sweep_coordinates[:-1]):
                     result.append((sweep.parameter, value))
