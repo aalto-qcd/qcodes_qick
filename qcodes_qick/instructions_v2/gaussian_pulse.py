@@ -1,10 +1,10 @@
-from qick.averager_program import QickSweep
+from qcodes.parameters import ManualParameter
 
 from qcodes_qick.channels import DacChannel
-from qcodes_qick.instruction_base import QickInstruction
+from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
-from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
+from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
 
 
 class GaussianPulse(QickInstruction):
@@ -44,12 +44,12 @@ class GaussianPulse(QickInstruction):
             initial_value=0,
             channel=self.dacs[0],
         )
-        self.sigma = SecParameter(
+        self.sigma = ManualParameter(
             name="sigma",
             instrument=self,
             label="Standard deviation of the gaussian",
+            unit="sec",
             initial_value=100e-9,
-            channel=self.dacs[0],
         )
         self.length = SecParameter(
             name="length",
@@ -69,15 +69,16 @@ class GaussianPulse(QickInstruction):
         program.add_gauss(
             ch=self.dacs[0].channel_num,
             name=self.full_name,
-            sigma=self.sigma.get_raw(),
-            length=self.length.get_raw(),
+            sigma=self.sigma.get() * 1e6,
+            length=self.length.get() * 1e6,
         )
-        program.set_pulse_registers(
+        program.add_pulse(
             ch=self.dacs[0].channel_num,
+            name=self.full_name,
             style="arb",
-            freq=self.freq.get_raw(),
+            freq=self.freq.get() / 1e6,
             phase=0,
-            gain=self.gain.get_raw(),
+            gain=self.gain.get(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
@@ -102,17 +103,6 @@ class GaussianPulse(QickInstruction):
         program : SweepProgram
         sweep: HardwareSweep
         """
-        if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dacs[0].channel_num, "gain")
-            program.add_sweep(
-                QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
-            )
-        elif sweep.parameter is self.freq:
-            reg = program.get_gen_reg(self.dacs[0].channel_num, "freq")
-            self.add_sweep(
-                QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
-            )
-        else:
-            raise NotImplementedError(
-                f"cannot perform a hardware sweep over {sweep.parameter.name}"
-            )
+        raise NotImplementedError(
+            f"cannot perform a hardware sweep over {sweep.parameter.name}"
+        )
