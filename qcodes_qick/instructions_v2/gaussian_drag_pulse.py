@@ -98,7 +98,7 @@ class GaussianDragPulse(QickInstruction):
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            waveform=self.full_name,
+            envelope=self.full_name,
         )
 
     def play(self, program: SweepProgram):
@@ -109,7 +109,7 @@ class GaussianDragPulse(QickInstruction):
         program : SweepProgram
         """
         assert self in program.protocol.instructions
-        program.pulse(ch=self.dacs[0].channel_num, t="auto")
+        program.pulse(ch=self.dacs[0].channel_num, nem=self.full_name, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         """Add a sweep over one of my parameters to a program.
