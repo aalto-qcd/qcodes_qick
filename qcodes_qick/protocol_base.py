@@ -133,10 +133,11 @@ class SweepProtocol(ABC, QickProtocol):
         # initialize and register the sweep parameters
         setpoints = []
         for sweep in software_sweeps:
-            for parameter in sweep.parameters:
+            sweep.parameters[0].set(sweep.values[0])
+            setpoints.append(sweep.parameters[0])
+            meas.register_parameter(sweep.parameters[0], paramtype="array")
+            for parameter in sweep.parameters[1:]:
                 parameter.set(sweep.values[0])
-                setpoints.append(parameter)
-                meas.register_parameter(parameter, paramtype="array")
         for sweep in hardware_sweeps:
             sweep.parameter.set(sweep.values[0])
             setpoints.append(sweep.parameter)
@@ -242,8 +243,7 @@ class SweepProtocol(ABC, QickProtocol):
 
                 # Add software sweep paramters to the result
                 for sweep in software_sweeps:
-                    for parameter in sweep.parameters:
-                        result.append((parameter, parameter.get()))
+                    result.append((sweep.parameters[0], sweep.parameters[0].get()))
 
                 # Add hardware sweep parameters to the result
                 sweep_values = [sweep.values for sweep in hardware_sweeps]
@@ -289,8 +289,7 @@ class SweepProtocol(ABC, QickProtocol):
 
                 # Add software sweep paramters to the result
                 for sweep in software_sweeps:
-                    for parameter in sweep.parameters:
-                        result.append((parameter, parameter.get()))
+                    result.append((sweep.parameters[0], sweep.parameters[0].get()))
 
                 # Add hardware sweep parameters to the result
                 sweep_values = [sweep.values for sweep in hardware_sweeps]
