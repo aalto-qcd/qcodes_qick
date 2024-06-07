@@ -6,13 +6,12 @@ from qcodes import (
     initialise_or_create_database_at,
     load_or_create_experiment,
 )
+from valon_5015 import valon_5015
 
 from qcodes_qick import HardwareSweep, QickInstrument, SoftwareSweep
 from qcodes_qick.instructions_v2 import *
 from qcodes_qick.muxed_dac import MuxedDacChannel
 from qcodes_qick.protocols_v2 import *
-
-from valon_5015 import valon_5015
 
 experiment_name = "BF4-CD4"
 sample_name = "QCage.24+EITR2_1-2_qubit2"
