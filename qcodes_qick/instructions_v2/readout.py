@@ -56,7 +56,7 @@ class Readout(QickInstruction):
             name="wait_after",
             instrument=self,
             label="Wait time after the pulse",
-            initial_value=1e-3,
+            initial_value=100e-9,
             qick_instrument=self.parent,
         )
         self.adc_trig_offset = TProcSecParameter(

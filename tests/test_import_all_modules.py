@@ -1,18 +1,18 @@
 import importlib
-import os
 import pkgutil
+from pathlib import Path
 
 
-def import_submodules(module_name: str, module_path: str):
-    for _, name, _ in pkgutil.iter_modules([module_path]):
+def import_submodules(module_name: str, module_path: Path):
+    for _, name, _ in pkgutil.iter_modules([str(module_path)]):
         submodule_name = module_name + "." + name
-        submodule_path = os.path.join(module_path, name)
+        submodule_path = module_path / name
         importlib.import_module(submodule_name)
-        if os.path.isdir(submodule_path):
+        if submodule_path.is_dir():
             import_submodules(submodule_name, submodule_path)
 
 
 def test_import_all_modules():
     import qcodes_qick
 
-    import_submodules("qcodes_qick", qcodes_qick.__path__[0])
+    import_submodules("qcodes_qick", Path(qcodes_qick.__path__[0]))
