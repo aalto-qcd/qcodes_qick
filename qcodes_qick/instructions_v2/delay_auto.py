@@ -24,7 +24,7 @@ class DelayAuto(QickInstruction):
         self,
         parent: QickInstrument,
         dac: DacChannel,
-        name="Delay",
+        name="DelayAuto",
         **kwargs,
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
