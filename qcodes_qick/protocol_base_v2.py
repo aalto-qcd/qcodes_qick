@@ -351,7 +351,7 @@ class SweepProgram(AveragerProgramV2):
             initial_delay=protocol.initial_delay.get() * 1e6,
         )
 
-    def initialize(self, cfg: dict):  # noqa: ARG002
+    def _initialize(self, cfg: dict):  # noqa: ARG002
         for dac in self.dacs:
             dac.initialize(self)
         for adc in self.adcs:
@@ -389,6 +389,6 @@ class SimpleSweepProtocol(SweepProtocol):
 class SimpleSweepProgram(SweepProgram):
     protocol: SimpleSweepProtocol
 
-    def body(self, cfg: dict):  # noqa: ARG002
+    def _body(self, cfg: dict):  # noqa: ARG002
         for instruction in self.protocol.instructions:
             instruction.play(self)
