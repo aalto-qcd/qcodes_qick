@@ -35,7 +35,7 @@ class Readout(QickInstruction):
         **kwargs,
     ):
         super().__init__(parent, dacs=pulse.dacs, adcs=[adc], name=name, **kwargs)
-        assert len(self.dacs) == 1
+        # assert len(self.dacs) == 1
         assert self.dacs[0].matching_adc.get() == self.adcs[0].channel_num
         assert self.adcs[0].matching_dac.get() == self.dacs[0].channel_num
         self.pulse = pulse
@@ -104,7 +104,7 @@ class Readout(QickInstruction):
             adcs=[self.adcs[0].channel_num],
             adc_trig_offset=self.adc_trig_offset.get_raw(),
         )
-        program.pulse(ch=self.dacs[0].channel_num, t="auto")
+        self.pulse.play(program)
         if self.wait_for_adc.get():
             program.wait_all()
         program.sync_all(t=self.wait_after.get_raw())
