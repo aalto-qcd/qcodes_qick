@@ -127,7 +127,7 @@ class AdcChannel(InstrumentChannel):
             freq=self.freq.get() / 1e6,
             phase=0,
             length=length,
-            gen_ch=gen_ch,
+            # gen_ch=gen_ch,
         )
 
     def reg2hz(self, reg: int) -> float:
