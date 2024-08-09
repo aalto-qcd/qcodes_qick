@@ -118,16 +118,16 @@ class AdcChannel(InstrumentChannel):
             length = self.length.get_raw()
         else:
             length = self.length.get() * 1e6
-        if self.matching_dac.get() == -1:
-            gen_ch = None
-        else:
-            gen_ch = self.matching_dac.get()
+        # if self.matching_dac.get() == -1:
+        #     gen_ch = None
+        # else:
+        #     gen_ch = self.matching_dac.get()
         program.declare_readout(
             ch=self.channel_num,
             freq=self.freq.get() / 1e6,
             phase=0,
             length=length,
-            gen_ch=gen_ch,
+            # gen_ch=gen_ch,  # Don't know why, but uncommenting this line makes the phase of the readout signal depend on the time of the readout
         )
 
     def reg2hz(self, reg: int) -> float:

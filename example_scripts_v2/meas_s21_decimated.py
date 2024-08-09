@@ -12,5 +12,5 @@ p.soft_avgs.set(1000)
 
 p.run(
     Measurement(experiment, station, name),
-    decimated=True
+    decimated=True,
 )

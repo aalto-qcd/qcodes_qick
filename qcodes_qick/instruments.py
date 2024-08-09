@@ -44,7 +44,7 @@ class QickInstrument(Instrument):
             elif manager_class == MultiplexedGenManager:
                 dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
             else:
-                NotImplementedError(f"unsupported DAC type: {dac_type}")
+                raise NotImplementedError(f"unsupported DAC type: {dac_type}")
         self.dacs = ChannelTuple(
             parent=self,
             name="dacs",

@@ -14,6 +14,6 @@ p.final_delay.set(3e-3)
 p.run(
     Measurement(experiment, station, name),
     software_sweeps=[
-        SoftwareSweep(qubit_pulse.freq, 2.85e9, 2.95e9, 101)
-    ]
+        SoftwareSweep(qubit_pulse.freq, 2.85e9, 2.95e9, 101),
+    ],
 )

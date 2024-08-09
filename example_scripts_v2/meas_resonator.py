@@ -11,6 +11,8 @@ p.soft_avgs.set(1)
 p.run(
     Measurement(experiment, station, name),
     software_sweeps=[
-        SoftwareSweep([readout_dac.tones[0].freq, readout_adc.freq], 2.0e9, 2.05e9, 501)
-    ]
+        SoftwareSweep(
+            [readout_dac.tones[0].freq, readout_adc.freq], 2.0e9, 2.05e9, 501
+        ),
+    ],
 )

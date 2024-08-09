@@ -1,14 +1,20 @@
-from qick.averager_program import QickSweep
+from qcodes.parameters import ManualParameter
+from qcodes.validators import Bool
 
 from qcodes_qick.channels import DacChannel
 from qcodes_qick.instruction_base import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
+from qcodes_qick.parameters import (
+    DegParameter,
+    GainParameter,
+    HzParameter,
+    SecParameter,
+)
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 
 
-class ConstantPulse(QickInstruction):
-    """Rectangular pulse.
+class IQConstantPulse(QickInstruction):
+    """Rectangular pulse for an IQ mixer.
 
     Parameters
     ----------
@@ -25,11 +31,14 @@ class ConstantPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: DacChannel,
-        name="ConstantPulse",
+        dac_i: DacChannel,
+        dac_q: DacChannel,
+        name="IQConstantPulse",
         **kwargs,
     ):
-        super().__init__(parent, dacs=[dac], name=name, **kwargs)
+        super().__init__(parent, dacs=[dac_i, dac_q], name=name, **kwargs)
+        self.dac_i = dac_i
+        self.dac_q = dac_q
 
         self.gain = GainParameter(
             name="gain",
@@ -42,14 +51,28 @@ class ConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse frequency",
             initial_value=0,
-            channel=self.dacs[0],
+            channel=self.dac_i,
         )
         self.length = SecParameter(
             name="length",
             instrument=self,
             label="Pulse length",
             initial_value=400e-9,
-            channel=self.dacs[0],
+            channel=self.dac_i,
+        )
+        self.phase_imbalance = DegParameter(
+            name="phase_imbalance",
+            instrument=self,
+            label="Phase offset to add to Q",
+            initial_value=0,
+            channel=self.dac_q,
+        )
+        self.periodic = ManualParameter(
+            name="periodic",
+            instrument=self,
+            label="Repeat the waveform until there is a new one in the queue",
+            vals=Bool(),
+            initial_value=False,
         )
 
     def initialize(self, program: SweepProgram):
@@ -60,14 +83,25 @@ class ConstantPulse(QickInstruction):
         program : SweepProgram
         """
         program.set_pulse_registers(
-            ch=self.dacs[0].channel_num,
+            ch=self.dac_i.channel_num,
             style="const",
             freq=self.freq.get_raw(),
             phase=0,
             gain=self.gain.get_raw(),
             phrst=0,
             stdysel="zero",
-            mode="oneshot",
+            mode="periodic" if self.periodic.get() else "oneshot",
+            length=self.length.get_raw(),
+        )
+        program.set_pulse_registers(
+            ch=self.dac_q.channel_num,
+            style="const",
+            freq=self.freq.get_raw(),
+            phase=self.dac_q.deg2reg(90 + self.phase_imbalance.get()),
+            gain=self.gain.get_raw(),
+            phrst=0,
+            stdysel="zero",
+            mode="periodic" if self.periodic.get() else "oneshot",
             length=self.length.get_raw(),
         )
 
@@ -79,7 +113,8 @@ class ConstantPulse(QickInstruction):
         program : SweepProgram
         """
         # assert self in program.protocol.instructions
-        program.pulse(ch=self.dacs[0].channel_num, t="auto")
+        program.pulse(ch=self.dac_i.channel_num, t="auto")
+        program.pulse(ch=self.dac_q.channel_num, t="auto")
 
     def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
         """Add a sweep over one of my parameters to a program.
@@ -89,17 +124,6 @@ class ConstantPulse(QickInstruction):
         program : SweepProgram
         sweep: HardwareSweep
         """
-        if sweep.parameter is self.gain:
-            reg = program.get_gen_reg(self.dacs[0].channel_num, "gain")
-            program.add_sweep(
-                QickSweep(program, reg, sweep.start_int, sweep.stop_int, sweep.num)
-            )
-        elif sweep.parameter is self.freq:
-            reg = program.get_gen_reg(self.dacs[0].channel_num, "freq")
-            program.add_sweep(
-                QickSweep(program, reg, sweep.start / 1e6, sweep.stop / 1e6, sweep.num)
-            )
-        else:
-            raise NotImplementedError(
-                f"cannot perform a hardware sweep over {sweep.parameter.name}"
-            )
+        raise NotImplementedError(
+            f"cannot perform a hardware sweep over {sweep.parameter.name}"
+        )
