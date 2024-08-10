@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from qcodes import ChannelTuple, InstrumentChannel
 
-from qcodes_qick.channels import DacChannel
+from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.parameters import GainParameter, HzParameter
 
 if TYPE_CHECKING:

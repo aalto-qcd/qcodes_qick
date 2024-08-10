@@ -114,6 +114,10 @@ class AdcChannel(InstrumentChannel):
         ----------
         program : AbsQickProgram
         """
+        if self.parent.tproc_version.get() == 1:
+            length = self.length.get_raw()
+        else:
+            length = self.length.get() * 1e6
         # if self.matching_dac.get() == -1:
         #     gen_ch = None
         # else:
@@ -122,7 +126,7 @@ class AdcChannel(InstrumentChannel):
             ch=self.channel_num,
             freq=self.freq.get() / 1e6,
             phase=0,
-            length=self.length.get_raw(),
+            length=length,
             # gen_ch=gen_ch,  # Don't know why, but uncommenting this line makes the phase of the readout signal depend on the time of the readout
         )
 

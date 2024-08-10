@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
     from qick.qick_asm import QickConfig
 
-    from qcodes_qick.channels import AdcChannel, DacChannel
+    from qcodes_qick.channels_v2 import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.parameters import HardwareParameter
 

@@ -6,7 +6,7 @@ from qcodes.instrument import InstrumentModule
 from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
-    from qcodes_qick.channels import AdcChannel, DacChannel
+    from qcodes_qick.channels_v2 import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
 

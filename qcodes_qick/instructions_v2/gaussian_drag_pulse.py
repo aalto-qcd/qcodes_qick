@@ -1,6 +1,6 @@
 from qcodes.parameters import ManualParameter
 
-from qcodes_qick.channels import DacChannel
+from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter

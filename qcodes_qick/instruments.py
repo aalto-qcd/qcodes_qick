@@ -7,6 +7,8 @@ from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
 
 from qcodes_qick.channels import AdcChannel, DacChannel
+from qcodes_qick.channels_v2 import AdcChannel as AdcChannelV2
+from qcodes_qick.channels_v2 import DacChannel as DacChannelV2
 from qcodes_qick.muxed_dac import MuxedDacChannel
 
 
@@ -35,32 +37,52 @@ class QickInstrument(Instrument):
             initial_cache_value=tproc_version,
         )
 
-        dac_list = []
-        for channel_num in range(len(self.soccfg["gens"])):
-            dac_type = self.soccfg["gens"][channel_num]["type"]
-            manager_class = QickProgramV2.gentypes[dac_type]
-            if manager_class == StandardGenManager:
+        if tproc_version == 1:
+            dac_list = []
+            for channel_num in range(len(self.soccfg["gens"])):
                 dac_list.append(DacChannel(self, f"dac{channel_num}", channel_num))
-            elif manager_class == MultiplexedGenManager:
-                dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
-            else:
-                raise NotImplementedError(f"unsupported DAC type: {dac_type}")
-        self.dacs = ChannelTuple(
-            parent=self,
-            name="dacs",
-            chan_type=DacChannel,
-            chan_list=dac_list,
-        )
+            self.dacs = ChannelTuple(
+                parent=self,
+                name="dacs",
+                chan_type=DacChannel,
+                chan_list=dac_list,
+            )
+            adc_list = []
+            for channel_num in range(len(self.soccfg["readouts"])):
+                adc_list.append(AdcChannel(self, f"adc{channel_num}", channel_num))
+            self.adcs = ChannelTuple(
+                parent=self,
+                name="adcs",
+                chan_type=AdcChannel,
+                chan_list=adc_list,
+            )
 
-        self.adcs = ChannelTuple(
-            parent=self,
-            name="adcs",
-            chan_type=AdcChannel,
-            chan_list=[
-                AdcChannel(self, f"adc{channel_num}", channel_num)
-                for channel_num in range(len(self.soccfg["readouts"]))
-            ],
-        )
+        elif tproc_version == 2:
+            dac_list = []
+            for channel_num in range(len(self.soccfg["gens"])):
+                dac_type = self.soccfg["gens"][channel_num]["type"]
+                manager_class = QickProgramV2.gentypes[dac_type]
+                if manager_class == StandardGenManager:
+                    dac_list.append(DacChannelV2(self, f"dac{channel_num}", channel_num))
+                elif manager_class == MultiplexedGenManager:
+                    dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
+                else:
+                    raise NotImplementedError(f"unsupported DAC type: {dac_type}")
+            self.dacs = ChannelTuple(
+                parent=self,
+                name="dacs",
+                chan_type=DacChannelV2,
+                chan_list=dac_list,
+            )
+            adc_list = []
+            for channel_num in range(len(self.soccfg["readouts"])):
+                adc_list.append(AdcChannelV2(self, f"adc{channel_num}", channel_num))
+            self.adcs = ChannelTuple(
+                parent=self,
+                name="adcs",
+                chan_type=AdcChannelV2,
+                chan_list=adc_list,
+            )
 
         self.add_submodule("dacs", self.dacs)
         self.add_submodule("adcs", self.adcs)

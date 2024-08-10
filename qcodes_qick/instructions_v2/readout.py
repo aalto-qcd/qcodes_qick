@@ -1,7 +1,7 @@
 from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Bool
 
-from qcodes_qick.channels import AdcChannel
+from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters import TProcSecParameter
