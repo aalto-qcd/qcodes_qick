@@ -8,7 +8,7 @@ from qcodes.parameters import Parameter
 if TYPE_CHECKING:
     from qcodes_qick.channels_v2 import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
+    from qcodes_qick.protocol_base import SweepProgram
 
 
 class QickInstruction(InstrumentModule):
@@ -72,15 +72,3 @@ class QickInstruction(InstrumentModule):
         ----------
         program : SweepProgram
         """
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )

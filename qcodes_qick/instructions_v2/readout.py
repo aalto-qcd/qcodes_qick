@@ -4,7 +4,7 @@ from qcodes.validators import Bool, Numbers
 from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.protocol_base_v2 import SweepProgram
 from qcodes_qick.validators import MaybeSweep
 
 
@@ -103,16 +103,3 @@ class Readout(QickInstruction):
         if self.wait_for_adc.get():
             program.wait_auto(gens=False, ros=True)
         program.delay_auto(t=self.wait_after.get() * 1e6, gens=True, ros=False)
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )

@@ -4,7 +4,7 @@ from qcodes.validators import Numbers
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.protocol_base_v2 import SweepProgram
 from qcodes_qick.validators import MaybeSweep
 
 
@@ -58,15 +58,3 @@ class DelayAuto(QickInstruction):
         """
         assert self in program.protocol.instructions
         program.delay_auto(self.time.get() * 1e6)
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )

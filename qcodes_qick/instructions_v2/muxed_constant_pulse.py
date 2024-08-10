@@ -12,7 +12,7 @@ from qcodes_qick.validators import MaybeSweep
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class MuxedConstantPulse(QickInstruction):
@@ -79,15 +79,3 @@ class MuxedConstantPulse(QickInstruction):
         program : SweepProgram
         """
         program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )
