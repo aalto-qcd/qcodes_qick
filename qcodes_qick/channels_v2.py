@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
-from qcodes.utils.validators import Ints
+from qcodes.utils.validators import Ints, Numbers
 
-from qcodes_qick.parameters import HzParameter, SecParameter
+from qcodes_qick.validators import MaybeSweep
 
 if TYPE_CHECKING:
     from qick.qick_asm import AbsQickProgram
@@ -50,33 +50,6 @@ class DacChannel(InstrumentChannel):
         """
         program.declare_gen(ch=self.channel_num, nqz=self.nqz.get())
 
-    def reg2hz(self, reg: int) -> float:
-        """Convert a DAC frequency from the register value (int) to Hz."""
-        return self.parent.soccfg.reg2freq(reg, self.channel_num) * 1e6
-
-    def hz2reg(self, hz: float) -> int:
-        """Convert a DAC frequency from Hz to the register value (int)."""
-        adc_channel = self.matching_adc.get()
-        if adc_channel == -1:
-            adc_channel = None
-        return self.parent.soccfg.freq2reg(hz / 1e6, self.channel_num, adc_channel)
-
-    def reg2deg(self, reg: int) -> float:
-        """Convert a DAC phase from the register value (int) to degrees."""
-        return self.parent.soccfg.reg2deg(reg, self.channel_num)
-
-    def deg2reg(self, deg: float) -> int:
-        """Convert a DAC phase from degrees to the register value (int)."""
-        return self.parent.soccfg.deg2reg(deg, self.channel_num)
-
-    def cycles2sec(self, reg: int) -> float:
-        """Convert time from the number of DAC clock cycles to seconds."""
-        return self.parent.soccfg.cycles2us(reg, gen_ch=self.channel_num) / 1e6
-
-    def sec2cycles(self, sec: float) -> int:
-        """Convert time from seconds to the number of DAC clock cycles."""
-        return self.parent.soccfg.us2cycles(sec * 1e6, gen_ch=self.channel_num)
-
 
 class AdcChannel(InstrumentChannel):
     parent: QickInstrument
@@ -92,19 +65,21 @@ class AdcChannel(InstrumentChannel):
             vals=Ints(-1, len(self.parent.soccfg["gens"]) - 1),
             initial_value=-1,
         )
-        self.freq = HzParameter(
+        self.freq = ManualParameter(
             name="freq",
             instrument=self,
             label="LO frequency for digital downconversion",
+            unit="Hz",
+            vals=MaybeSweep(Numbers()),
             initial_value=0,
-            channel=self,
         )
-        self.length = SecParameter(
+        self.length = ManualParameter(
             name="length",
             instrument=self,
             label="Readout window length",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=10e-6,
-            channel=self,
         )
 
     def initialize(self, program: AbsQickProgram):
@@ -114,10 +89,6 @@ class AdcChannel(InstrumentChannel):
         ----------
         program : AbsQickProgram
         """
-        if self.parent.tproc_version.get() == 1:
-            length = self.length.get_raw()
-        else:
-            length = self.length.get() * 1e6
         # if self.matching_dac.get() == -1:
         #     gen_ch = None
         # else:
@@ -126,25 +97,6 @@ class AdcChannel(InstrumentChannel):
             ch=self.channel_num,
             freq=self.freq.get() / 1e6,
             phase=0,
-            length=length,
+            length=self.length.get() * 1e6,
             # gen_ch=gen_ch,  # Don't know why, but uncommenting this line makes the phase of the readout signal depend on the time of the readout
         )
-
-    def reg2hz(self, reg: int) -> float:
-        """Convert ADC frequency from the register value (int) to Hz."""
-        return self.parent.soccfg.reg2freq_adc(reg, self.channel_num) * 1e6
-
-    def hz2reg(self, hz: float) -> int:
-        """Convert ADC frequency from Hz to the register value (int)."""
-        dac_channel = self.matching_dac.get()
-        if dac_channel == -1:
-            dac_channel = None
-        return self.parent.soccfg.freq2reg_adc(hz / 1e6, self.channel_num, dac_channel)
-
-    def cycles2sec(self, reg: int) -> float:
-        """Convert time from the number of ADC clock cycles to seconds."""
-        return self.parent.soccfg.cycles2us(reg, ro_ch=self.channel_num) / 1e6
-
-    def sec2cycles(self, sec: float) -> int:
-        """Convert time from seconds to the number of ADC clock cycles."""
-        return self.parent.soccfg.us2cycles(sec * 1e6, ro_ch=self.channel_num)

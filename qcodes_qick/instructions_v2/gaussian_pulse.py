@@ -1,10 +1,11 @@
-from qcodes.parameters import ManualParameter
+from qcodes import ManualParameter
+from qcodes.validators import Numbers
 
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import GainParameter, HzParameter, SecParameter
 from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.validators import MaybeSweep
 
 
 class GaussianPulse(QickInstruction):
@@ -31,32 +32,36 @@ class GaussianPulse(QickInstruction):
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
-        self.gain = GainParameter(
+        self.gain = ManualParameter(
             name="gain",
             instrument=self,
             label="Pulse gain",
+            vals=MaybeSweep(Numbers(-1, 1)),
             initial_value=0.5,
         )
-        self.freq = HzParameter(
+        self.freq = ManualParameter(
             name="freq",
             instrument=self,
             label="Pulse frequency",
+            unit="Hz",
+            vals=MaybeSweep(Numbers()),
             initial_value=0,
-            channel=self.dacs[0],
         )
         self.sigma = ManualParameter(
             name="sigma",
             instrument=self,
             label="Standard deviation of the gaussian",
             unit="sec",
+            vals=Numbers(min_value=0),
             initial_value=100e-9,
         )
-        self.length = SecParameter(
+        self.length = ManualParameter(
             name="length",
             instrument=self,
             label="Pulse length",
+            unit="sec",
+            vals=Numbers(min_value=0),
             initial_value=400e-9,
-            channel=self.dacs[0],
         )
 
     def initialize(self, program: SweepProgram):

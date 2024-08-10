@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes.parameters import ManualParameter
-from qcodes.validators import Ints
+from qcodes import ManualParameter
+from qcodes.validators import Ints, Numbers
 from qcodes.validators import Sequence as SequenceValidator
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.muxed_dac import MuxedDacChannel
-from qcodes_qick.parameters import SecParameter
+from qcodes_qick.validators import MaybeSweep
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -40,12 +40,13 @@ class MuxedConstantPulse(QickInstruction):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
         assert isinstance(dac, MuxedDacChannel)
 
-        self.length = SecParameter(
+        self.length = ManualParameter(
             name="length",
             instrument=self,
             label="Pulse length",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=10e-6,
-            channel=self.dacs[0],
         )
         self.tone_nums = ManualParameter(
             name="tone_nums",

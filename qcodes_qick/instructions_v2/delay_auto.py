@@ -1,8 +1,11 @@
+from qcodes import ManualParameter
+from qcodes.validators import Numbers
+
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import TProcSecParameter
 from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.validators import MaybeSweep
 
 
 class DelayAuto(QickInstruction):
@@ -29,12 +32,13 @@ class DelayAuto(QickInstruction):
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
-        self.time = TProcSecParameter(
+        self.time = ManualParameter(
             name="time",
             instrument=self,
             label="Delay time",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=1e-6,
-            qick_instrument=self.parent,
         )
 
     def initialize(self, program: SweepProgram):
