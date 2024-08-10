@@ -43,8 +43,8 @@ class RamseyProgram(SweepProgram):
 
     def body(self):
         self.protocol.set_phase.dac_phase_reg.set_to(0)
-        self.protocol.half_pi_pulse.play(self)
-        self.protocol.delay.play(self)
-        self.protocol.set_phase.play(self)
-        self.protocol.half_pi_pulse.play(self)
-        self.protocol.readout.play(self)
+        self.protocol.half_pi_pulse.append_to(self)
+        self.protocol.delay.append_to(self)
+        self.protocol.set_phase.append_to(self)
+        self.protocol.half_pi_pulse.append_to(self)
+        self.protocol.readout.append_to(self)

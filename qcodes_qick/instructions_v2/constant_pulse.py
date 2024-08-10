@@ -77,7 +77,7 @@ class ConstantPulse(QickInstruction):
             length=self.length.get() * 1e6,
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters

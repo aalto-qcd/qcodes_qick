@@ -391,4 +391,4 @@ class SimpleSweepProgram(SweepProgram):
 
     def _body(self, cfg: dict):  # noqa: ARG002
         for instruction in self.protocol.instructions:
-            instruction.play(self)
+            instruction.append_to(self)

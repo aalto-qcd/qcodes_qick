@@ -369,4 +369,4 @@ class SimpleSweepProgram(SweepProgram):
 
     def body(self):
         for instruction in self.protocol.instructions:
-            instruction.play(self)
+            instruction.append_to(self)

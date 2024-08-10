@@ -53,7 +53,7 @@ class SetPhase(QickInstruction):
             reg_type="phase",
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters

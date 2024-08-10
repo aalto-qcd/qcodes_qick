@@ -48,5 +48,5 @@ class PulseProbeProgram(SweepProgram):
 
     def _body(self, cfg: dict):  # noqa: ARG002
         for _ in range(self.protocol.qubit_pulse_count.get()):
-            self.protocol.qubit_pulse.play(self)
-        self.protocol.readout.play(self)
+            self.protocol.qubit_pulse.append_to(self)
+        self.protocol.readout.append_to(self)
