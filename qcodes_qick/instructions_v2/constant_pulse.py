@@ -66,6 +66,7 @@ class ConstantPulse(QickInstruction):
         program.add_pulse(
             ch=self.dacs[0].channel_num,
             name=self.full_name,
+            ro_ch=self.dacs[0].matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
             phase=0,

@@ -94,5 +94,5 @@ class AdcChannel(InstrumentChannel):
             freq=self.freq.get() / 1e6,
             phase=0,
             length=self.length.get() * 1e6,
-            # gen_ch=gen_ch,  # Don't know why, but uncommenting this line makes the phase of the readout signal depend on the time of the readout
+            gen_ch=self.matching_dac.get(),
         )
