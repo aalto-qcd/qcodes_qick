@@ -1,5 +1,5 @@
 from qcodes import ManualParameter, Parameter
-from qcodes.validators import Bool, Numbers
+from qcodes.validators import Bool
 
 from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -50,7 +50,7 @@ class Readout(QickInstruction):
             instrument=self,
             label="Wait time before the pulse",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=100e-9,
         )
         self.wait_after = ManualParameter(
@@ -58,7 +58,7 @@ class Readout(QickInstruction):
             instrument=self,
             label="Wait time after the pulse",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=100e-9,
         )
         self.adc_trig_offset = ManualParameter(
@@ -66,7 +66,7 @@ class Readout(QickInstruction):
             instrument=self,
             label="Delay between the start of the pulse and the ADC trigger",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=0,
         )
         self.wait_for_adc = ManualParameter(

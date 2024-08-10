@@ -1,5 +1,4 @@
 from qcodes import ManualParameter
-from qcodes.validators import Numbers
 
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -37,7 +36,7 @@ class DelayAuto(QickInstruction):
             instrument=self,
             label="Delay time",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=1e-6,
         )
 

@@ -1,5 +1,4 @@
 from qcodes import ManualParameter
-from qcodes.validators import Numbers
 
 from qcodes_qick.envelope_base_v2 import DacEnvelope
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -38,7 +37,7 @@ class Pulse(QickInstruction):
             name="gain",
             instrument=self,
             label="Pulse gain",
-            vals=MaybeSweep(Numbers(-1, 1)),
+            vals=MaybeSweep(-1, 1),
             initial_value=0.5,
         )
         self.freq = ManualParameter(
@@ -46,7 +45,7 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=MaybeSweep(Numbers()),
+            vals=MaybeSweep(),
             initial_value=0,
         )
         self.phase = ManualParameter(
@@ -54,7 +53,7 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse phase",
             unit="deg",
-            vals=MaybeSweep(Numbers()),
+            vals=MaybeSweep(),
             initial_value=0,
         )
 

@@ -1,5 +1,4 @@
 from qcodes import ManualParameter
-from qcodes.validators import Numbers
 
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -36,7 +35,7 @@ class ConstantPulse(QickInstruction):
             name="gain",
             instrument=self,
             label="Pulse gain",
-            vals=MaybeSweep(Numbers(-1, 1)),
+            vals=MaybeSweep(-1, 1),
             initial_value=0.5,
         )
         self.freq = ManualParameter(
@@ -44,7 +43,7 @@ class ConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=MaybeSweep(Numbers()),
+            vals=MaybeSweep(),
             initial_value=0,
         )
         self.length = ManualParameter(
@@ -52,7 +51,7 @@ class ConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse length",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=400e-9,
         )
 

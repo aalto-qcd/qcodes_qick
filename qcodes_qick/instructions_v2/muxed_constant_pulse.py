@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import ManualParameter
-from qcodes.validators import Ints, Numbers
+from qcodes.validators import Ints
 from qcodes.validators import Sequence as SequenceValidator
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -45,7 +45,7 @@ class MuxedConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse length",
             unit="sec",
-            vals=MaybeSweep(Numbers(min_value=0)),
+            vals=MaybeSweep(min_value=0),
             initial_value=10e-6,
         )
         self.tone_nums = ManualParameter(
