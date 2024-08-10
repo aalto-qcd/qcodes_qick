@@ -7,6 +7,7 @@ from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
     from qcodes_qick.channels_v2 import AdcChannel, DacChannel
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.protocol_base import SweepProgram
 
@@ -35,6 +36,7 @@ class QickInstruction(InstrumentModule):
         parent: QickInstrument,
         dacs: Sequence[DacChannel] = (),
         adcs: Sequence[AdcChannel] = (),
+        dac_envelopes: Sequence[DacEnvelope] = (),
         name: str = "QickInstruction",
         **kwargs,
     ):
@@ -43,6 +45,7 @@ class QickInstruction(InstrumentModule):
         parent.add_submodule(name, self)
         self.dacs = dacs
         self.adcs = adcs
+        self.dac_envelopes = dac_envelopes
 
         self.dac_channel_nums = Parameter(
             name="dac_channel_nums",
@@ -55,6 +58,12 @@ class QickInstruction(InstrumentModule):
             instrument=self,
             label="ADC channel numbers",
             initial_cache_value=[adc.channel_num for adc in adcs],
+        )
+        self.dac_envelope_names = Parameter(
+            name="dac_envelope_names",
+            instrument=self,
+            label="Names of DAC envelopes used in this instruction",
+            initial_cache_value=[e.name for e in dac_envelopes],
         )
 
     def initialize(self, program: SweepProgram):

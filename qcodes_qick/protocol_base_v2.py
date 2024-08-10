@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from qick.qick_asm import QickConfig
 
     from qcodes_qick.channels_v2 import AdcChannel, DacChannel
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.parameters import HardwareParameter
 
@@ -343,6 +344,9 @@ class SweepProgram(AveragerProgramV2):
         self.adcs: set[AdcChannel] = set().union(
             *(instruction.adcs for instruction in self.protocol.instructions)
         )
+        self.dac_envelopes: set[DacEnvelope] = set().union(
+            *(instruction.dac_envelopes for instruction in self.protocol.instructions)
+        )
         super().__init__(
             soccfg,
             reps=protocol.hard_avgs.get(),
@@ -356,7 +360,8 @@ class SweepProgram(AveragerProgramV2):
             dac.initialize(self)
         for adc in self.adcs:
             adc.initialize(self)
-
+        for envelope in self.dac_envelopes:
+            envelope.initialize(self)
         for instruction in set(self.protocol.instructions):
             instruction.initialize(self)
 

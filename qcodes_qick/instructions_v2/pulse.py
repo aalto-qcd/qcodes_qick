@@ -1,22 +1,22 @@
 from qcodes import ManualParameter
 from qcodes.validators import Numbers
 
-from qcodes_qick.channels_v2 import DacChannel
+from qcodes_qick.envelope_base_v2 import DacEnvelope
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.protocol_base_v2 import SweepProgram
 from qcodes_qick.validators import MaybeSweep
 
 
-class GaussianPulse(QickInstruction):
-    """Gaussian pulse.
+class Pulse(QickInstruction):
+    """A pulse with an envelope.
 
     Parameters
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
-    dac : DacChannel
-        The DAC channel to use.
+    envelope : DacEnvelope
+        The envelope of the pulse
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -26,11 +26,13 @@ class GaussianPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: DacChannel,
-        name="GaussianPulse",
+        envelope: DacEnvelope,
+        name="Pulse",
         **kwargs,
     ):
-        super().__init__(parent, dacs=[dac], name=name, **kwargs)
+        super().__init__(
+            parent, dacs=[envelope.dac], dac_envelopes=[envelope], name=name, **kwargs
+        )
 
         self.gain = ManualParameter(
             name="gain",
@@ -47,21 +49,13 @@ class GaussianPulse(QickInstruction):
             vals=MaybeSweep(Numbers()),
             initial_value=0,
         )
-        self.sigma = ManualParameter(
-            name="sigma",
+        self.phase = ManualParameter(
+            name="phase",
             instrument=self,
-            label="Standard deviation of the gaussian",
-            unit="sec",
-            vals=Numbers(min_value=0),
-            initial_value=100e-9,
-        )
-        self.length = ManualParameter(
-            name="length",
-            instrument=self,
-            label="Pulse length",
-            unit="sec",
-            vals=Numbers(min_value=0),
-            initial_value=400e-9,
+            label="Pulse phase",
+            unit="deg",
+            vals=MaybeSweep(Numbers()),
+            initial_value=0,
         )
 
     def initialize(self, program: SweepProgram):
@@ -71,24 +65,18 @@ class GaussianPulse(QickInstruction):
         ----------
         program : SweepProgram
         """
-        program.add_gauss(
-            ch=self.dacs[0].channel_num,
-            name=self.full_name,
-            sigma=self.sigma.get() * 1e6,
-            length=self.length.get() * 1e6,
-        )
         program.add_pulse(
             ch=self.dacs[0].channel_num,
-            name=self.full_name,
+            name=self.name,
             ro_ch=self.dacs[0].matching_adc.get(),
             style="arb",
             freq=self.freq.get() / 1e6,
-            phase=0,
+            phase=self.phase.get(),
             gain=self.gain.get(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            envelope=self.full_name,
+            envelope=self.dac_envelopes[0].name,
         )
 
     def append_to(self, program: SweepProgram):
@@ -99,4 +87,4 @@ class GaussianPulse(QickInstruction):
         program : SweepProgram
         """
         assert self in program.protocol.instructions
-        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
+        program.pulse(ch=self.dacs[0].channel_num, name=self.name, t="auto")
