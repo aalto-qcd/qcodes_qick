@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Sequence
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
-from qcodes.validators import Ints
+from qcodes.validators import Ints, Numbers
 from qick.asm_v2 import AveragerProgramV2
 from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.parameters import TProcSecParameter
+from qcodes_qick.validators import MaybeSweep
 
 if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
@@ -117,26 +117,29 @@ class SweepProtocol(ABC, QickProtocol):
             vals=Ints(min_value=0),
             initial_value=1,
         )
-        self.final_delay = TProcSecParameter(
+        self.final_delay = ManualParameter(
             name="final_delay",
             instrument=self,
             label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=1e-6,
-            qick_instrument=self.parent,
         )
-        self.final_wait = TProcSecParameter(
+        self.final_wait = ManualParameter(
             name="final_wait",
             instrument=self,
             label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=0,
-            qick_instrument=self.parent,
         )
-        self.initial_delay = TProcSecParameter(
+        self.initial_delay = ManualParameter(
             name="initial_delay",
             instrument=self,
             label="Delay time to add to the timeline before starting to run the loops, to allow enough time for tProc to execute your initialization commands",
+            unit="sec",
+            vals=MaybeSweep(Numbers(min_value=0)),
             initial_value=1e-6,
-            qick_instrument=self.parent,
         )
 
     @abstractmethod
