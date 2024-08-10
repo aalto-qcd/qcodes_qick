@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
-from qcodes.utils.validators import Ints
+from qcodes.utils.validators import Enum
 
 from qcodes_qick.parameters import HzParameter, SecParameter
 
@@ -29,15 +29,15 @@ class DacChannel(InstrumentChannel):
         self.matching_adc = ManualParameter(
             name="matching_adc",
             instrument=self,
-            label="Channel number of the ADC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, len(self.parent.soccfg["readouts"]) - 1),
-            initial_value=-1,
+            label="Channel number of the ADC to match the frequency unit to.",
+            vals=Enum(None, *range(len(self.parent.soccfg["readouts"]))),
+            initial_value=None,
         )
         self.nqz = ManualParameter(
             name="nqz",
             instrument=self,
             label="Nyquist zone",
-            vals=Ints(1, 2),
+            vals=Enum(1, 2),
             initial_value=1,
         )
 
@@ -88,9 +88,9 @@ class AdcChannel(InstrumentChannel):
         self.matching_dac = ManualParameter(
             name="matching_dac",
             instrument=self,
-            label="Channel number of the DAC to match the frequency unit to. -1 means don't perform any matching.",
-            vals=Ints(-1, len(self.parent.soccfg["gens"]) - 1),
-            initial_value=-1,
+            label="Channel number of the DAC to match the frequency unit to.",
+            vals=Enum(None, *range(len(self.parent.soccfg["gens"]))),
+            initial_value=None,
         )
         self.freq = HzParameter(
             name="freq",
@@ -114,10 +114,6 @@ class AdcChannel(InstrumentChannel):
         ----------
         program : AbsQickProgram
         """
-        # if self.matching_dac.get() == -1:
-        #     gen_ch = None
-        # else:
-        #     gen_ch = self.matching_dac.get()
         program.declare_readout(
             ch=self.channel_num,
             freq=self.freq.get() / 1e6,
