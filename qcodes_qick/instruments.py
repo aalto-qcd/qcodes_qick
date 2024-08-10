@@ -39,8 +39,8 @@ class QickInstrument(Instrument):
 
         if tproc_version == 1:
             dac_list = []
-            for channel_num in range(len(self.soccfg["gens"])):
-                dac_list.append(DacChannel(self, f"dac{channel_num}", channel_num))
+            for n in range(len(self.soccfg["gens"])):
+                dac_list.append(DacChannel(self, f"dac{n}", n))
             self.dacs = ChannelTuple(
                 parent=self,
                 name="dacs",
@@ -48,8 +48,8 @@ class QickInstrument(Instrument):
                 chan_list=dac_list,
             )
             adc_list = []
-            for channel_num in range(len(self.soccfg["readouts"])):
-                adc_list.append(AdcChannel(self, f"adc{channel_num}", channel_num))
+            for n in range(len(self.soccfg["readouts"])):
+                adc_list.append(AdcChannel(self, f"adc{n}", n))
             self.adcs = ChannelTuple(
                 parent=self,
                 name="adcs",
@@ -59,13 +59,13 @@ class QickInstrument(Instrument):
 
         elif tproc_version == 2:
             dac_list = []
-            for channel_num in range(len(self.soccfg["gens"])):
-                dac_type = self.soccfg["gens"][channel_num]["type"]
+            for n in range(len(self.soccfg["gens"])):
+                dac_type = self.soccfg["gens"][n]["type"]
                 manager_class = QickProgramV2.gentypes[dac_type]
                 if manager_class == StandardGenManager:
-                    dac_list.append(DacChannelV2(self, f"dac{channel_num}", channel_num))
+                    dac_list.append(DacChannelV2(self, f"dac{n}", n))
                 elif manager_class == MultiplexedGenManager:
-                    dac_list.append(MuxedDacChannel(self, f"dac{channel_num}", channel_num))
+                    dac_list.append(MuxedDacChannel(self, f"dac{n}", n))
                 else:
                     raise NotImplementedError(f"unsupported DAC type: {dac_type}")
             self.dacs = ChannelTuple(
@@ -75,8 +75,8 @@ class QickInstrument(Instrument):
                 chan_list=dac_list,
             )
             adc_list = []
-            for channel_num in range(len(self.soccfg["readouts"])):
-                adc_list.append(AdcChannelV2(self, f"adc{channel_num}", channel_num))
+            for n in range(len(self.soccfg["readouts"])):
+                adc_list.append(AdcChannelV2(self, f"adc{n}", n))
             self.adcs = ChannelTuple(
                 parent=self,
                 name="adcs",
