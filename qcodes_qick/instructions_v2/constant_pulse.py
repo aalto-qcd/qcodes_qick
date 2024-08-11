@@ -63,7 +63,7 @@ class ConstantPulse(QickInstruction):
         """
         program.add_pulse(
             ch=self.dacs[0].channel_num,
-            name=self.full_name,
+            name=self.name,
             ro_ch=self.dacs[0].matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
@@ -83,4 +83,4 @@ class ConstantPulse(QickInstruction):
         program : SweepProgram
         """
         # assert self in program.protocol.instructions
-        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
+        program.pulse(ch=self.dacs[0].channel_num, name=self.name, t="auto")

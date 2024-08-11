@@ -65,7 +65,7 @@ class MuxedConstantPulse(QickInstruction):
         """
         program.add_pulse(
             ch=self.dacs[0].channel_num,
-            name=self.full_name,
+            name=self.name,
             style="const",
             mask=self.tone_nums.get(),
             length=self.length.get() * 1e6,
@@ -78,4 +78,4 @@ class MuxedConstantPulse(QickInstruction):
         ----------
         program : SweepProgram
         """
-        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
+        program.pulse(ch=self.dacs[0].channel_num, name=self.name, t="auto")

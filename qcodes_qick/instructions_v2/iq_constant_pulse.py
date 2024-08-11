@@ -84,7 +84,7 @@ class IQConstantPulse(QickInstruction):
         """
         program.add_pulse(
             ch=self.dac_i.channel_num,
-            name=f"{self.full_name}_i",
+            name=f"{self.name}_i",
             ro_ch=self.dac_i.matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
@@ -97,7 +97,7 @@ class IQConstantPulse(QickInstruction):
         )
         program.add_pulse(
             ch=self.dac_q.channel_num,
-            name=f"{self.full_name}_q",
+            name=f"{self.name}_q",
             ro_ch=self.dac_q.matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
@@ -117,5 +117,5 @@ class IQConstantPulse(QickInstruction):
         program : SweepProgram
         """
         # assert self in program.protocol.instructions
-        program.pulse(ch=self.dac_i.channel_num, name=f"{self.full_name}_i", t="auto")
-        program.pulse(ch=self.dac_q.channel_num, name=f"{self.full_name}_q", t="auto")
+        program.pulse(ch=self.dac_i.channel_num, name=f"{self.name}_i", t="auto")
+        program.pulse(ch=self.dac_q.channel_num, name=f"{self.name}_q", t="auto")
