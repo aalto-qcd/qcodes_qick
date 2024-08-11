@@ -1,7 +1,7 @@
 from qcodes_qick.envelope_base_v2 import DacEnvelope
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
@@ -36,7 +36,7 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse gain",
             unit="DAC unit",
-            vals=MaybeSweep(-1, 1),
+            vals=SweepableNumbers(-1, 1),
             initial_value=0.5,
         )
         self.freq = SweepableParameter(
@@ -44,7 +44,7 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=MaybeSweep(),
+            vals=SweepableNumbers(),
             initial_value=0,
         )
         self.phase = SweepableParameter(
@@ -52,7 +52,7 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse phase",
             unit="deg",
-            vals=MaybeSweep(),
+            vals=SweepableNumbers(),
             initial_value=0,
         )
 

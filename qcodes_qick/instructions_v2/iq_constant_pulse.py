@@ -4,7 +4,7 @@ from qcodes.validators import Bool
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
@@ -40,7 +40,7 @@ class IQConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse gain",
             unit="DAC unit",
-            vals=MaybeSweep(-1, 1),
+            vals=SweepableNumbers(-1, 1),
             initial_value=0.5,
         )
         self.freq = SweepableParameter(
@@ -48,7 +48,7 @@ class IQConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=MaybeSweep(),
+            vals=SweepableNumbers(),
             initial_value=0,
         )
         self.length = SweepableParameter(
@@ -56,7 +56,7 @@ class IQConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse length",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=400e-9,
         )
         self.phase_imbalance = ManualParameter(
@@ -64,7 +64,7 @@ class IQConstantPulse(QickInstruction):
             instrument=self,
             label="Phase offset to add to Q",
             unit="deg",
-            vals=MaybeSweep(),
+            vals=SweepableNumbers(),
             initial_value=0,
         )
         self.periodic = ManualParameter(

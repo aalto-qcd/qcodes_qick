@@ -1,7 +1,7 @@
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
@@ -34,7 +34,7 @@ class DelayAuto(QickInstruction):
             instrument=self,
             label="Delay time",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
         )
 

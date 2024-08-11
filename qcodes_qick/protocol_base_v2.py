@@ -11,7 +11,7 @@ from qick.asm_v2 import AveragerProgramV2, QickSweep
 from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
-from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 
 if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
@@ -92,7 +92,7 @@ class SweepProtocol(ABC, QickProtocol):
             instrument=self,
             label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
         )
         self.final_wait = SweepableParameter(
@@ -100,7 +100,7 @@ class SweepProtocol(ABC, QickProtocol):
             instrument=self,
             label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=0,
         )
         self.initial_delay = SweepableParameter(
@@ -108,7 +108,7 @@ class SweepProtocol(ABC, QickProtocol):
             instrument=self,
             label="Delay time to add to the timeline before starting to run the loops, to allow enough time for tProc to execute your initialization commands",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
         )
 

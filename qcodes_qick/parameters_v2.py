@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from qcodes.instrument import InstrumentModule
 
 
-class MaybeSweep(Validator[float | QickSweep]):
+class SweepableNumbers(Validator[float | QickSweep]):
     def __init__(
         self,
         min_value: float = -float("inf"),
@@ -36,7 +36,7 @@ class SweepableParameter(ManualParameter):
         instrument: InstrumentModule,
         label: str,
         unit: str,
-        vals: MaybeSweep,
+        vals: SweepableNumbers,
         initial_value: float,
         **kwargs,
     ):

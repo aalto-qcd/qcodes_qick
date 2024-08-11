@@ -8,7 +8,7 @@ from qcodes.validators import Sequence as SequenceValidator
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.muxed_dac import MuxedDacChannel
-from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -45,7 +45,7 @@ class MuxedConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse length",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=SweepableNumbers(min_value=0),
             initial_value=10e-6,
         )
         self.tone_nums = ManualParameter(
