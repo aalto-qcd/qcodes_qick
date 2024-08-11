@@ -247,9 +247,7 @@ class SweepProtocol(ABC, QickProtocol):
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
-            channel_iq = channel_iq.reshape(reads_per_shot[channel_index], -1, 2)
             for readout_num in range(reads_per_shot[channel_index]):
-                iq = channel_iq[readout_num, :, :].dot([1, 1j])
                 result = []
 
                 # Add software sweep paramters to the result
@@ -260,10 +258,12 @@ class SweepProtocol(ABC, QickProtocol):
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
                     assert isinstance(sweep, QickSweep)
-                    coordinates = sweep.get_actual_values(hardware_loop_counts)
-                    result.append((parameter, coordinates))
+                    values = sweep.get_actual_values(hardware_loop_counts)
+                    values = np.broadcast_to(values, hardware_loop_counts.values())
+                    result.append((parameter, values))
 
                 # Add acquired data to the result
+                iq = channel_iq[readout_num, ...].dot([1, 1j])
                 result.append((iq_parameters[iq_index], iq))
                 iq_index += 1
 
