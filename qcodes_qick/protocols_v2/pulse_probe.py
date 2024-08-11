@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from qcodes import ManualParameter
 from qcodes.validators import Ints
 
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram, SweepProtocol
+from qcodes_qick.protocol_base_v2 import SweepProgram, SweepProtocol
 
 if TYPE_CHECKING:
     from qick.qick_asm import QickConfig
@@ -38,9 +38,9 @@ class PulseProbeProtocol(SweepProtocol):
         )
 
     def generate_program(
-        self, soccfg: QickConfig, hardware_sweeps: Sequence[HardwareSweep] = ()
+        self, soccfg: QickConfig, hardware_loop_counts: dict[str, int]
     ):
-        return PulseProbeProgram(soccfg, self, hardware_sweeps)
+        return PulseProbeProgram(soccfg, self, hardware_loop_counts)
 
 
 class PulseProbeProgram(SweepProgram):

@@ -8,9 +8,10 @@ from qcodes import (
 )
 from valon_5015 import valon_5015
 
-from qcodes_qick import HardwareSweep, QickInstrument, SoftwareSweep
+from qcodes_qick import QickInstrument
 from qcodes_qick.instructions_v2 import *
 from qcodes_qick.muxed_dac import MuxedDacChannel
+from qcodes_qick.protocol_base_v2 import SoftwareSweep
 from qcodes_qick.protocols_v2 import *
 
 experiment_name = "BF4-CD4"

@@ -8,7 +8,7 @@ from qcodes.validators import Sequence as SequenceValidator
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.muxed_dac import MuxedDacChannel
-from qcodes_qick.validators import MaybeSweep
+from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
@@ -40,7 +40,7 @@ class MuxedConstantPulse(QickInstruction):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
         assert isinstance(dac, MuxedDacChannel)
 
-        self.length = ManualParameter(
+        self.length = SweepableParameter(
             name="length",
             instrument=self,
             label="Pulse length",

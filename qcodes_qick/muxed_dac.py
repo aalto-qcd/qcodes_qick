@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import ChannelTuple, InstrumentChannel, ManualParameter
+from qcodes.validators import Numbers
 
 from qcodes_qick.channels_v2 import DacChannel
-from qcodes_qick.validators import MaybeSweep
 
 if TYPE_CHECKING:
     from qick.qick_asm import AbsQickProgram
@@ -24,14 +24,15 @@ class MuxedDacTone(InstrumentChannel):
             instrument=self,
             label="Frequency of the tone",
             unit="Hz",
-            vals=MaybeSweep(),
+            vals=Numbers(),
             initial_value=0,
         )
         self.gain = ManualParameter(
             name="gain",
             instrument=self,
             label="Gain of the tone",
-            vals=MaybeSweep(-1, 1),
+            unit="DAC unit",
+            vals=Numbers(-1, 1),
             initial_value=0.5,
         )
 

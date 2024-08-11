@@ -1,10 +1,8 @@
-from qcodes import ManualParameter
-
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
+from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
-from qcodes_qick.validators import MaybeSweep
 
 
 class ConstantPulse(QickInstruction):
@@ -31,14 +29,15 @@ class ConstantPulse(QickInstruction):
     ):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
 
-        self.gain = ManualParameter(
+        self.gain = SweepableParameter(
             name="gain",
             instrument=self,
             label="Pulse gain",
+            unit="DAC unit",
             vals=MaybeSweep(-1, 1),
             initial_value=0.5,
         )
-        self.freq = ManualParameter(
+        self.freq = SweepableParameter(
             name="freq",
             instrument=self,
             label="Pulse frequency",
@@ -46,7 +45,7 @@ class ConstantPulse(QickInstruction):
             vals=MaybeSweep(),
             initial_value=0,
         )
-        self.length = ManualParameter(
+        self.length = SweepableParameter(
             name="length",
             instrument=self,
             label="Pulse length",

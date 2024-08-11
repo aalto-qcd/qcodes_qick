@@ -3,9 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
-from qcodes.utils.validators import Enum
-
-from qcodes_qick.validators import MaybeSweep
+from qcodes.utils.validators import Enum, Numbers
 
 if TYPE_CHECKING:
     from qick.qick_asm import AbsQickProgram
@@ -70,7 +68,7 @@ class AdcChannel(InstrumentChannel):
             instrument=self,
             label="LO frequency for digital downconversion",
             unit="Hz",
-            vals=MaybeSweep(),
+            vals=Numbers(),
             initial_value=0,
         )
         self.length = ManualParameter(
@@ -78,7 +76,7 @@ class AdcChannel(InstrumentChannel):
             instrument=self,
             label="Readout window length",
             unit="sec",
-            vals=MaybeSweep(min_value=0),
+            vals=Numbers(min_value=0),
             initial_value=10e-6,
         )
 

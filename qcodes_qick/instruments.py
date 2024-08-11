@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import qick
 from qcodes import ChannelTuple, Instrument
 from qcodes.parameters import Parameter
@@ -11,6 +13,9 @@ from qcodes_qick.channels_v2 import AdcChannel as AdcChannelV2
 from qcodes_qick.channels_v2 import DacChannel as DacChannelV2
 from qcodes_qick.muxed_dac import MuxedDacChannel
 
+if TYPE_CHECKING:
+    from qcodes_qick.parameters_v2 import SweepableParameter
+
 
 class QickInstrument(Instrument):
     def __init__(self, ns_host: str, ns_port=8888, name="QickInstrument", **kwargs):
@@ -20,6 +25,9 @@ class QickInstrument(Instrument):
         #   soc: Pyro4.Proxy pointing to the QickSoc object on the board
         #   soccfg: QickConfig containing the current configuration of the board
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
+
+        # set of all parameters which have been assigned a QickSweep object
+        self.swept_parameters: set[SweepableParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]

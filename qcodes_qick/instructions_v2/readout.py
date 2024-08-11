@@ -4,8 +4,8 @@ from qcodes.validators import Bool
 from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
+from qcodes_qick.parameters_v2 import MaybeSweep, SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
-from qcodes_qick.validators import MaybeSweep
 
 
 class Readout(QickInstruction):
@@ -45,7 +45,7 @@ class Readout(QickInstruction):
             label="Name of the readout pulse",
             initial_cache_value=self.pulse.full_name,
         )
-        self.wait_before = ManualParameter(
+        self.wait_before = SweepableParameter(
             name="wait_before",
             instrument=self,
             label="Wait time before the pulse",
@@ -53,7 +53,7 @@ class Readout(QickInstruction):
             vals=MaybeSweep(min_value=0),
             initial_value=100e-9,
         )
-        self.wait_after = ManualParameter(
+        self.wait_after = SweepableParameter(
             name="wait_after",
             instrument=self,
             label="Wait time after the pulse",
@@ -61,7 +61,7 @@ class Readout(QickInstruction):
             vals=MaybeSweep(min_value=0),
             initial_value=100e-9,
         )
-        self.adc_trig_offset = ManualParameter(
+        self.adc_trig_offset = SweepableParameter(
             name="adc_trig_offset",
             instrument=self,
             label="Delay between the start of the pulse and the ADC trigger",
