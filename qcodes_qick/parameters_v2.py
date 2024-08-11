@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from qcodes.instrument import InstrumentModule
 
 
-class SweepableNumbers(Validator[float | QickSweep]):
+class SweepableNumbers(Validator):
     def __init__(
         self,
         min_value: float = -float("inf"),
