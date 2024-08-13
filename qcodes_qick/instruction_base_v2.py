@@ -66,6 +66,9 @@ class QickInstruction(InstrumentModule):
             initial_cache_value=[e.name for e in dac_envelopes],
         )
 
+    def copy(self, copy_name: str) -> QickInstruction:
+        raise NotImplementedError
+
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
 

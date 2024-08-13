@@ -1,8 +1,14 @@
-from qcodes_qick.envelope_base_v2 import DacEnvelope
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
-from qcodes_qick.protocol_base_v2 import SweepProgram
+
+if TYPE_CHECKING:
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
+    from qcodes_qick.instruments import QickInstrument
+    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class Pulse(QickInstruction):
@@ -55,6 +61,13 @@ class Pulse(QickInstruction):
             vals=SweepableNumbers(),
             initial_value=0,
         )
+
+    def copy(self, copy_name: str) -> Pulse:
+        copy = Pulse(self.parent, self.dac_envelopes[0], copy_name)
+        copy.gain.set(self.gain.get())
+        copy.freq.set(self.freq.get())
+        copy.phase.set(self.phase.get())
+        return copy
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
