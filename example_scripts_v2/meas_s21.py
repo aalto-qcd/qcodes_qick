@@ -9,5 +9,5 @@ p.run(
     Measurement(experiment, station, name),
     software_sweeps=[
         SoftwareSweep([readout_dac.tones[0].freq, readout_adc.freq], 1e9, 3e9, 1001),
-    ]
+    ],
 )
