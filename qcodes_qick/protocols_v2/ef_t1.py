@@ -11,25 +11,25 @@ if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class HahnEchoProtocol(SimpleSweepProtocol):
+class EfT1Protocol(SimpleSweepProtocol):
     def __init__(
         self,
         parent: QickInstrument,
-        pi_pulse: QickInstruction,
-        half_pi_pulse: QickInstruction,
+        ge_pi_pulse: QickInstruction,
+        ge_half_pi_pulse: QickInstruction,
+        ef_pi_pulse: QickInstruction,
         readout: Readout,
-        name="HahnEchoProtocol",
+        name="EfT1Protocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent, half_pi_pulse.dacs[0])
+        self.delay = DelayAuto(parent, ef_pi_pulse.dacs[0])
         super().__init__(
             parent=parent,
             instructions=[
-                half_pi_pulse,
+                ge_pi_pulse,
+                ef_pi_pulse,
                 self.delay,
-                pi_pulse,
-                self.delay,
-                half_pi_pulse,
+                ge_half_pi_pulse,
                 readout,
             ],
             name=name,
