@@ -1,12 +1,11 @@
 from header import *
 
-name = os.path.basename(__file__)[:-3]
+name = Path(__file__).name[:-3]
 
 readout_dac.tones[0].gain.set(0.1)
 
 p = S21Protocol(qick_instrument, readout)
 p.hard_avgs.set(1000)
-p.soft_avgs.set(1)
 
 p.run(
     Measurement(experiment, station, name),
