@@ -1,19 +1,25 @@
-from qcodes_qick.channels_v2 import DacChannel
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
-from qcodes_qick.protocol_base_v2 import SweepProgram
+
+if TYPE_CHECKING:
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
+    from qcodes_qick.instruments import QickInstrument
+    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
-class ConstantPulse(QickInstruction):
-    """Rectangular pulse.
+class Pulse(QickInstruction):
+    """A pulse with an envelope.
 
     Parameters
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
-    dac : DacChannel
-        The DAC channel to use.
+    envelope : DacEnvelope
+        The envelope of the pulse
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -23,11 +29,13 @@ class ConstantPulse(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: DacChannel,
-        name="ConstantPulse",
+        envelope: DacEnvelope,
+        name="Pulse",
         **kwargs,
     ):
-        super().__init__(parent, dacs=[dac], name=name, **kwargs)
+        super().__init__(
+            parent, dacs=[envelope.dac], dac_envelopes=[envelope], name=name, **kwargs
+        )
 
         self.gain = SweepableParameter(
             name="gain",
@@ -45,14 +53,21 @@ class ConstantPulse(QickInstruction):
             vals=SweepableNumbers(),
             initial_value=0,
         )
-        self.length = SweepableParameter(
-            name="length",
+        self.phase = SweepableParameter(
+            name="phase",
             instrument=self,
-            label="Pulse length",
-            unit="sec",
-            vals=SweepableNumbers(min_value=0),
-            initial_value=400e-9,
+            label="Pulse phase",
+            unit="deg",
+            vals=SweepableNumbers(),
+            initial_value=0,
         )
+
+    def copy(self, copy_name: str) -> Pulse:
+        copy = Pulse(self.parent, self.dac_envelopes[0], copy_name)
+        copy.gain.set(self.gain.get())
+        copy.freq.set(self.freq.get())
+        copy.phase.set(self.phase.get())
+        return copy
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
@@ -65,14 +80,14 @@ class ConstantPulse(QickInstruction):
             ch=self.dacs[0].channel_num,
             name=self.name,
             ro_ch=self.dacs[0].matching_adc.get(),
-            style="const",
+            style="arb",
             freq=self.freq.get() / 1e6,
-            phase=0,
+            phase=self.phase.get(),
             gain=self.gain.get(),
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            length=self.length.get() * 1e6,
+            envelope=self.dac_envelopes[0].name,
         )
 
     def append_to(self, program: SweepProgram):
@@ -82,5 +97,5 @@ class ConstantPulse(QickInstruction):
         ----------
         program : SweepProgram
         """
-        # assert self in program.protocol.instructions
+        assert self in program.protocol.instructions
         program.pulse(ch=self.dacs[0].channel_num, name=self.name, t="auto")

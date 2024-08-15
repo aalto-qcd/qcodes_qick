@@ -90,7 +90,7 @@ class Readout(QickInstruction):
             tproc_reg=True,
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
@@ -104,7 +104,7 @@ class Readout(QickInstruction):
             adcs=[self.adcs[0].channel_num],
             adc_trig_offset=self.adc_trig_offset.get_raw(),
         )
-        self.pulse.play(program)
+        self.pulse.append_to(program)
         if self.wait_for_adc.get():
             program.wait_all()
         program.sync_all(t=self.wait_after.get_raw())

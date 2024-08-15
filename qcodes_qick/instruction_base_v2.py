@@ -6,9 +6,10 @@ from qcodes.instrument import InstrumentModule
 from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
-    from qcodes_qick.channels import AdcChannel, DacChannel
+    from qcodes_qick.channels_v2 import AdcChannel, DacChannel
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
     from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
+    from qcodes_qick.protocol_base import SweepProgram
 
 
 class QickInstruction(InstrumentModule):
@@ -35,6 +36,7 @@ class QickInstruction(InstrumentModule):
         parent: QickInstrument,
         dacs: Sequence[DacChannel] = (),
         adcs: Sequence[AdcChannel] = (),
+        dac_envelopes: Sequence[DacEnvelope] = (),
         name: str = "QickInstruction",
         **kwargs,
     ):
@@ -43,6 +45,7 @@ class QickInstruction(InstrumentModule):
         parent.add_submodule(name, self)
         self.dacs = dacs
         self.adcs = adcs
+        self.dac_envelopes = dac_envelopes
 
         self.dac_channel_nums = Parameter(
             name="dac_channel_nums",
@@ -56,6 +59,15 @@ class QickInstruction(InstrumentModule):
             label="ADC channel numbers",
             initial_cache_value=[adc.channel_num for adc in adcs],
         )
+        self.dac_envelope_names = Parameter(
+            name="dac_envelope_names",
+            instrument=self,
+            label="Names of DAC envelopes used in this instruction",
+            initial_cache_value=[e.name for e in dac_envelopes],
+        )
+
+    def copy(self, copy_name: str) -> QickInstruction:
+        raise NotImplementedError
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
@@ -65,22 +77,10 @@ class QickInstruction(InstrumentModule):
         program : SweepProgram
         """
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
         ----------
         program : SweepProgram
         """
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )

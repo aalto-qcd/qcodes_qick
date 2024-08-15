@@ -1,16 +1,11 @@
-from qcodes.parameters import ManualParameter
+from qcodes import ManualParameter
 from qcodes.validators import Bool
 
-from qcodes_qick.channels import DacChannel
+from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import (
-    DegParameter,
-    GainParameter,
-    HzParameter,
-    SecParameter,
-)
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class IQConstantPulse(QickInstruction):
@@ -40,32 +35,37 @@ class IQConstantPulse(QickInstruction):
         self.dac_i = dac_i
         self.dac_q = dac_q
 
-        self.gain = GainParameter(
+        self.gain = SweepableParameter(
             name="gain",
             instrument=self,
             label="Pulse gain",
+            unit="DAC unit",
+            vals=SweepableNumbers(-1, 1),
             initial_value=0.5,
         )
-        self.freq = HzParameter(
+        self.freq = SweepableParameter(
             name="freq",
             instrument=self,
             label="Pulse frequency",
+            unit="Hz",
+            vals=SweepableNumbers(),
             initial_value=0,
-            channel=self.dac_i,
         )
-        self.length = SecParameter(
+        self.length = SweepableParameter(
             name="length",
             instrument=self,
             label="Pulse length",
+            unit="sec",
+            vals=SweepableNumbers(min_value=0),
             initial_value=400e-9,
-            channel=self.dac_i,
         )
-        self.phase_imbalance = DegParameter(
+        self.phase_imbalance = ManualParameter(
             name="phase_imbalance",
             instrument=self,
             label="Phase offset to add to Q",
+            unit="deg",
+            vals=SweepableNumbers(),
             initial_value=0,
-            channel=self.dac_q,
         )
         self.periodic = ManualParameter(
             name="periodic",
@@ -84,7 +84,8 @@ class IQConstantPulse(QickInstruction):
         """
         program.add_pulse(
             ch=self.dac_i.channel_num,
-            name=f"{self.full_name}_i",
+            name=f"{self.name}_i",
+            ro_ch=self.dac_i.matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
             phase=0,
@@ -96,7 +97,8 @@ class IQConstantPulse(QickInstruction):
         )
         program.add_pulse(
             ch=self.dac_q.channel_num,
-            name=f"{self.full_name}_q",
+            name=f"{self.name}_q",
+            ro_ch=self.dac_q.matching_adc.get(),
             style="const",
             freq=self.freq.get() / 1e6,
             phase=90 + self.phase_imbalance.get(),
@@ -107,7 +109,7 @@ class IQConstantPulse(QickInstruction):
             length=self.length.get() * 1e6,
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
@@ -115,17 +117,5 @@ class IQConstantPulse(QickInstruction):
         program : SweepProgram
         """
         # assert self in program.protocol.instructions
-        program.pulse(ch=self.dac_i.channel_num, name=f"{self.full_name}_i", t="auto")
-        program.pulse(ch=self.dac_q.channel_num, name=f"{self.full_name}_q", t="auto")
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )
+        program.pulse(ch=self.dac_i.channel_num, name=f"{self.name}_i", t="auto")
+        program.pulse(ch=self.dac_q.channel_num, name=f"{self.name}_q", t="auto")

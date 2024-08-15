@@ -1,11 +1,11 @@
-from qcodes.parameters import ManualParameter, Parameter
+from qcodes import ManualParameter, Parameter
 from qcodes.validators import Bool
 
-from qcodes_qick.channels import AdcChannel
+from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters import TProcSecParameter
-from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class Readout(QickInstruction):
@@ -45,26 +45,29 @@ class Readout(QickInstruction):
             label="Name of the readout pulse",
             initial_cache_value=self.pulse.full_name,
         )
-        self.wait_before = TProcSecParameter(
+        self.wait_before = SweepableParameter(
             name="wait_before",
             instrument=self,
             label="Wait time before the pulse",
+            unit="sec",
+            vals=SweepableNumbers(min_value=0),
             initial_value=100e-9,
-            qick_instrument=self.parent,
         )
-        self.wait_after = TProcSecParameter(
+        self.wait_after = SweepableParameter(
             name="wait_after",
             instrument=self,
             label="Wait time after the pulse",
+            unit="sec",
+            vals=SweepableNumbers(min_value=0),
             initial_value=100e-9,
-            qick_instrument=self.parent,
         )
-        self.adc_trig_offset = TProcSecParameter(
+        self.adc_trig_offset = SweepableParameter(
             name="adc_trig_offset",
             instrument=self,
             label="Delay between the start of the pulse and the ADC trigger",
+            unit="sec",
+            vals=SweepableNumbers(min_value=0),
             initial_value=0,
-            qick_instrument=self.parent,
         )
         self.wait_for_adc = ManualParameter(
             name="wait_for_adc",
@@ -83,7 +86,7 @@ class Readout(QickInstruction):
         """
         self.pulse.initialize(program)
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
@@ -96,20 +99,7 @@ class Readout(QickInstruction):
             ros=[self.adcs[0].channel_num],
             t=self.adc_trig_offset.get() * 1e6,
         )
-        self.pulse.play(program)
+        self.pulse.append_to(program)
         if self.wait_for_adc.get():
             program.wait_auto(gens=False, ros=True)
         program.delay_auto(t=self.wait_after.get() * 1e6, gens=True, ros=False)
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )

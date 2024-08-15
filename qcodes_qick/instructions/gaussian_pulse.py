@@ -68,7 +68,7 @@ class GaussianPulse(QickInstruction):
         """
         program.add_gauss(
             ch=self.dacs[0].channel_num,
-            name=self.full_name,
+            name=self.name,
             sigma=self.sigma.get_raw(),
             length=self.length.get_raw(),
         )
@@ -81,10 +81,10 @@ class GaussianPulse(QickInstruction):
             phrst=0,
             stdysel="zero",
             mode="oneshot",
-            waveform=self.full_name,
+            waveform=self.name,
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters

@@ -15,13 +15,12 @@ class HahnEchoProtocol(SimpleSweepProtocol):
     def __init__(
         self,
         parent: QickInstrument,
-        half_pi_pulse: QickInstruction,
         pi_pulse: QickInstruction,
+        half_pi_pulse: QickInstruction,
         readout: Readout,
         name="HahnEchoProtocol",
         **kwargs,
     ):
-        assert half_pi_pulse.dacs[0] == pi_pulse.dacs[0]
         self.delay = DelayAuto(parent, half_pi_pulse.dacs[0])
         super().__init__(
             parent=parent,

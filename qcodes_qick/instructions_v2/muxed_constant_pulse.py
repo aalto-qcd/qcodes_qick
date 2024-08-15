@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes.parameters import ManualParameter
+from qcodes import ManualParameter
 from qcodes.validators import Ints
 from qcodes.validators import Sequence as SequenceValidator
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.muxed_dac import MuxedDacChannel
-from qcodes_qick.parameters import SecParameter
+from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
 
 if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base_v2 import HardwareSweep, SweepProgram
+    from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class MuxedConstantPulse(QickInstruction):
@@ -40,12 +40,13 @@ class MuxedConstantPulse(QickInstruction):
         super().__init__(parent, dacs=[dac], name=name, **kwargs)
         assert isinstance(dac, MuxedDacChannel)
 
-        self.length = SecParameter(
+        self.length = SweepableParameter(
             name="length",
             instrument=self,
             label="Pulse length",
+            unit="sec",
+            vals=SweepableNumbers(min_value=0),
             initial_value=10e-6,
-            channel=self.dacs[0],
         )
         self.tone_nums = ManualParameter(
             name="tone_nums",
@@ -64,29 +65,17 @@ class MuxedConstantPulse(QickInstruction):
         """
         program.add_pulse(
             ch=self.dacs[0].channel_num,
-            name=self.full_name,
+            name=self.name,
             style="const",
             mask=self.tone_nums.get(),
             length=self.length.get() * 1e6,
         )
 
-    def play(self, program: SweepProgram):
+    def append_to(self, program: SweepProgram):
         """Append me to a program.
 
         Parameters
         ----------
         program : SweepProgram
         """
-        program.pulse(ch=self.dacs[0].channel_num, name=self.full_name, t="auto")
-
-    def add_sweep(self, program: SweepProgram, sweep: HardwareSweep):
-        """Add a sweep over one of my parameters to a program.
-
-        Parameters
-        ----------
-        program : SweepProgram
-        sweep: HardwareSweep
-        """
-        raise NotImplementedError(
-            f"cannot perform a hardware sweep over {sweep.parameter.name}"
-        )
+        program.pulse(ch=self.dacs[0].channel_num, name=self.name, t="auto")

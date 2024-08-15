@@ -11,23 +11,25 @@ if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class RamseyProtocol(SimpleSweepProtocol):
+class EfT1Protocol(SimpleSweepProtocol):
     def __init__(
         self,
         parent: QickInstrument,
-        half_pi_pulse: QickInstruction,
+        ge_pi_pulse: QickInstruction,
+        ge_half_pi_pulse: QickInstruction,
+        ef_pi_pulse: QickInstruction,
         readout: Readout,
-        name="RamseyProtocol",
+        name="EfT1Protocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent, half_pi_pulse.dacs[0])
-        self.half_pi_pulse_2 = half_pi_pulse.copy(half_pi_pulse.name + "_2")
+        self.delay = DelayAuto(parent, ef_pi_pulse.dacs[0])
         super().__init__(
             parent=parent,
             instructions=[
-                half_pi_pulse,
+                ge_pi_pulse,
+                ef_pi_pulse,
                 self.delay,
-                self.half_pi_pulse_2,
+                ge_half_pi_pulse,
                 readout,
             ],
             name=name,
