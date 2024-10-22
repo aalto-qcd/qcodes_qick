@@ -1,6 +1,6 @@
 # qcodes_qick
 
-A [QCoDeS](https://microsoft.github.io/Qcodes/) driver for [QICK](https://qick-docs.readthedocs.io/en/latest/). Usable but still under active development. Pull requests are welcomed!
+A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github.com/openquantumhardware/qick). Usable but still under active development. Pull requests are welcomed!
 
 ## Development goals
 
