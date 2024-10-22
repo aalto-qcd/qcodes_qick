@@ -7,7 +7,7 @@ import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
-from qick.asm_v2 import AveragerProgramV2, QickSweep
+from qick.asm_v2 import AveragerProgramV2, QickParam
 from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
@@ -140,7 +140,7 @@ class SweepProtocol(ABC, QickProtocol):
         for loop in hardware_loop_counts:
             for parameter in self.parent.swept_parameters:
                 sweep = parameter.get()
-                assert isinstance(sweep, QickSweep)
+                assert isinstance(sweep, QickParam)
                 if loop in sweep.spans and parameter not in hardware_sweep_parameters:
                     hardware_sweep_parameters.append(parameter)
                     meas.register_parameter(parameter, paramtype="array")
@@ -257,7 +257,7 @@ class SweepProtocol(ABC, QickProtocol):
                 # Add hardware sweep parameters to the result
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
-                    assert isinstance(sweep, QickSweep)
+                    assert isinstance(sweep, QickParam)
                     values = sweep.get_actual_values(hardware_loop_counts)
                     values = np.broadcast_to(values, hardware_loop_counts.values())
                     result.append((parameter, values))
@@ -307,7 +307,7 @@ class SweepProtocol(ABC, QickProtocol):
                 # Add hardware sweep parameters to the result
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
-                    assert isinstance(sweep, QickSweep)
+                    assert isinstance(sweep, QickParam)
                     coordinates = sweep.get_actual_values(hardware_loop_counts)
                     result.append((parameter, coordinates[..., np.newaxis]))
 

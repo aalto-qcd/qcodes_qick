@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from qcodes import ManualParameter
 from qcodes.validators import Numbers, Validator
-from qick.asm_v2 import QickSweep
+from qick.asm_v2 import QickParam
 
 from qcodes_qick.instruments import QickInstrument
 
@@ -21,8 +21,8 @@ class SweepableNumbers(Validator):
         self.numbers = Numbers(min_value, max_value)
         self._valid_values = (min_value, max_value)
 
-    def validate(self, value: float | QickSweep, context: str = ""):
-        if isinstance(value, QickSweep):
+    def validate(self, value: float | QickParam, context: str = ""):
+        if isinstance(value, QickParam):
             self.numbers.validate(value.minval(), context)
             self.numbers.validate(value.maxval(), context)
         else:
@@ -53,9 +53,9 @@ class SweepableParameter(ManualParameter):
             **kwargs,
         )
 
-    def set_parser(self, value: float | QickSweep) -> float | QickSweep:
+    def set_parser(self, value: float | QickParam) -> float | QickParam:
         # keep track of all swept parameters of the instrument
-        if isinstance(value, QickSweep):
+        if isinstance(value, QickParam):
             self.qick_instrument.swept_parameters.add(self)
         elif self in self.qick_instrument.swept_parameters:
             self.qick_instrument.swept_parameters.remove(self)
