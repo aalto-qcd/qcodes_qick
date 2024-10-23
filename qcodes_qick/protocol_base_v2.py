@@ -90,7 +90,7 @@ class SweepProtocol(ABC, QickProtocol):
         self.final_delay = SweepableParameter(
             name="final_delay",
             instrument=self,
-            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
+            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout. Ten times the T1 of the qubit is usually appropriate.",
             unit="sec",
             vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
@@ -98,7 +98,7 @@ class SweepProtocol(ABC, QickProtocol):
         self.final_wait = SweepableParameter(
             name="final_wait",
             instrument=self,
-            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
+            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout. The default of 0 is usually appropriate.",
             unit="sec",
             vals=SweepableNumbers(min_value=0),
             initial_value=0,
