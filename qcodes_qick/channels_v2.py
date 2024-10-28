@@ -38,6 +38,14 @@ class DacChannel(InstrumentChannel):
             vals=Enum(1, 2),
             initial_value=1,
         )
+        self.digital_mixer_freq = ManualParameter(
+            name="digital_mixer_freq",
+            instrument=self,
+            label="LO frequency of the digital mixer. Only used for an interpolated or muxed generator.",
+            unit="Hz",
+            vals=Numbers(),
+            initial_value=0,
+        )
 
     def initialize(self, program: QickProgramV2):
         """Add initialization commands to a program.
@@ -46,7 +54,13 @@ class DacChannel(InstrumentChannel):
         ----------
         program : AbsQickProgram
         """
-        program.declare_gen(ch=self.channel_num, nqz=self.nqz.get())
+        if self.type.get() in ["axis_sg_int4_v2"]:
+            # this is an interpolated or muxed generator
+            mixer_freq = self.digital_mixer_freq.get() / 1e6
+        else:
+            assert self.digital_mixer_freq.get() == 0
+            mixer_freq = None
+        program.declare_gen(self.channel_num, self.nqz.get(), mixer_freq)
 
 
 class AdcChannel(InstrumentChannel):
