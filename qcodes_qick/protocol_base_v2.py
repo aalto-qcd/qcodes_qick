@@ -7,7 +7,7 @@ import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Ints
-from qick.asm_v2 import AveragerProgramV2, QickSweep
+from qick.asm_v2 import AveragerProgramV2, QickParam
 from qick.qick_asm import AcquireMixin
 from tqdm.contrib.itertools import product as tqdm_product
 
@@ -90,7 +90,7 @@ class SweepProtocol(ABC, QickProtocol):
         self.final_delay = SweepableParameter(
             name="final_delay",
             instrument=self,
-            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout",
+            label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout. Ten times the T1 of the qubit is usually appropriate.",
             unit="sec",
             vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
@@ -98,7 +98,7 @@ class SweepProtocol(ABC, QickProtocol):
         self.final_wait = SweepableParameter(
             name="final_wait",
             instrument=self,
-            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout",
+            label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout. The default of 0 is usually appropriate.",
             unit="sec",
             vals=SweepableNumbers(min_value=0),
             initial_value=0,
@@ -123,33 +123,44 @@ class SweepProtocol(ABC, QickProtocol):
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_loop_counts: dict[str, int] | None = None,
         decimated: bool = False,
+        save_shots: bool = False,
     ) -> int:
+        if save_shots:
+            assert self.soft_avgs.get() == 1
         hardware_loop_counts = hardware_loop_counts if hardware_loop_counts else {}
+        setpoints = []
 
         # initialize and register the software sweep parameters
-        software_sweep_parameters = []
         for sweep in software_sweeps:
             sweep.parameters[0].set(sweep.values[0])
-            software_sweep_parameters.append(sweep.parameters[0])
+            setpoints.append(sweep.parameters[0])
             meas.register_parameter(sweep.parameters[0], paramtype="array")
             for parameter in sweep.parameters[1:]:
                 parameter.set(sweep.values[0])
+
+        # register the shot axis if necessary
+        if save_shots:
+            shot_parameter = Parameter("shot", label="Shot", unit="")
+            meas.register_parameter(shot_parameter, paramtype="array")
+            setpoints.append(shot_parameter)
+        else:
+            shot_parameter = None
 
         # register the hardware sweep parameters
         hardware_sweep_parameters = []
         for loop in hardware_loop_counts:
             for parameter in self.parent.swept_parameters:
                 sweep = parameter.get()
-                assert isinstance(sweep, QickSweep)
+                assert isinstance(sweep, QickParam)
                 if loop in sweep.spans and parameter not in hardware_sweep_parameters:
                     hardware_sweep_parameters.append(parameter)
+                    setpoints.append(parameter)
                     meas.register_parameter(parameter, paramtype="array")
 
         # register the time axis if necessary
-        time_parameters = []
         if decimated:
             time_parameter = Parameter("time", label="Time", unit="sec")
-            time_parameters.append(time_parameter)
+            setpoints.append(time_parameter)
             meas.register_parameter(time_parameter, paramtype="array")
 
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
@@ -160,9 +171,6 @@ class SweepProtocol(ABC, QickProtocol):
         assert sum(reads_per_shot) > 0
 
         # create and register the parameters representing the acquired data
-        setpoints = (
-            hardware_sweep_parameters + software_sweep_parameters + time_parameters
-        )
         iq_parameters = []
         for i, channel_num in enumerate(adc_channel_nums):
             for readout_num in range(reads_per_shot[i]):
@@ -194,6 +202,7 @@ class SweepProtocol(ABC, QickProtocol):
                         software_sweeps,
                         hardware_loop_counts,
                         hardware_sweep_parameters,
+                        shot_parameter,
                         iq_parameters,
                         progress=True,
                     )
@@ -219,6 +228,7 @@ class SweepProtocol(ABC, QickProtocol):
                             software_sweeps,
                             hardware_loop_counts,
                             hardware_sweep_parameters,
+                            shot_parameter,
                             iq_parameters,
                             progress=False,
                         )
@@ -231,6 +241,7 @@ class SweepProtocol(ABC, QickProtocol):
         software_sweeps: Sequence[SoftwareSweep],
         hardware_loop_counts: dict[str, int],
         hardware_sweep_parameters: Sequence[SweepableParameter],
+        shot_parameter: Parameter | None,  # None means do not save shots
         iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
@@ -255,18 +266,32 @@ class SweepProtocol(ABC, QickProtocol):
                     result.append((sweep.parameters[0], sweep.parameters[0].get()))
 
                 # Add hardware sweep parameters to the result
+                if shot_parameter is None:
+                    shape = hardware_loop_counts.values()
+                else:
+                    shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
-                    assert isinstance(sweep, QickSweep)
+                    assert isinstance(sweep, QickParam)
                     values = sweep.get_actual_values(hardware_loop_counts)
-                    values = np.broadcast_to(values, hardware_loop_counts.values())
+                    values = np.broadcast_to(values, shape)
                     result.append((parameter, values))
+                if shot_parameter is not None:
+                    values = np.arange(self.hard_avgs.get())
+                    for _ in range(len(hardware_loop_counts)):
+                        values = values[..., np.newaxis]
+                    values = np.broadcast_to(values, shape)
+                    result.append((shot_parameter, values))
 
                 # Add acquired data to the result
-                iq = channel_iq[readout_num, ...].dot([1, 1j])
-                result.append((iq_parameters[iq_index], iq))
-                iq_index += 1
+                if shot_parameter is None:
+                    iq = channel_iq[readout_num, ...].dot([1, 1j])
+                    result.append((iq_parameters[iq_index], iq))
+                else:
+                    iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    result.append((iq_parameters[iq_index], iq))
 
+                iq_index += 1
                 datasaver.add_result(*result)
 
     def run_hardware_loops_decimated(
@@ -307,7 +332,7 @@ class SweepProtocol(ABC, QickProtocol):
                 # Add hardware sweep parameters to the result
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
-                    assert isinstance(sweep, QickSweep)
+                    assert isinstance(sweep, QickParam)
                     coordinates = sweep.get_actual_values(hardware_loop_counts)
                     result.append((parameter, coordinates[..., np.newaxis]))
 

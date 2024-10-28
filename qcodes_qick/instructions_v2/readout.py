@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from qcodes import ManualParameter, Parameter
 from qcodes.validators import Bool
 
@@ -9,7 +11,7 @@ from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
 class Readout(QickInstruction):
-    """Generate a specified pulse and trigger an ADC channel.
+    """Generate a specified pulse and trigger the specified ADC channels.
 
     Parameters
     ----------
@@ -17,8 +19,8 @@ class Readout(QickInstruction):
         Make me a submodule of this QickInstrument.
     pulse : QickInstruction
         The pulse to generate.
-    adc : AdcChannel
-        The ADC channel to trigger.
+    adc : Sequence[AdcChannel]
+        The ADC channels to trigger.
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -29,14 +31,14 @@ class Readout(QickInstruction):
         self,
         parent: QickInstrument,
         pulse: QickInstruction,
-        adc: AdcChannel,
+        adcs: Sequence[AdcChannel],
         name="Readout",
         **kwargs,
     ):
-        super().__init__(parent, dacs=pulse.dacs, adcs=[adc], name=name, **kwargs)
+        super().__init__(parent, dacs=pulse.dacs, adcs=adcs, name=name, **kwargs)
         # assert len(self.dacs) == 1
-        assert self.dacs[0].matching_adc.get() == self.adcs[0].channel_num
-        assert self.adcs[0].matching_dac.get() == self.dacs[0].channel_num
+        # assert self.dacs[0].matching_adc.get() == self.adcs[0].channel_num
+        # assert self.adcs[0].matching_dac.get() == self.dacs[0].channel_num
         self.pulse = pulse
 
         self.pulse_name = Parameter(
@@ -96,7 +98,7 @@ class Readout(QickInstruction):
         assert self in program.protocol.instructions
         program.delay_auto(self.wait_before.get() * 1e6, gens=True, ros=False)
         program.trigger(
-            ros=[self.adcs[0].channel_num],
+            ros=[adc.channel_num for adc in self.adcs],
             t=self.adc_trig_offset.get() * 1e6,
         )
         self.pulse.append_to(program)
