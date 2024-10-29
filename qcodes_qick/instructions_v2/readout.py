@@ -1,7 +1,6 @@
 from typing import Sequence
 
-from qcodes import ManualParameter, Parameter
-from qcodes.validators import Bool
+from qcodes import Parameter
 
 from qcodes_qick.channels_v2 import AdcChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
@@ -71,13 +70,6 @@ class Readout(QickInstruction):
             vals=SweepableNumbers(min_value=0),
             initial_value=0,
         )
-        self.wait_for_adc = ManualParameter(
-            name="wait_for_adc",
-            instrument=self,
-            label="Pause tProc execution until the end of the ADC readout window",
-            vals=Bool(),
-            initial_value=True,
-        )
 
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
@@ -102,6 +94,4 @@ class Readout(QickInstruction):
             t=self.adc_trig_offset.get() * 1e6,
         )
         self.pulse.append_to(program)
-        if self.wait_for_adc.get():
-            program.wait_auto(gens=False, ros=True)
         program.delay_auto(t=self.wait_after.get() * 1e6, gens=True, ros=False)
