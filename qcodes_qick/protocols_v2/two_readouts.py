@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes_qick.instructions_v2.delay_auto import DelayAuto
 from qcodes_qick.protocol_base_v2 import SimpleSweepProtocol
 
 if TYPE_CHECKING:
@@ -11,29 +10,22 @@ if TYPE_CHECKING:
     from qcodes_qick.instruments import QickInstrument
 
 
-class EfHahnEchoProtocol(SimpleSweepProtocol):
+class TwoReadoutsProtocol(SimpleSweepProtocol):
     def __init__(
         self,
         parent: QickInstrument,
-        ge_pi_pulse: QickInstruction,
-        ge_half_pi_pulse: QickInstruction,
-        ef_pi_pulse: QickInstruction,
-        ef_half_pi_pulse: QickInstruction,
+        pi_pulse: QickInstruction,
         readout: Readout,
-        name="EfHahnEchoProtocol",
+        name="TwoReadoutsProtocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent)
+        self.pi_pulse_2 = pi_pulse.copy(pi_pulse.name + "_2")
         super().__init__(
             parent=parent,
             instructions=[
-                ge_pi_pulse,
-                ef_half_pi_pulse,
-                self.delay,
-                ef_pi_pulse,
-                self.delay,
-                ef_half_pi_pulse,
-                ge_half_pi_pulse,
+                pi_pulse,
+                readout,
+                self.pi_pulse_2,
                 readout,
             ],
             name=name,

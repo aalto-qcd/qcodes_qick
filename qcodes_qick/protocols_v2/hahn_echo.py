@@ -21,7 +21,7 @@ class HahnEchoProtocol(SimpleSweepProtocol):
         name="HahnEchoProtocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent, half_pi_pulse.dacs[0])
+        self.delay = DelayAuto(parent)
         super().__init__(
             parent=parent,
             instructions=[

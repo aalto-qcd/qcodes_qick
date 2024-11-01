@@ -1,4 +1,3 @@
-from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
 from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
@@ -12,8 +11,6 @@ class DelayAuto(QickInstruction):
     ----------
     parent : QickInstrument
         Make me a submodule of this QickInstrument.
-    dac : DacChannel
-        The DAC channel to add the delay to.
     name : str
         My unique name.
     **kwargs : dict, optional
@@ -23,11 +20,10 @@ class DelayAuto(QickInstruction):
     def __init__(
         self,
         parent: QickInstrument,
-        dac: DacChannel,
         name="DelayAuto",
         **kwargs,
     ):
-        super().__init__(parent, dacs=[dac], name=name, **kwargs)
+        super().__init__(parent, name=name, **kwargs)
 
         self.time = SweepableParameter(
             name="time",
@@ -35,7 +31,7 @@ class DelayAuto(QickInstruction):
             label="Delay time",
             unit="sec",
             vals=SweepableNumbers(min_value=0),
-            initial_value=1e-6,
+            initial_value=0,
         )
 
     def initialize(self, program: SweepProgram):

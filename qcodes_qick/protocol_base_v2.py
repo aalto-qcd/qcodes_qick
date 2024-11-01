@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Literal, Sequence
 
 import numpy as np
 from qcodes import ManualParameter, Measurement, Parameter
@@ -54,7 +54,7 @@ class SoftwareSweep:
         # make sure that all parameters have the same unit
         assert len({parameter.unit for parameter in self.parameters}) == 1
 
-        if isinstance(start, Sequence):
+        if isinstance(start, (Sequence, np.ndarray)):
             self.values = start
         else:
             self.values = np.linspace(start, stop, num)
@@ -122,26 +122,34 @@ class SweepProtocol(ABC, QickProtocol):
         meas: Measurement,
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_loop_counts: dict[str, int] | None = None,
-        decimated: bool = False,
-        save_shots: bool = False,
+        acquisition_mode: Literal[
+            "accumulated", "accumulated shots", "decimated", "ddr4"
+        ] = "accumulated",
     ) -> int:
-        if save_shots:
+        if acquisition_mode not in ["accumulated", "decimated"]:
             assert self.soft_avgs.get() == 1
-        hardware_loop_counts = hardware_loop_counts if hardware_loop_counts else {}
+        if hardware_loop_counts is None:
+            hardware_loop_counts = {}
+        if len(hardware_loop_counts) == 0 and acquisition_mode == "accumulated":
+            paramtype = "numeric"
+            paramtype_iq = "complex"
+        else:
+            paramtype = "array"
+            paramtype_iq = "array"
         setpoints = []
 
         # initialize and register the software sweep parameters
         for sweep in software_sweeps:
             sweep.parameters[0].set(sweep.values[0])
             setpoints.append(sweep.parameters[0])
-            meas.register_parameter(sweep.parameters[0], paramtype="array")
+            meas.register_parameter(sweep.parameters[0], paramtype=paramtype)
             for parameter in sweep.parameters[1:]:
                 parameter.set(sweep.values[0])
 
         # register the shot axis if necessary
-        if save_shots:
+        if acquisition_mode in ["accumulated shots"]:
             shot_parameter = Parameter("shot", label="Shot", unit="")
-            meas.register_parameter(shot_parameter, paramtype="array")
+            meas.register_parameter(shot_parameter, paramtype=paramtype)
             setpoints.append(shot_parameter)
         else:
             shot_parameter = None
@@ -155,13 +163,15 @@ class SweepProtocol(ABC, QickProtocol):
                 if loop in sweep.spans and parameter not in hardware_sweep_parameters:
                     hardware_sweep_parameters.append(parameter)
                     setpoints.append(parameter)
-                    meas.register_parameter(parameter, paramtype="array")
+                    meas.register_parameter(parameter, paramtype=paramtype)
 
         # register the time axis if necessary
-        if decimated:
+        if acquisition_mode in ["decimated", "ddr4"]:
             time_parameter = Parameter("time", label="Time", unit="sec")
             setpoints.append(time_parameter)
-            meas.register_parameter(time_parameter, paramtype="array")
+            meas.register_parameter(time_parameter, paramtype=paramtype)
+        else:
+            time_parameter = None
 
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
         program = self.generate_program(self.parent.soccfg, hardware_loop_counts)
@@ -182,56 +192,40 @@ class SweepProtocol(ABC, QickProtocol):
 
                 iq_parameter = Parameter(name)
                 iq_parameters.append(iq_parameter)
-                meas.register_parameter(iq_parameter, setpoints, paramtype="array")
+                meas.register_parameter(iq_parameter, setpoints, paramtype=paramtype_iq)
 
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
-                if decimated:
-                    self.run_hardware_loops_decimated(
+                self.run_hardware_loops(
+                    datasaver,
+                    software_sweeps,
+                    shot_parameter,
+                    hardware_loop_counts,
+                    hardware_sweep_parameters,
+                    time_parameter,
+                    iq_parameters,
+                    acquisition_mode,
+                    progress=True,
+                )
+            else:
+                software_sweep_values = [sweep.values for sweep in software_sweeps]
+                for current_values in tqdm_product(*software_sweep_values):
+                    # update the software sweep parameters
+                    for sweep, value in zip(software_sweeps, current_values):
+                        for parameter in sweep.parameters:
+                            parameter.set(value)
+
+                    self.run_hardware_loops(
                         datasaver,
                         software_sweeps,
+                        shot_parameter,
                         hardware_loop_counts,
                         hardware_sweep_parameters,
                         time_parameter,
                         iq_parameters,
-                        progress=True,
+                        acquisition_mode,
+                        progress=False,
                     )
-                else:
-                    self.run_hardware_loops(
-                        datasaver,
-                        software_sweeps,
-                        hardware_loop_counts,
-                        hardware_sweep_parameters,
-                        shot_parameter,
-                        iq_parameters,
-                        progress=True,
-                    )
-            else:
-                software_sweep_values = [sweep.values for sweep in software_sweeps]
-                for current_values in tqdm_product(*software_sweep_values):
-                    for sweep, value in zip(software_sweeps, current_values):
-                        for parameter in sweep.parameters:
-                            parameter.set(value)
-                    if decimated:
-                        self.run_hardware_loops_decimated(
-                            datasaver,
-                            software_sweeps,
-                            hardware_loop_counts,
-                            hardware_sweep_parameters,
-                            time_parameter,
-                            iq_parameters,
-                            progress=False,
-                        )
-                    else:
-                        self.run_hardware_loops(
-                            datasaver,
-                            software_sweeps,
-                            hardware_loop_counts,
-                            hardware_sweep_parameters,
-                            shot_parameter,
-                            iq_parameters,
-                            progress=False,
-                        )
 
         return datasaver.run_id
 
@@ -239,111 +233,99 @@ class SweepProtocol(ABC, QickProtocol):
         self,
         datasaver: DataSaver,
         software_sweeps: Sequence[SoftwareSweep],
+        shot_parameter: Parameter | None,
         hardware_loop_counts: dict[str, int],
         hardware_sweep_parameters: Sequence[SweepableParameter],
-        shot_parameter: Parameter | None,  # None means do not save shots
+        time_parameter: Parameter | None,
         iq_parameters: Sequence[Parameter],
-        progress: bool = True,
+        acquisition_mode: Literal[
+            "accumulated", "accumulated shots", "decimated", "ddr4"
+        ],
+        progress: bool,
     ):
         # Run the program
         program = self.generate_program(self.parent.soccfg, hardware_loop_counts)
-        all_iq = AcquireMixin.acquire(
-            self=program,
-            soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
-            progress=progress,
-        )
-
         reads_per_shot = program.reads_per_shot
+        if acquisition_mode == "decimated":
+            all_iq = AcquireMixin.acquire_decimated(
+                self=program,
+                soc=self.parent.soc,
+                soft_avgs=self.soft_avgs.get(),
+                progress=progress,
+            )
+            for channel_index in range(len(reads_per_shot)):
+                channel_iq = all_iq[channel_index]
+                length = len(program.get_time_axis(channel_index))
+                all_iq[channel_index] = channel_iq.reshape(
+                    self.hard_avgs.get(), -1, reads_per_shot[channel_index], length, 2
+                )
+                if len(hardware_loop_counts) == 0:
+                    all_iq[channel_index] = all_iq[channel_index][:, 0, :, :, :]
+        else:
+            all_iq = AcquireMixin.acquire(
+                self=program,
+                soc=self.parent.soc,
+                soft_avgs=self.soft_avgs.get(),
+                progress=progress,
+            )
+
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
+            channel_num = list(program.ro_chs.keys())[channel_index]
             for readout_num in range(reads_per_shot[channel_index]):
-                result = []
+                param_values = []
 
                 # Add software sweep paramters to the result
                 for sweep in software_sweeps:
-                    result.append((sweep.parameters[0], sweep.parameters[0].get()))
+                    param_values.append(
+                        (sweep.parameters[0], sweep.parameters[0].get())
+                    )
+
+                # Add the shot axis to the result if necessary
+                if acquisition_mode in ["accumulated shot"]:
+                    shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
+                    values = np.arange(self.hard_avgs.get())
+                    for _ in range(len(hardware_loop_counts)):
+                        values = values[..., np.newaxis]
+                    values = np.broadcast_to(values, shape)
+                    param_values.append((shot_parameter, values))
+                else:
+                    shape = hardware_loop_counts.values()
 
                 # Add hardware sweep parameters to the result
-                if shot_parameter is None:
-                    shape = hardware_loop_counts.values()
-                else:
-                    shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
                     assert isinstance(sweep, QickParam)
                     values = sweep.get_actual_values(hardware_loop_counts)
                     values = np.broadcast_to(values, shape)
-                    result.append((parameter, values))
-                if shot_parameter is not None:
-                    values = np.arange(self.hard_avgs.get())
-                    for _ in range(len(hardware_loop_counts)):
-                        values = values[..., np.newaxis]
-                    values = np.broadcast_to(values, shape)
-                    result.append((shot_parameter, values))
+                    param_values.append((parameter, values))
+
+                ddr4_channel = self.parent.ddr4_buffer.selected_adc_channel.get()
+                ddr4_num_transfers = self.parent.ddr4_buffer.num_transfers.get()
 
                 # Add acquired data to the result
-                if shot_parameter is None:
+                if acquisition_mode == "accumulated":
                     iq = channel_iq[readout_num, ...].dot([1, 1j])
-                    result.append((iq_parameters[iq_index], iq))
-                else:
+                elif acquisition_mode == "accumulated shots":
+                    # Accumulate over readout window and save single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
-                    result.append((iq_parameters[iq_index], iq))
+                elif acquisition_mode == "decimated":
+                    # Save acquired waveform averaged over shots
+                    assert time_parameter is not None
+                    time = program.get_time_axis(channel_index) / 1e6
+                    iq = channel_iq[..., readout_num, :, :].mean(axis=0).dot([1, 1j])
+                    param_values.append((time_parameter, time))
+                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel.get():
+                    assert time_parameter is not None
+                    iq = self.parent.soc.get_ddr4(ddr4_num_transfers.get()).dot([1, 1j])
+                    time = program.get_time_axis_ddr4(ddr4_channel.get(), iq) / 1e6
+                    param_values.append((time_parameter, time))
 
+                if iq.shape == (1,):
+                    iq = iq[0]
+                datasaver.add_result(*param_values, (iq_parameters[iq_index], iq))
                 iq_index += 1
-                datasaver.add_result(*result)
-
-    def run_hardware_loops_decimated(
-        self,
-        datasaver: DataSaver,
-        software_sweeps: Sequence[SoftwareSweep],
-        hardware_loop_counts: dict[str, int],
-        hardware_sweep_parameters: Sequence[SweepableParameter],
-        time_parameter: Parameter,
-        iq_parameters: Sequence[Parameter],
-        progress: bool = True,
-    ):
-        # Run the program
-        program = self.generate_program(self.parent.soccfg, hardware_loop_counts)
-        all_iq = AcquireMixin.acquire_decimated(
-            self=program,
-            soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
-            progress=progress,
-        )
-
-        reads_per_shot = program.reads_per_shot
-        iq_index = 0
-        for channel_index in range(len(reads_per_shot)):
-            channel_iq = all_iq[channel_index]
-            length = len(program.get_time_axis(channel_index))
-            channel_iq = channel_iq.reshape(
-                self.hard_avgs.get(), -1, reads_per_shot[channel_index], length, 2
-            )
-            for readout_num in range(reads_per_shot[channel_index]):
-                iq = channel_iq[:, :, readout_num, :, :].mean(axis=0).dot([1, 1j])
-                result = []
-
-                # Add software sweep paramters to the result
-                for sweep in software_sweeps:
-                    result.append((sweep.parameters[0], sweep.parameters[0].get()))
-
-                # Add hardware sweep parameters to the result
-                for parameter in hardware_sweep_parameters:
-                    sweep = parameter.get()
-                    assert isinstance(sweep, QickParam)
-                    coordinates = sweep.get_actual_values(hardware_loop_counts)
-                    result.append((parameter, coordinates[..., np.newaxis]))
-
-                time = program.get_time_axis(channel_index) / 1e6
-                result.append((time_parameter, time))
-
-                # Add acquired data to the result
-                result.append((iq_parameters[iq_index], iq.reshape(-1)))
-                iq_index += 1
-
-                datasaver.add_result(*result)
 
 
 class SweepProgram(AveragerProgramV2):
