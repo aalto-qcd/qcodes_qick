@@ -69,12 +69,25 @@ class AdcChannel(InstrumentChannel):
     def __init__(self, parent: QickInstrument, name: str, channel_num: int, **kwargs):
         super().__init__(parent, name, **kwargs)
         self.channel_num = channel_num
+        config = parent.soccfg["readouts"][channel_num]
 
         self.type = Parameter(
             name="type",
             instrument=self,
             label="ADC type",
-            initial_cache_value=parent.soccfg["readouts"][channel_num]["ro_type"],
+            initial_cache_value=config["ro_type"],
+        )
+        self.f_fabric = Parameter(
+            name="f_fabric",
+            instrument=self,
+            label="Fabric clock frequency",
+            initial_cache_value=config["f_fabric"] * 1e6,
+        )
+        self.avgbuf_fullpath = Parameter(
+            name="avgbuf_fullpath",
+            instrument=self,
+            label="Full path (in the firmware) of the average buffer driven by this channel",
+            initial_cache_value=config["avgbuf_fullpath"],
         )
         self.matching_dac = ManualParameter(
             name="matching_dac",
