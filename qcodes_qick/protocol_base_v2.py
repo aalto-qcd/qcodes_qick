@@ -54,7 +54,7 @@ class SoftwareSweep:
         # make sure that all parameters have the same unit
         assert len({parameter.unit for parameter in self.parameters}) == 1
 
-        if isinstance(start, Sequence):
+        if isinstance(start, (Sequence, np.ndarray)):
             self.values = start
         else:
             self.values = np.linspace(start, stop, num)
