@@ -75,6 +75,15 @@ class IQConstantPulse(QickInstruction):
             initial_value=False,
         )
 
+    def copy(self, copy_name: str) -> "IQConstantPulse":
+        copy = IQConstantPulse(self.parent, self.dac_i, self.dac_q, copy_name)
+        copy.gain.set(self.gain.get())
+        copy.freq.set(self.freq.get())
+        copy.length.set(self.length.get())
+        copy.phase_imbalance.set(self.phase_imbalance.get())
+        copy.periodic.set(self.periodic.get())
+        return copy
+
     def initialize(self, program: SweepProgram):
         """Add initialization commands to a program.
 
