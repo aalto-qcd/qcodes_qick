@@ -23,7 +23,7 @@ class EfHahnEchoProtocol(SimpleSweepProtocol):
         name="EfHahnEchoProtocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent, ef_half_pi_pulse.dacs[0])
+        self.delay = DelayAuto(parent)
         super().__init__(
             parent=parent,
             instructions=[

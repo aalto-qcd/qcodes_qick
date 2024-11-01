@@ -20,7 +20,7 @@ class RamseyProtocol(SimpleSweepProtocol):
         name="RamseyProtocol",
         **kwargs,
     ):
-        self.delay = DelayAuto(parent, half_pi_pulse.dacs[0])
+        self.delay = DelayAuto(parent)
         self.half_pi_pulse_2 = half_pi_pulse.copy(half_pi_pulse.name + "_2")
         super().__init__(
             parent=parent,
