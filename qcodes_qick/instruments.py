@@ -16,7 +16,7 @@ from qcodes_qick.channels_v2 import DacChannel as DacChannelV2
 from qcodes_qick.muxed_dac import MuxedDacChannel
 
 if TYPE_CHECKING:
-    from qcodes_qick.parameters_v2 import SweepableParameter
+    from qcodes_qick.parameters_v2 import SweepableOrAutoParameter, SweepableParameter
 
 
 class QickInstrument(Instrument):
@@ -29,7 +29,7 @@ class QickInstrument(Instrument):
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         # set of all parameters which have been assigned a QickSweep object
-        self.swept_params: set[SweepableParameter] = set()
+        self.swept_params: set[SweepableParameter | SweepableOrAutoParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]

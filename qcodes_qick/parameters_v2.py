@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from qcodes import ManualParameter
-from qcodes.validators import Numbers, Validator
+from qcodes.validators import Enum, MultiType, Numbers, Validator
 from qick.asm_v2 import QickParam
 
 from qcodes_qick.instruments import QickInstrument
@@ -55,6 +55,42 @@ class SweepableParameter(ManualParameter):
         )
 
     def set_parser(self, value: float | QickParam) -> float | QickParam:
+        # keep track of all swept parameters of the instrument
+        if isinstance(value, QickParam):
+            self.qick_instrument.swept_params.add(self)
+        elif self in self.qick_instrument.swept_params:
+            self.qick_instrument.swept_params.remove(self)
+        return value
+
+
+class SweepableOrAutoParameter(ManualParameter):
+    def __init__(
+        self,
+        name: str,
+        instrument: InstrumentModule,
+        label: str,
+        unit: str,
+        initial_value: float,
+        min_value: float = -float("inf"),
+        max_value: float = float("inf"),
+        **kwargs,
+    ):
+        assert isinstance(instrument.parent, QickInstrument)
+        self.qick_instrument: QickInstrument = instrument.parent
+        super().__init__(
+            name,
+            instrument,
+            label=label,
+            unit=unit,
+            set_parser=self.set_parser,
+            vals=MultiType(SweepableNumbers(min_value, max_value), Enum("auto")),
+            initial_value=initial_value,
+            **kwargs,
+        )
+
+    def set_parser(
+        self, value: float | QickParam | Literal["auto"]
+    ) -> float | QickParam | Literal["auto"]:
         # keep track of all swept parameters of the instrument
         if isinstance(value, QickParam):
             self.qick_instrument.swept_params.add(self)
