@@ -29,7 +29,7 @@ class QickInstrument(Instrument):
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         # set of all parameters which have been assigned a QickSweep object
-        self.swept_parameters: set[SweepableParameter] = set()
+        self.swept_params: set[SweepableParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]

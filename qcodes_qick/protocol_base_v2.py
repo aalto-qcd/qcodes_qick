@@ -157,7 +157,7 @@ class SweepProtocol(ABC, QickProtocol):
         # register the hardware sweep parameters
         hardware_sweep_parameters = []
         for loop in hardware_loop_counts:
-            for parameter in self.parent.swept_parameters:
+            for parameter in self.parent.swept_params:
                 sweep = parameter.get()
                 assert isinstance(sweep, QickParam)
                 if loop in sweep.spans and parameter not in hardware_sweep_parameters:

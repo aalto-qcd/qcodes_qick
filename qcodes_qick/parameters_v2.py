@@ -57,7 +57,7 @@ class SweepableParameter(ManualParameter):
     def set_parser(self, value: float | QickParam) -> float | QickParam:
         # keep track of all swept parameters of the instrument
         if isinstance(value, QickParam):
-            self.qick_instrument.swept_parameters.add(self)
-        elif self in self.qick_instrument.swept_parameters:
-            self.qick_instrument.swept_parameters.remove(self)
+            self.qick_instrument.swept_params.add(self)
+        elif self in self.qick_instrument.swept_params:
+            self.qick_instrument.swept_params.remove(self)
         return value
