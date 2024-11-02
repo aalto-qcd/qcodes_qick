@@ -36,8 +36,9 @@ class SweepableParameter(ManualParameter):
         instrument: InstrumentModule,
         label: str,
         unit: str,
-        vals: SweepableNumbers,
         initial_value: float,
+        min_value: float = -float("inf"),
+        max_value: float = float("inf"),
         **kwargs,
     ):
         assert isinstance(instrument.parent, QickInstrument)
@@ -48,7 +49,7 @@ class SweepableParameter(ManualParameter):
             label=label,
             unit=unit,
             set_parser=self.set_parser,
-            vals=vals,
+            vals=SweepableNumbers(min_value, max_value),
             initial_value=initial_value,
             **kwargs,
         )

@@ -1,6 +1,6 @@
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
@@ -30,8 +30,8 @@ class DelayAuto(QickInstruction):
             instrument=self,
             label="Delay time",
             unit="sec",
-            vals=SweepableNumbers(min_value=0),
             initial_value=0,
+            min_value=0,
         )
 
     def initialize(self, program: SweepProgram):

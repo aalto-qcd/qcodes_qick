@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 
 if TYPE_CHECKING:
     from qcodes_qick.envelope_base_v2 import DacEnvelope
@@ -42,15 +42,15 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse gain",
             unit="DAC unit",
-            vals=SweepableNumbers(-1, 1),
             initial_value=0.5,
+            min_value=-1,
+            max_value=1,
         )
         self.freq = SweepableParameter(
             name="freq",
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=SweepableNumbers(),
             initial_value=0,
         )
         self.phase = SweepableParameter(
@@ -58,7 +58,6 @@ class Pulse(QickInstruction):
             instrument=self,
             label="Pulse phase",
             unit="deg",
-            vals=SweepableNumbers(),
             initial_value=0,
         )
 

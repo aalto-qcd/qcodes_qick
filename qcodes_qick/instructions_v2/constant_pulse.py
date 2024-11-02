@@ -1,7 +1,7 @@
 from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.instruction_base_v2 import QickInstruction
 from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 from qcodes_qick.protocol_base_v2 import SweepProgram
 
 
@@ -34,15 +34,15 @@ class ConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse gain",
             unit="DAC unit",
-            vals=SweepableNumbers(-1, 1),
             initial_value=0.5,
+            min_value=-1,
+            max_value=1,
         )
         self.freq = SweepableParameter(
             name="freq",
             instrument=self,
             label="Pulse frequency",
             unit="Hz",
-            vals=SweepableNumbers(),
             initial_value=0,
         )
         self.length = SweepableParameter(
@@ -50,8 +50,8 @@ class ConstantPulse(QickInstruction):
             instrument=self,
             label="Pulse length",
             unit="sec",
-            vals=SweepableNumbers(min_value=0),
             initial_value=400e-9,
+            min_value=0,
         )
 
     def initialize(self, program: SweepProgram):

@@ -6,7 +6,7 @@ from qcodes import ManualParameter
 from qcodes.validators import Bool
 
 from qcodes_qick.instruction_base_v2 import QickInstruction
-from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 
 if TYPE_CHECKING:
     from qick.asm_v2 import QickParam
@@ -49,7 +49,6 @@ class TriggerAdcs(QickInstruction):
             instrument=self,
             label="Trigger time relative to the last DelayAuto",
             unit="sec",
-            vals=SweepableNumbers(),
             initial_value=t,
         )
         self.ddr4 = ManualParameter(
