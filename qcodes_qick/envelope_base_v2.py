@@ -3,54 +3,35 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes.instrument import InstrumentModule
-from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
+    import qick.asm_v2
+
     from qcodes_qick.channels_v2 import DacChannel
-    from qcodes_qick.instruments import QickInstrument
-    from qcodes_qick.protocol_base import SweepProgram
 
 
 class DacEnvelope(InstrumentModule):
-    """Base class for an envelope.
+    """Base class for a pulse envelope stored in a DAC channel's envelope memory.
 
     Parameters
     ----------
-    parent : QickInstrument
-        Make me a submodule of this QickInstrument.
-    dac : DacChannel
-        The DAC channel.
+    parent : DacChannel
+        The DAC channel which will play this pulse envelope.
     name : str
-        My unique name.
-    **kwargs : dict, optional
-        Keyword arguments to pass on to InstrumentBase.__init__.
+        A name which is unique within the DacChannel.
     """
 
-    parent: QickInstrument
+    parent: DacChannel
 
-    def __init__(
-        self,
-        parent: QickInstrument,
-        dac: DacChannel,
-        name: str = "DacEnvelope",
-        **kwargs,
-    ):
-        super().__init__(parent, name, **kwargs)
-        assert parent.tproc_version.get() == 2
-        parent.add_submodule(name, self)
-        self.dac = dac
+    def __init__(self, parent: DacChannel, name: str) -> None:
+        super().__init__(parent, name)
+        self.parent.add_submodule(name, self)
 
-        self.dac_channel_num = Parameter(
-            name="dac_channel_num",
-            instrument=self,
-            label="DAC channel number",
-            initial_cache_value=dac.channel_num,
-        )
-
-    def initialize(self, program: SweepProgram):
-        """Add initialization commands to a program.
+    def initialize(self, program: qick.asm_v2.QickProgramV2) -> None:
+        """Add this envelope to the program's envelope library.
 
         Parameters
         ----------
-        program : SweepProgram
+        program : qick.asm_v2.QickProgramV2
+            The program which uses this envelope.
         """

@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from qcodes import ManualParameter
+from qcodes.instrument import InstrumentModule
 from qcodes.validators import Enum, MultiType, Numbers, Validator
 from qick.asm_v2 import QickParam
 
-from qcodes_qick.instruments import QickInstrument
-
 if TYPE_CHECKING:
-    from qcodes.instrument import InstrumentModule
+    from qcodes.instrument import InstrumentBase
+
+    from qcodes_qick.instrument_v2 import QickInstrument
 
 
 class SweepableNumbers(Validator):
@@ -17,7 +18,7 @@ class SweepableNumbers(Validator):
         self,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
-    ):
+    ) -> None:
         self.numbers = Numbers(min_value, max_value)
         self._valid_values = (min_value, max_value)
 
@@ -33,16 +34,19 @@ class SweepableParameter(ManualParameter):
     def __init__(
         self,
         name: str,
-        instrument: InstrumentModule,
+        instrument: InstrumentBase,
         label: str,
         unit: str,
         initial_value: float,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
+        settable: bool = True,
         **kwargs,
-    ):
-        assert isinstance(instrument.parent, QickInstrument)
-        self.qick_instrument: QickInstrument = instrument.parent
+    ) -> None:
+        inst = instrument
+        while isinstance(inst, InstrumentModule):
+            inst = inst.parent
+        self.qick_instrument: QickInstrument = inst
         super().__init__(
             name,
             instrument,
@@ -53,6 +57,7 @@ class SweepableParameter(ManualParameter):
             initial_value=initial_value,
             **kwargs,
         )
+        self._settable = settable
 
     def set_parser(self, value: float | QickParam) -> float | QickParam:
         # keep track of all swept parameters of the instrument
@@ -67,16 +72,19 @@ class SweepableOrAutoParameter(ManualParameter):
     def __init__(
         self,
         name: str,
-        instrument: InstrumentModule,
+        instrument: InstrumentBase,
         label: str,
         unit: str,
         initial_value: float,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
+        settable: bool = True,
         **kwargs,
-    ):
-        assert isinstance(instrument.parent, QickInstrument)
-        self.qick_instrument: QickInstrument = instrument.parent
+    ) -> None:
+        inst = instrument
+        while isinstance(inst, InstrumentModule):
+            inst = inst.parent
+        self.qick_instrument: QickInstrument = inst
         super().__init__(
             name,
             instrument,
@@ -87,6 +95,7 @@ class SweepableOrAutoParameter(ManualParameter):
             initial_value=initial_value,
             **kwargs,
         )
+        self._settable = settable
 
     def set_parser(
         self, value: float | QickParam | Literal["auto"]
