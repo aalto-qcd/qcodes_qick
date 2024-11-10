@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import qick.asm_v2
+import qick.qick_asm
+
+if TYPE_CHECKING:
+    from qcodes_qick.channels_v2 import AdcChannel, DacChannel
+    from qcodes_qick.envelope_base_v2 import DacEnvelope
+    from qcodes_qick.instrument_v2 import QickInstrument
+
+
+class AveragerProgram(qick.asm_v2.AveragerProgramV2):
+    def __init__(
+        self,
+        qick_instrument: QickInstrument,
+        hardware_loop_counts: dict[str, int],
+    ):
+        self.qick_instrument = qick_instrument
+        self.hardware_loop_counts = hardware_loop_counts
+        super().__init__(
+            qick_instrument.soccfg,
+            reps=qick_instrument.hard_avgs.get(),
+            final_delay=qick_instrument.final_delay.get() * 1e6,
+            final_wait=qick_instrument.final_wait.get() * 1e6,
+            initial_delay=qick_instrument.initial_delay.get() * 1e6,
+        )
+
+    def _initialize(self, cfg: dict):  # noqa: ARG002
+        macros = self.qick_instrument.macro_list
+        dacs: set[DacChannel] = set().union(*(m.dacs for m in macros))
+        adcs: set[AdcChannel] = set().union(*(m.adcs for m in macros))
+        envelopes: set[DacEnvelope] = set().union(*(m.envelopes for m in macros))
+        pulses: set[DacChannel] = set().union(*(m.pulses for m in macros))
+        for dac in dacs:
+            dac.initialize(self)
+        for adc in adcs:
+            adc.initialize(self)
+        for envelope in envelopes:
+            envelope.initialize(self)
+        for pulse in pulses:
+            pulse.initialize(self)
+
+        for name, count in self.hardware_loop_counts.items():
+            self.add_loop(name, count)
+
+    def _body(self, cfg: dict):  # noqa: ARG002
+        for macro in self.qick_instrument.macro_list:
+            self.append_macro(macro.qick_macro)

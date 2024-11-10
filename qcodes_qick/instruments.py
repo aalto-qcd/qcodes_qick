@@ -7,16 +7,12 @@ from qcodes import ChannelTuple, Instrument
 from qcodes.instrument import InstrumentModule
 from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Enum, Ints
-from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
 
 from qcodes_qick.channels import AdcChannel, DacChannel
-from qcodes_qick.channels_v2 import AdcChannel as AdcChannelV2
-from qcodes_qick.channels_v2 import DacChannel as DacChannelV2
-from qcodes_qick.muxed_dac import MuxedDacChannel
 
 if TYPE_CHECKING:
-    from qcodes_qick.parameters_v2 import SweepableParameter
+    from qcodes_qick.parameters_v2 import SweepableOrAutoParameter, SweepableParameter
 
 
 class QickInstrument(Instrument):
@@ -29,14 +25,12 @@ class QickInstrument(Instrument):
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         # set of all parameters which have been assigned a QickSweep object
-        self.swept_parameters: set[SweepableParameter] = set()
+        self.swept_params: set[SweepableParameter | SweepableOrAutoParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]
         if tproc_type == "axis_tproc64x32_x8":
             tproc_version = 1
-        elif tproc_type == "qick_processor":
-            tproc_version = 2
         else:
             raise NotImplementedError(f"unsupported tProc type: {tproc_type}")
 
@@ -64,33 +58,6 @@ class QickInstrument(Instrument):
                 parent=self,
                 name="adcs",
                 chan_type=AdcChannel,
-                chan_list=adc_list,
-            )
-
-        elif tproc_version == 2:
-            dac_list = []
-            for n in range(len(self.soccfg["gens"])):
-                dac_type = self.soccfg["gens"][n]["type"]
-                manager_class = QickProgramV2.gentypes[dac_type]
-                if manager_class == StandardGenManager:
-                    dac_list.append(DacChannelV2(self, f"dac{n}", n))
-                elif manager_class == MultiplexedGenManager:
-                    dac_list.append(MuxedDacChannel(self, f"dac{n}", n))
-                else:
-                    raise NotImplementedError(f"unsupported DAC type: {dac_type}")
-            self.dacs = ChannelTuple(
-                parent=self,
-                name="dacs",
-                chan_type=DacChannelV2,
-                chan_list=dac_list,
-            )
-            adc_list = []
-            for n in range(len(self.soccfg["readouts"])):
-                adc_list.append(AdcChannelV2(self, f"adc{n}", n))
-            self.adcs = ChannelTuple(
-                parent=self,
-                name="adcs",
-                chan_type=AdcChannelV2,
                 chan_list=adc_list,
             )
 

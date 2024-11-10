@@ -1,21 +1,26 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from qcodes import ManualParameter
 from qcodes.validators import Numbers
 
-from qcodes_qick.channels_v2 import DacChannel
 from qcodes_qick.envelope_base_v2 import DacEnvelope
-from qcodes_qick.instruments import QickInstrument
-from qcodes_qick.protocol_base import SweepProgram
+
+if TYPE_CHECKING:
+    import qick.asm_v2
+
+    from qcodes_qick.channels_v2 import DacChannel
 
 
 class GaussianEnvelope(DacEnvelope):
     def __init__(
         self,
-        parent: QickInstrument,
-        dac: DacChannel,
-        name="GaussianEnvelope",
-        **kwargs,
-    ):
-        super().__init__(parent, dac, name, **kwargs)
+        parent: DacChannel,
+        name: str = "GaussianEnvelope",
+    ) -> None:
+        super().__init__(parent, name)
+
         self.sigma = ManualParameter(
             name="sigma",
             instrument=self,
@@ -33,10 +38,10 @@ class GaussianEnvelope(DacEnvelope):
             initial_value=400e-9,
         )
 
-    def initialize(self, program: SweepProgram):
+    def initialize(self, program: qick.asm_v2.QickProgramV2) -> None:
         program.add_gauss(
-            ch=self.dac.channel_num,
-            name=self.name,
+            ch=self.parent.channel_num,
+            name=self.short_name,
             sigma=self.sigma.get() * 1e6,
             length=self.length.get() * 1e6,
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes import InstrumentChannel, ManualParameter, Parameter
-from qcodes.utils.validators import Enum
+from qcodes.validators import Enum
 
 from qcodes_qick.parameters import HzParameter, SecParameter
 

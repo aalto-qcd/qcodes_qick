@@ -1,36 +1,32 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Literal, Sequence
 
 import numpy as np
-from qcodes import ManualParameter, Measurement, Parameter
+import qick
+import qick.asm_v2
+import qick.qick_asm
+from qcodes import ChannelTuple, Instrument, ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
-from qcodes.validators import Ints
-from qick.asm_v2 import AveragerProgramV2, QickParam
-from qick.qick_asm import AcquireMixin
+from qcodes.validators import Enum, Ints
+from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
+from qick.pyro import make_proxy
 from tqdm.contrib.itertools import product as tqdm_product
 
-from qcodes_qick.parameters_v2 import SweepableNumbers, SweepableParameter
+from qcodes_qick.channels_v2 import (
+    AdcChannel,
+    DacChannel,
+    MultiplexedDacChannel,
+    StandardDacChannel,
+)
+from qcodes_qick.macro_base_v2 import Macro
+from qcodes_qick.parameters_v2 import SweepableParameter
+from qcodes_qick.programs_v2 import AveragerProgram
 
 if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
-    from qick.qick_asm import QickConfig
 
-    from qcodes_qick.channels_v2 import AdcChannel, DacChannel
-    from qcodes_qick.envelope_base_v2 import DacEnvelope
-    from qcodes_qick.instruction_base_v2 import QickInstruction
-    from qcodes_qick.instruments import QickInstrument
-
-
-class QickProtocol(InstrumentModule):
-    parent: QickInstrument
-
-    def __init__(self, parent: QickInstrument, name: str, **kwargs):
-        super().__init__(parent, name, **kwargs)
-        self.instructions: Sequence[QickInstruction] = []
-        assert parent.tproc_version.get() == 2
-        parent.add_submodule(name, self)
+    from qcodes_qick.parameters_v2 import SweepableOrAutoParameter
 
 
 class SoftwareSweep:
@@ -45,7 +41,7 @@ class SoftwareSweep:
         num: int | None = None,
         skip_first: bool = False,
         skip_last: bool = False,
-    ):
+    ) -> None:
         if isinstance(parameters, Parameter):
             self.parameters = [parameters]
         else:
@@ -64,14 +60,67 @@ class SoftwareSweep:
             self.values = self.values[:-1]
 
 
-class SweepProtocol(ABC, QickProtocol):
+class QickInstrument(Instrument):
     def __init__(
-        self,
-        parent: QickInstrument,
-        name: str,
-        **kwargs,
-    ):
-        super().__init__(parent, name, **kwargs)
+        self, ns_host: str, ns_port=8888, name="QickInstrument", **kwargs
+    ) -> None:
+        super().__init__(name, **kwargs)
+
+        # Use the IP address and port of the Pyro4 nameserver to get:
+        #   soc: Pyro4.Proxy pointing to the QickSoc object on the board
+        #   soccfg: QickConfig containing the current configuration of the board
+        self.soc, self.soccfg = make_proxy(ns_host, ns_port)
+
+        # set of all parameters which have been assigned a QickSweep object
+        self.swept_params: set[SweepableParameter | SweepableOrAutoParameter] = set()
+
+        assert len(self.soccfg["tprocs"]) == 1
+        tproc_type = self.soccfg["tprocs"][0]["type"]
+        if tproc_type != "qick_processor":
+            raise NotImplementedError(f"unsupported tProc type: {tproc_type}")
+
+        dac_list = []
+        for n in range(len(self.soccfg["gens"])):
+            dac_type = self.soccfg["gens"][n]["type"]
+            manager_class = QickProgramV2.gentypes[dac_type]
+            if manager_class == StandardGenManager:
+                dac_list.append(StandardDacChannel(self, f"dac{n}", n))
+            elif manager_class == MultiplexedGenManager:
+                dac_list.append(MultiplexedDacChannel(self, f"dac{n}", n))
+            else:
+                raise NotImplementedError(f"unsupported DAC type: {dac_type}")
+        self.dacs = ChannelTuple(
+            parent=self,
+            name="dacs",
+            chan_type=DacChannel,
+            chan_list=dac_list,
+        )
+        self.add_submodule("dacs", self.dacs)
+
+        adc_list = []
+        for n in range(len(self.soccfg["readouts"])):
+            adc_list.append(AdcChannel(self, f"adc{n}", n))
+        self.adcs = ChannelTuple(
+            parent=self,
+            name="adcs",
+            chan_type=AdcChannel,
+            chan_list=adc_list,
+        )
+        self.add_submodule("adcs", self.adcs)
+
+        self.ddr4_buffer = Ddr4Buffer(self, "ddr4_buffer")
+        self.add_submodule("ddr4_buffer", self.ddr4_buffer)
+
+        self.macro_list = ChannelTuple(
+            parent=self,
+            name="macro_list",
+            chan_type=Macro,
+            chan_list=[],
+        )
+        self.add_submodule("macro_list", self.macro_list)
+
+        # Counters to make sure every Macro in the macro_list has a unique name
+        self.macro_name_counter: dict[str, int] = {}
 
         self.hard_avgs = ManualParameter(
             name="hard_avgs",
@@ -92,30 +141,44 @@ class SweepProtocol(ABC, QickProtocol):
             instrument=self,
             label="Delay time to add at the end of the shot timeline, after the end of the last pulse or readout. Ten times the T1 of the qubit is usually appropriate.",
             unit="sec",
-            vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
+            min_value=0,
         )
         self.final_wait = SweepableParameter(
             name="final_wait",
             instrument=self,
             label="Amount of time to pause tProc execution at the end of each shot, after the end of the last readout. The default of 0 is usually appropriate.",
             unit="sec",
-            vals=SweepableNumbers(min_value=0),
             initial_value=0,
+            min_value=0,
         )
         self.initial_delay = SweepableParameter(
             name="initial_delay",
             instrument=self,
             label="Delay time to add to the timeline before starting to run the loops, to allow enough time for tProc to execute your initialization commands",
             unit="sec",
-            vals=SweepableNumbers(min_value=0),
             initial_value=1e-6,
+            min_value=0,
         )
 
-    @abstractmethod
-    def generate_program(
-        self, soccfg: QickConfig, hardware_loop_counts: dict[str, int]
-    ) -> SweepProgram: ...
+    def set_macro_list(self, macro_list: Sequence[Macro]) -> None:
+        del self.submodules["macro_list"]
+        del self._channel_lists["macro_list"]
+        self.macro_list = ChannelTuple(
+            parent=self,
+            name="macro_list",
+            chan_type=Macro,
+            chan_list=macro_list,
+        )
+        self.add_submodule("macro_list", self.macro_list)
+
+    def get_idn(self) -> dict[str, str | None]:
+        return {
+            "vendor": "Xilinx",
+            "model": self.soccfg["board"],
+            "serial": None,
+            "firmware": f"remote QICK library version = {self.soccfg['sw_version']}, local QICK library version = {qick.__version__}, firmware timestamp = {self.soccfg['fw_timestamp']}",
+        }
 
     def run(
         self,
@@ -157,9 +220,9 @@ class SweepProtocol(ABC, QickProtocol):
         # register the hardware sweep parameters
         hardware_sweep_parameters = []
         for loop in hardware_loop_counts:
-            for parameter in self.parent.swept_parameters:
+            for parameter in self.swept_params:
                 sweep = parameter.get()
-                assert isinstance(sweep, QickParam)
+                assert isinstance(sweep, qick.asm_v2.QickParam)
                 if loop in sweep.spans and parameter not in hardware_sweep_parameters:
                     hardware_sweep_parameters.append(parameter)
                     setpoints.append(parameter)
@@ -174,7 +237,7 @@ class SweepProtocol(ABC, QickProtocol):
             time_parameter = None
 
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
-        program = self.generate_program(self.parent.soccfg, hardware_loop_counts)
+        program = AveragerProgram(self, hardware_loop_counts)
         adc_channel_nums = program.ro_chs.keys()
         reads_per_shot = program.reads_per_shot
         assert len(adc_channel_nums) == len(reads_per_shot)
@@ -244,12 +307,12 @@ class SweepProtocol(ABC, QickProtocol):
         progress: bool,
     ):
         # Run the program
-        program = self.generate_program(self.parent.soccfg, hardware_loop_counts)
+        program = AveragerProgram(self, hardware_loop_counts)
         reads_per_shot = program.reads_per_shot
         if acquisition_mode == "decimated":
-            all_iq = AcquireMixin.acquire_decimated(
+            all_iq = qick.qick_asm.AcquireMixin.acquire_decimated(
                 self=program,
-                soc=self.parent.soc,
+                soc=self.soc,
                 soft_avgs=self.soft_avgs.get(),
                 progress=progress,
             )
@@ -262,9 +325,9 @@ class SweepProtocol(ABC, QickProtocol):
                 if len(hardware_loop_counts) == 0:
                     all_iq[channel_index] = all_iq[channel_index][:, 0, :, :, :]
         else:
-            all_iq = AcquireMixin.acquire(
+            all_iq = qick.qick_asm.AcquireMixin.acquire(
                 self=program,
-                soc=self.parent.soc,
+                soc=self.soc,
                 soft_avgs=self.soft_avgs.get(),
                 progress=progress,
             )
@@ -283,7 +346,7 @@ class SweepProtocol(ABC, QickProtocol):
                     )
 
                 # Add the shot axis to the result if necessary
-                if acquisition_mode in ["accumulated shot"]:
+                if acquisition_mode in ["accumulated shots"]:
                     shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
                     values = np.arange(self.hard_avgs.get())
                     for _ in range(len(hardware_loop_counts)):
@@ -296,13 +359,13 @@ class SweepProtocol(ABC, QickProtocol):
                 # Add hardware sweep parameters to the result
                 for parameter in hardware_sweep_parameters:
                     sweep = parameter.get()
-                    assert isinstance(sweep, QickParam)
+                    assert isinstance(sweep, qick.asm_v2.QickParam)
                     values = sweep.get_actual_values(hardware_loop_counts)
                     values = np.broadcast_to(values, shape)
                     param_values.append((parameter, values))
 
-                ddr4_channel = self.parent.ddr4_buffer.selected_adc_channel.get()
-                ddr4_num_transfers = self.parent.ddr4_buffer.num_transfers.get()
+                ddr4_channel = self.ddr4_buffer.selected_adc_channel.get()
+                ddr4_num_transfers = self.ddr4_buffer.num_transfers.get()
 
                 # Add acquired data to the result
                 if acquisition_mode == "accumulated":
@@ -318,7 +381,7 @@ class SweepProtocol(ABC, QickProtocol):
                     param_values.append((time_parameter, time))
                 elif acquisition_mode == "ddr4" and channel_num == ddr4_channel.get():
                     assert time_parameter is not None
-                    iq = self.parent.soc.get_ddr4(ddr4_num_transfers.get()).dot([1, 1j])
+                    iq = self.soc.get_ddr4(ddr4_num_transfers.get()).dot([1, 1j])
                     time = program.get_time_axis_ddr4(ddr4_channel.get(), iq) / 1e6
                     param_values.append((time_parameter, time))
 
@@ -328,65 +391,38 @@ class SweepProtocol(ABC, QickProtocol):
                 iq_index += 1
 
 
-class SweepProgram(AveragerProgramV2):
-    def __init__(
-        self,
-        soccfg: QickConfig,
-        protocol: SweepProtocol,
-        hardware_loop_counts: dict[str, int],
-    ):
-        self.protocol = protocol
-        self.hardware_loop_counts = hardware_loop_counts
-        self.dacs: set[DacChannel] = set().union(
-            *(instruction.dacs for instruction in self.protocol.instructions)
+class Ddr4Buffer(InstrumentModule):
+    parent: QickInstrument
+
+    def __init__(self, parent: QickInstrument, name: str) -> None:
+        super().__init__(parent, name)
+
+        all_avgbufs = [adc.avgbuf_fullpath.get() for adc in parent.adcs]
+        wired_avgbufs = self.parent.soccfg["ddr4_buf"]["readouts"]
+
+        self.wired_adc_channels = Parameter(
+            name="wired_adc_channels",
+            instrument=self,
+            label="Channel numbers of the ADCs wired to this DDR4 buffer",
+            initial_cache_value=[all_avgbufs.index(name) for name in wired_avgbufs],
         )
-        self.adcs: set[AdcChannel] = set().union(
-            *(instruction.adcs for instruction in self.protocol.instructions)
+        self.selected_adc_channel = ManualParameter(
+            name="selected_adc_channel",
+            instrument=self,
+            label="Channel number of the ADC to get data from",
+            vals=Enum(*self.wired_adc_channels.get()),
+            initial_value=self.wired_adc_channels.get()[0],
         )
-        self.dac_envelopes: set[DacEnvelope] = set().union(
-            *(instruction.dac_envelopes for instruction in self.protocol.instructions)
+        self.samples_per_transfer = Parameter(
+            name="samples_per_transfer",
+            instrument=self,
+            label="Number of samples in a chunk of data transfer from the decimated stream to this DDR4 buffer. The sample rate is the fabric clock frequency of the ADC.",
+            initial_cache_value=self.parent.soccfg["ddr4_buf"]["burst_len"],
         )
-        super().__init__(
-            soccfg,
-            reps=protocol.hard_avgs.get(),
-            final_delay=protocol.final_delay.get() * 1e6,
-            final_wait=protocol.final_wait.get() * 1e6,
-            initial_delay=protocol.initial_delay.get() * 1e6,
+        self.num_transfers = ManualParameter(
+            name="num_transfers",
+            instrument=self,
+            label="Duration of data acquisition expressed as the number of data transfers",
+            vals=Ints(min_value=1),
+            initial_value=1,
         )
-
-    def _initialize(self, cfg: dict):  # noqa: ARG002
-        for dac in self.dacs:
-            dac.initialize(self)
-        for adc in self.adcs:
-            adc.initialize(self)
-        for envelope in self.dac_envelopes:
-            envelope.initialize(self)
-        for instruction in set(self.protocol.instructions):
-            instruction.initialize(self)
-        for name, count in self.hardware_loop_counts.items():
-            self.add_loop(name, count)
-
-
-class SimpleSweepProtocol(SweepProtocol):
-    def __init__(
-        self,
-        parent: QickInstrument,
-        instructions: Sequence[QickInstruction],
-        name="SimpleSweepProtocol",
-        **kwargs,
-    ):
-        super().__init__(parent, name, **kwargs)
-        self.instructions = instructions
-
-    def generate_program(
-        self, soccfg: QickConfig, hardware_loop_counts: dict[str, int]
-    ):
-        return SimpleSweepProgram(soccfg, self, hardware_loop_counts)
-
-
-class SimpleSweepProgram(SweepProgram):
-    protocol: SimpleSweepProtocol
-
-    def _body(self, cfg: dict):  # noqa: ARG002
-        for instruction in self.protocol.instructions:
-            instruction.append_to(self)
