@@ -1,17 +1,20 @@
 from header import *
 
-name = Path(__file__).name[:-3]
+ge_pulse = ConstantPulse(qubit_dac, "ge_pulse")
+ge_pulse.gain.set(QickSweep1D("gain", 0, 0.2))
+ge_pulse.freq.set(QickSweep1D("freq", 2.8e9, 3.8e9))
+ge_pulse.length.set(100e-6)
 
-qubit_pulse = ConstantPulse(qick_instrument, qubit_dac, "qubit_pulse")
-qubit_pulse.freq.set(QickSweep1D("freq", 3.5e9, 4e9))
-qubit_pulse.gain.set(QickSweep1D("gain", 0, 0.1))
-qubit_pulse.length.set(100e-6)
+qi.set_macro_list(
+    [
+        PlayPulse(qi, ge_pulse),
+        *readout,
+    ]
+)
+qi.final_delay.set(100e-6)
+qi.hard_avgs.set(1000)
 
-p = PulseProbeProtocol(qick_instrument, qubit_pulse, readout)
-p.hard_avgs.set(1000)
-p.final_delay.set(100e-6)
-
-p.run(
-    Measurement(experiment, station, name),
-    hardware_loop_counts={"gain": 11, "freq": 201},
+qi.run(
+    Measurement(station=station, name=Path(__file__).name[:-3]),
+    hardware_loop_counts={"gain": 21, "freq": 501},
 )
