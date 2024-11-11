@@ -379,10 +379,10 @@ class QickInstrument(Instrument):
                     time = program.get_time_axis(channel_index) / 1e6
                     iq = channel_iq[..., readout_num, :, :].mean(axis=0).dot([1, 1j])
                     param_values.append((time_parameter, time))
-                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel.get():
+                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel:
                     assert time_parameter is not None
-                    iq = self.soc.get_ddr4(ddr4_num_transfers.get()).dot([1, 1j])
-                    time = program.get_time_axis_ddr4(ddr4_channel.get(), iq) / 1e6
+                    iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
+                    time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
                     param_values.append((time_parameter, time))
 
                 if iq.shape == (1,):
