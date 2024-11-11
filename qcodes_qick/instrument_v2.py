@@ -390,6 +390,29 @@ class QickInstrument(Instrument):
                 datasaver.add_result(*param_values, (iq_parameters[iq_index], iq))
                 iq_index += 1
 
+    def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
+        program = AveragerProgram(self, hardware_loop_counts={})
+        reads_per_shot = program.reads_per_shot
+        assert sum(reads_per_shot) > 0
+        all_iq = qick.qick_asm.AcquireMixin.acquire(
+            self=program,
+            soc=self.soc,
+            soft_avgs=self.soft_avgs.get(),
+            progress=progress,
+        )
+        iqs = {}
+        for channel_index in range(len(reads_per_shot)):
+            channel_num = list(program.ro_chs.keys())[channel_index]
+            for readout_num in range(reads_per_shot[channel_index]):
+                iq = all_iq[channel_index][readout_num, ...].dot([1, 1j])
+                name = "iq"
+                if reads_per_shot[channel_index] > 1:
+                    name += f"{readout_num}"
+                if len(reads_per_shot) > 1:
+                    name += f"_ch{channel_num}"
+                iqs[name] = iq
+        return iqs
+
 
 class Ddr4Buffer(InstrumentModule):
     parent: QickInstrument
