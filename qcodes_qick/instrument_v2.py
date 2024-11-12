@@ -306,6 +306,9 @@ class QickInstrument(Instrument):
         ],
         progress: bool,
     ):
+        if acquisition_mode == "ddr4":
+            self.ddr4_buffer.arm()
+
         # Run the program
         program = AveragerProgram(self, hardware_loop_counts)
         reads_per_shot = program.reads_per_shot
@@ -448,4 +451,10 @@ class Ddr4Buffer(InstrumentModule):
             label="Duration of data acquisition expressed as the number of data transfers",
             vals=Ints(min_value=1),
             initial_value=1,
+        )
+
+    def arm(self):
+        """Get ready to be triggered."""
+        self.parent.soc.arm_ddr4(
+            self.selected_adc_channel.get(), self.num_transfers.get()
         )
