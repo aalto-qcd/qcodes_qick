@@ -1,0 +1,26 @@
+name: Mirror to GitLab
+on:
+  push:
+    branches:
+      - main
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch all commit history
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "QCD Labs"
+
+      - name: Add GitLab remote
+        run: |
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@version.aalto.fi/gitlab/qcd_labs/measurement_environment/qcodes_qick.git
+
+      - name: Push to GitLab
+        run: |
+          git push gitlab main
+          git push --tags gitlab
