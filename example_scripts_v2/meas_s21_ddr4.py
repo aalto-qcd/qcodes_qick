@@ -5,7 +5,7 @@ qi.ddr4_buffer.num_transfers.set(10)
 
 qi.set_macro_list(
     [
-        Trigger(qi, t=0, ddr4=True),
+        Trigger(qi, readout_adc, t=0, ddr4=True),
         PlayPulse(qi, readout_pulse),
     ]
 )

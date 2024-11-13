@@ -1,3 +1,4 @@
+geom_median
 Pyro4
 qcodes
 qick>=0.2.255

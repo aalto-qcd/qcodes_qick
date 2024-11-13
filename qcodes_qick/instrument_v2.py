@@ -19,6 +19,7 @@ from qcodes_qick.channels_v2 import (
     MultiplexedDacChannel,
     StandardDacChannel,
 )
+from qcodes_qick.geometric_median import geometric_median
 from qcodes_qick.macro_base_v2 import Macro
 from qcodes_qick.parameters_v2 import SweepableParameter
 from qcodes_qick.programs_v2 import AveragerProgram
@@ -186,14 +187,21 @@ class QickInstrument(Instrument):
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_loop_counts: dict[str, int] | None = None,
         acquisition_mode: Literal[
-            "accumulated", "accumulated shots", "decimated", "ddr4"
+            "accumulated",
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+            "decimated",
         ] = "accumulated",
     ) -> int:
-        if acquisition_mode not in ["accumulated", "decimated"]:
+        if acquisition_mode in ["accumulated geometric median", "accumulated shots", "ddr4"]:
             assert self.soft_avgs.get() == 1
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
-        if len(hardware_loop_counts) == 0 and acquisition_mode == "accumulated":
+        if len(hardware_loop_counts) == 0 and acquisition_mode in [
+            "accumulated",
+            "accumulated geometric median",
+        ]:
             paramtype = "numeric"
             paramtype_iq = "complex"
         else:
@@ -257,6 +265,12 @@ class QickInstrument(Instrument):
                 iq_parameters.append(iq_parameter)
                 meas.register_parameter(iq_parameter, setpoints, paramtype=paramtype_iq)
 
+                if acquisition_mode == "accumulated geometric median":
+                    # also save the median absolute deviation (MAD)
+                    mad_parameter = Parameter(name + "_mad")
+                    iq_parameters.append(mad_parameter)
+                    meas.register_parameter(mad_parameter, setpoints, paramtype=paramtype_iq)
+
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
                 self.run_hardware_loops(
@@ -302,10 +316,17 @@ class QickInstrument(Instrument):
         time_parameter: Parameter | None,
         iq_parameters: Sequence[Parameter],
         acquisition_mode: Literal[
-            "accumulated", "accumulated shots", "decimated", "ddr4"
+            "accumulated",
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+            "decimated",
         ],
         progress: bool,
     ):
+        if acquisition_mode == "ddr4":
+            self.ddr4_buffer.arm()
+
         # Run the program
         program = AveragerProgram(self, hardware_loop_counts)
         reads_per_shot = program.reads_per_shot
@@ -370,6 +391,17 @@ class QickInstrument(Instrument):
                 # Add acquired data to the result
                 if acquisition_mode == "accumulated":
                     iq = channel_iq[readout_num, ...].dot([1, 1j])
+                elif acquisition_mode == "accumulated geometric median":
+                    # Calculate the geometric median of the single-shot data
+                    iq = program.d_buf[channel_index][..., readout_num, :]
+                    gm = geometric_median(iq).dot([1, 1j])
+                    datasaver.add_result(*param_values, (iq_parameters[iq_index], gm))
+                    iq_index += 1
+                    # Also calculate the median absolute deviation from the geometric mean
+                    mad = np.median(abs(iq.dot([1, 1j]) - gm), axis=0)
+                    datasaver.add_result(*param_values, (iq_parameters[iq_index], mad))
+                    iq_index += 1
+                    continue
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
@@ -379,16 +411,39 @@ class QickInstrument(Instrument):
                     time = program.get_time_axis(channel_index) / 1e6
                     iq = channel_iq[..., readout_num, :, :].mean(axis=0).dot([1, 1j])
                     param_values.append((time_parameter, time))
-                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel.get():
+                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel:
                     assert time_parameter is not None
-                    iq = self.soc.get_ddr4(ddr4_num_transfers.get()).dot([1, 1j])
-                    time = program.get_time_axis_ddr4(ddr4_channel.get(), iq) / 1e6
+                    iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
+                    time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
                     param_values.append((time_parameter, time))
 
                 if iq.shape == (1,):
                     iq = iq[0]
                 datasaver.add_result(*param_values, (iq_parameters[iq_index], iq))
                 iq_index += 1
+
+    def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
+        program = AveragerProgram(self, hardware_loop_counts={})
+        reads_per_shot = program.reads_per_shot
+        assert sum(reads_per_shot) > 0
+        all_iq = qick.qick_asm.AcquireMixin.acquire(
+            self=program,
+            soc=self.soc,
+            soft_avgs=self.soft_avgs.get(),
+            progress=progress,
+        )
+        iqs = {}
+        for channel_index in range(len(reads_per_shot)):
+            channel_num = list(program.ro_chs.keys())[channel_index]
+            for readout_num in range(reads_per_shot[channel_index]):
+                iq = all_iq[channel_index][readout_num, ...].dot([1, 1j])
+                name = "iq"
+                if reads_per_shot[channel_index] > 1:
+                    name += f"{readout_num}"
+                if len(reads_per_shot) > 1:
+                    name += f"_ch{channel_num}"
+                iqs[name] = iq
+        return iqs
 
 
 class Ddr4Buffer(InstrumentModule):
@@ -425,4 +480,10 @@ class Ddr4Buffer(InstrumentModule):
             label="Duration of data acquisition expressed as the number of data transfers",
             vals=Ints(min_value=1),
             initial_value=1,
+        )
+
+    def arm(self):
+        """Get ready to be triggered."""
+        self.parent.soc.arm_ddr4(
+            self.selected_adc_channel.get(), self.num_transfers.get()
         )

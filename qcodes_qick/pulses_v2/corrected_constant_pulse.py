@@ -118,13 +118,27 @@ class CorrectedConstantPulse(DacPulse):
         program : qick.asm_v2.QickProgramV2
             The program which uses this pulse.
         """
+        if len(self.correctable_freqs.get()) == 0:
+            gain_factor = 1
+            phase_offset = 0
+        else:
+            gain_factor = np.interp(
+                x=self.freq.get(),
+                xp=self.correctable_freqs.get(),
+                fp=self.gain_factors.get(),
+            )
+            phase_offset = np.interp(
+                x=self.freq.get(),
+                xp=self.correctable_freqs.get(),
+                fp=self.phase_offsets.get(),
+            )
         program.add_pulse(
             ch=self.parent.channel_num,
             name=self.short_name,
             style="const",
             freq=self.freq.get() / 1e6,
-            phase=self.phase.get(),
-            gain=self.gain.get(),
+            phase=self.phase.get() + phase_offset,
+            gain=self.gain.get() * gain_factor,
             length=self.length.get() * 1e6,
             ro_ch=self.parent.matching_adc.get(),
             phrst=self.reset_phase.get(),
