@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Sequence
+import itertools
+from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
 import numpy as np
 import qick
@@ -192,19 +193,27 @@ class QickInstrument(Instrument):
             "accumulated shots",
             "ddr4",
             "decimated",
+            "state population",
         ] = "accumulated",
+        num_states: int = 0,
+        state_classifier: Callable[[np.ndarray], np.ndarray] | None = None,
     ) -> int:
         if acquisition_mode in [
             "accumulated geometric median",
             "accumulated shots",
             "ddr4",
+            "state population",
         ]:
             assert self.soft_avgs.get() == 1
+        if acquisition_mode == "state population":
+            assert num_states >= 2
+            assert state_classifier is not None
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
         if len(hardware_loop_counts) == 0 and acquisition_mode in [
             "accumulated",
             "accumulated geometric median",
+            "state population",
         ]:
             paramtype = "numeric"
             paramtype_iq = "complex"
@@ -257,29 +266,42 @@ class QickInstrument(Instrument):
 
         # create and register the parameters representing the acquired data
         result_parameters = []
-        for i, channel_num in enumerate(adc_channel_nums):
-            for readout_num in range(reads_per_shot[i]):
-                name = "iq"
-                if reads_per_shot[i] > 1:
-                    name += f"{readout_num}"
-                if len(adc_channel_nums) > 1:
-                    name += f"_ch{channel_num}"
+        if acquisition_mode == "state population":
+            for states in itertools.product(
+                range(num_states), repeat=sum(reads_per_shot)
+            ):
+                name = "population_" + "_".join(str(state) for state in states)
+                population_parameter = Parameter(name)
+                result_parameters.append(population_parameter)
+                meas.register_parameter(
+                    population_parameter, setpoints, paramtype=paramtype
+                )
+        else:
+            for i, channel_num in enumerate(adc_channel_nums):
+                for readout_num in range(reads_per_shot[i]):
+                    name = "iq"
+                    if reads_per_shot[i] > 1:
+                        name += f"{readout_num}"
+                    if len(adc_channel_nums) > 1:
+                        name += f"_ch{channel_num}"
 
-                iq_parameter = Parameter(name)
-                result_parameters.append(iq_parameter)
-                meas.register_parameter(iq_parameter, setpoints, paramtype=paramtype_iq)
-
-                if acquisition_mode == "accumulated geometric median":
-                    # also save the median absolute deviation (MAD)
-                    mad_parameter = Parameter(name + "_mad")
-                    result_parameters.append(mad_parameter)
+                    iq_parameter = Parameter(name)
+                    result_parameters.append(iq_parameter)
                     meas.register_parameter(
-                        mad_parameter, setpoints, paramtype=paramtype_iq
+                        iq_parameter, setpoints, paramtype=paramtype_iq
                     )
+
+                    if acquisition_mode == "accumulated geometric median":
+                        # also save the median absolute deviation (MAD)
+                        mad_parameter = Parameter(name + "_mad")
+                        result_parameters.append(mad_parameter)
+                        meas.register_parameter(
+                            mad_parameter, setpoints, paramtype=paramtype_iq
+                        )
 
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
-                self.run_hardware_loops(
+                self._run_hardware_loops(
                     datasaver,
                     software_sweeps,
                     shot_parameter,
@@ -288,6 +310,8 @@ class QickInstrument(Instrument):
                     time_parameter,
                     result_parameters,
                     acquisition_mode,
+                    num_states,
+                    state_classifier,
                     progress=True,
                 )
             else:
@@ -298,7 +322,7 @@ class QickInstrument(Instrument):
                         for parameter in sweep.parameters:
                             parameter.set(value)
 
-                    self.run_hardware_loops(
+                    self._run_hardware_loops(
                         datasaver,
                         software_sweeps,
                         shot_parameter,
@@ -307,12 +331,14 @@ class QickInstrument(Instrument):
                         time_parameter,
                         result_parameters,
                         acquisition_mode,
+                        num_states,
+                        state_classifier,
                         progress=False,
                     )
 
         return datasaver.run_id
 
-    def run_hardware_loops(
+    def _run_hardware_loops(
         self,
         datasaver: DataSaver,
         software_sweeps: Sequence[SoftwareSweep],
@@ -327,13 +353,16 @@ class QickInstrument(Instrument):
             "accumulated shots",
             "ddr4",
             "decimated",
+            "state population",
         ],
+        num_states: int,
+        state_classifier: Callable[[np.ndarray], np.ndarray] | None,
         progress: bool,
     ):
         if acquisition_mode == "ddr4":
             self.ddr4_buffer.arm()
 
-        # Run the program
+        # run the program
         program = AveragerProgram(self, hardware_loop_counts)
         reads_per_shot = program.reads_per_shot
         if acquisition_mode == "decimated":
@@ -359,44 +388,86 @@ class QickInstrument(Instrument):
                 progress=progress,
             )
 
+        param_values = []
+
+        # Add software sweep paramters to the result
+        for sweep in software_sweeps:
+            param_values.append((sweep.parameters[0], sweep.parameters[0].get()))
+
+        # Add the shot axis to the result if necessary
+        if acquisition_mode in ["accumulated shots"]:
+            shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
+            values = np.arange(self.hard_avgs.get())
+            for _ in range(len(hardware_loop_counts)):
+                values = values[..., np.newaxis]
+            values = np.broadcast_to(values, shape)
+            param_values.append((shot_parameter, values))
+        else:
+            shape = hardware_loop_counts.values()
+
+        # Add hardware sweep parameters to the result
+        for parameter in hardware_sweep_parameters:
+            sweep = parameter.get()
+            assert isinstance(sweep, qick.asm_v2.QickParam)
+            values = sweep.get_actual_values(hardware_loop_counts)
+            values = np.broadcast_to(values, shape)
+            param_values.append((parameter, values))
+
+        # save the results
+        if acquisition_mode == "state population":
+            self._save_results_state_population(
+                param_values,
+                program,
+                datasaver,
+                result_parameters,
+                num_states,
+                state_classifier,
+            )
+        else:
+            self._save_results(
+                all_iq,
+                param_values,
+                program,
+                datasaver,
+                time_parameter,
+                result_parameters,
+                acquisition_mode,
+            )
+
+    def _save_results(
+        self,
+        all_iq: Sequence[np.ndarray],
+        param_values: Sequence[tuple[Parameter, np.ndarray]],
+        program: AveragerProgram,
+        datasaver: DataSaver,
+        time_parameter: Parameter | None,
+        result_parameters: Sequence[Parameter],
+        acquisition_mode: Literal[
+            "accumulated",
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+            "decimated",
+        ],
+    ) -> None:
+        ddr4_channel = self.ddr4_buffer.selected_adc_channel.get()
+        ddr4_num_transfers = self.ddr4_buffer.num_transfers.get()
+
+        reads_per_shot = program.reads_per_shot
         result_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
             channel_num = list(program.ro_chs.keys())[channel_index]
             for readout_num in range(reads_per_shot[channel_index]):
-                param_values = []
-
-                # Add software sweep paramters to the result
-                for sweep in software_sweeps:
-                    param_values.append(
-                        (sweep.parameters[0], sweep.parameters[0].get())
-                    )
-
-                # Add the shot axis to the result if necessary
-                if acquisition_mode in ["accumulated shots"]:
-                    shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
-                    values = np.arange(self.hard_avgs.get())
-                    for _ in range(len(hardware_loop_counts)):
-                        values = values[..., np.newaxis]
-                    values = np.broadcast_to(values, shape)
-                    param_values.append((shot_parameter, values))
-                else:
-                    shape = hardware_loop_counts.values()
-
-                # Add hardware sweep parameters to the result
-                for parameter in hardware_sweep_parameters:
-                    sweep = parameter.get()
-                    assert isinstance(sweep, qick.asm_v2.QickParam)
-                    values = sweep.get_actual_values(hardware_loop_counts)
-                    values = np.broadcast_to(values, shape)
-                    param_values.append((parameter, values))
-
-                ddr4_channel = self.ddr4_buffer.selected_adc_channel.get()
-                ddr4_num_transfers = self.ddr4_buffer.num_transfers.get()
-
                 # Add acquired data to the result
                 if acquisition_mode == "accumulated":
                     iq = channel_iq[readout_num, ...].dot([1, 1j])
+                    if iq.shape == (1,):
+                        iq = iq[0]
+                    datasaver.add_result(
+                        *param_values, (result_parameters[result_index], iq)
+                    )
+                    result_index += 1
                 elif acquisition_mode == "accumulated geometric median":
                     # Calculate the geometric median of the single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :]
@@ -411,31 +482,71 @@ class QickInstrument(Instrument):
                         *param_values, (result_parameters[result_index], mad)
                     )
                     result_index += 1
-                    continue
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    datasaver.add_result(
+                        *param_values, (result_parameters[result_index], iq)
+                    )
+                    result_index += 1
                 elif acquisition_mode == "decimated":
                     # Save acquired waveform averaged over shots
                     assert time_parameter is not None
                     time = program.get_time_axis(channel_index) / 1e6
                     iq = channel_iq[..., readout_num, :, :].mean(axis=0).dot([1, 1j])
-                    param_values.append((time_parameter, time))
+                    datasaver.add_result(
+                        *param_values,
+                        (time_parameter, time),
+                        (result_parameters[result_index], iq),
+                    )
+                    result_index += 1
                 elif acquisition_mode == "ddr4":
                     if channel_num == ddr4_channel:
                         assert time_parameter is not None
                         iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
                         time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
-                        param_values.append((time_parameter, time))
+                        datasaver.add_result(
+                            *param_values,
+                            (time_parameter, time),
+                            (result_parameters[result_index], iq),
+                        )
+                        result_index += 1
                 else:
                     raise NotImplementedError
 
-                if iq.shape == (1,):
-                    iq = iq[0]
-                datasaver.add_result(
-                    *param_values, (result_parameters[result_index], iq)
-                )
-                result_index += 1
+    def _save_results_state_population(
+        self,
+        param_values: Sequence[tuple[Parameter, np.ndarray]],
+        program: AveragerProgram,
+        datasaver: DataSaver,
+        result_parameters: Sequence[Parameter],
+        num_states: int,
+        state_classifier: Callable[[np.ndarray], np.ndarray] | None,
+    ) -> None:
+        reads_per_shot = program.reads_per_shot
+        num_readouts = sum(reads_per_shot)
+        hard_avgs = self.hard_avgs.get()
+        sweep_shape = program.d_buf[0].shape[1:-2]
+
+        classified = np.empty((hard_avgs, *sweep_shape, num_readouts), dtype=int)
+        readout_index = 0
+        for channel_index in range(len(reads_per_shot)):
+            for readout_num in range(reads_per_shot[channel_index]):
+                iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                classified[..., readout_index] = state_classifier(iq)
+                readout_index += 1
+
+        population = np.zeros(sweep_shape + num_readouts * (num_states,), dtype=int)
+        for sweep_index in np.ndindex(sweep_shape):
+            states, counts = np.unique(
+                classified[:, *sweep_index, ...], return_counts=True, axis=0
+            )
+            for state, count in zip(states, counts):
+                population[*sweep_index, *state] = count
+
+        population = population.reshape(*sweep_shape, -1)
+        for i, parameter in enumerate(result_parameters):
+            datasaver.add_result(*param_values, (parameter, population[..., i]))
 
     def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
         program = AveragerProgram(self, hardware_loop_counts={})
