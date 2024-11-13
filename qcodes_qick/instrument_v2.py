@@ -194,7 +194,11 @@ class QickInstrument(Instrument):
             "decimated",
         ] = "accumulated",
     ) -> int:
-        if acquisition_mode in ["accumulated geometric median", "accumulated shots", "ddr4"]:
+        if acquisition_mode in [
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+        ]:
             assert self.soft_avgs.get() == 1
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
@@ -252,7 +256,7 @@ class QickInstrument(Instrument):
         assert sum(reads_per_shot) > 0
 
         # create and register the parameters representing the acquired data
-        iq_parameters = []
+        result_parameters = []
         for i, channel_num in enumerate(adc_channel_nums):
             for readout_num in range(reads_per_shot[i]):
                 name = "iq"
@@ -262,14 +266,16 @@ class QickInstrument(Instrument):
                     name += f"_ch{channel_num}"
 
                 iq_parameter = Parameter(name)
-                iq_parameters.append(iq_parameter)
+                result_parameters.append(iq_parameter)
                 meas.register_parameter(iq_parameter, setpoints, paramtype=paramtype_iq)
 
                 if acquisition_mode == "accumulated geometric median":
                     # also save the median absolute deviation (MAD)
                     mad_parameter = Parameter(name + "_mad")
-                    iq_parameters.append(mad_parameter)
-                    meas.register_parameter(mad_parameter, setpoints, paramtype=paramtype_iq)
+                    result_parameters.append(mad_parameter)
+                    meas.register_parameter(
+                        mad_parameter, setpoints, paramtype=paramtype_iq
+                    )
 
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
@@ -280,7 +286,7 @@ class QickInstrument(Instrument):
                     hardware_loop_counts,
                     hardware_sweep_parameters,
                     time_parameter,
-                    iq_parameters,
+                    result_parameters,
                     acquisition_mode,
                     progress=True,
                 )
@@ -299,7 +305,7 @@ class QickInstrument(Instrument):
                         hardware_loop_counts,
                         hardware_sweep_parameters,
                         time_parameter,
-                        iq_parameters,
+                        result_parameters,
                         acquisition_mode,
                         progress=False,
                     )
@@ -314,7 +320,7 @@ class QickInstrument(Instrument):
         hardware_loop_counts: dict[str, int],
         hardware_sweep_parameters: Sequence[SweepableParameter],
         time_parameter: Parameter | None,
-        iq_parameters: Sequence[Parameter],
+        result_parameters: Sequence[Parameter],
         acquisition_mode: Literal[
             "accumulated",
             "accumulated geometric median",
@@ -353,7 +359,7 @@ class QickInstrument(Instrument):
                 progress=progress,
             )
 
-        iq_index = 0
+        result_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
             channel_num = list(program.ro_chs.keys())[channel_index]
@@ -395,12 +401,16 @@ class QickInstrument(Instrument):
                     # Calculate the geometric median of the single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :]
                     gm = geometric_median(iq).dot([1, 1j])
-                    datasaver.add_result(*param_values, (iq_parameters[iq_index], gm))
-                    iq_index += 1
+                    datasaver.add_result(
+                        *param_values, (result_parameters[result_index], gm)
+                    )
+                    result_index += 1
                     # Also calculate the median absolute deviation from the geometric mean
                     mad = np.median(abs(iq.dot([1, 1j]) - gm), axis=0)
-                    datasaver.add_result(*param_values, (iq_parameters[iq_index], mad))
-                    iq_index += 1
+                    datasaver.add_result(
+                        *param_values, (result_parameters[result_index], mad)
+                    )
+                    result_index += 1
                     continue
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
@@ -411,16 +421,21 @@ class QickInstrument(Instrument):
                     time = program.get_time_axis(channel_index) / 1e6
                     iq = channel_iq[..., readout_num, :, :].mean(axis=0).dot([1, 1j])
                     param_values.append((time_parameter, time))
-                elif acquisition_mode == "ddr4" and channel_num == ddr4_channel:
-                    assert time_parameter is not None
-                    iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
-                    time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
-                    param_values.append((time_parameter, time))
+                elif acquisition_mode == "ddr4":
+                    if channel_num == ddr4_channel:
+                        assert time_parameter is not None
+                        iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
+                        time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
+                        param_values.append((time_parameter, time))
+                else:
+                    raise NotImplementedError
 
                 if iq.shape == (1,):
                     iq = iq[0]
-                datasaver.add_result(*param_values, (iq_parameters[iq_index], iq))
-                iq_index += 1
+                datasaver.add_result(
+                    *param_values, (result_parameters[result_index], iq)
+                )
+                result_index += 1
 
     def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
         program = AveragerProgram(self, hardware_loop_counts={})
