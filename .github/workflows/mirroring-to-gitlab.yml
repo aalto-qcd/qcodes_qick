@@ -17,9 +17,23 @@ jobs:
         run: |
           git config --global user.name "QCD Labs"
 
+      - name: Check if branch exists
+        id: check_branch
+        run: |
+          if git show-ref --verify --quiet refs/heads/main; then
+            echo "Branch exists"
+          else
+            echo "Branch does not exist, creating initial commit"
+            echo "# Initial commit" >> README.md
+            git add README.md
+            git commit -m "Initial commit"
+            git push origin main  # Push the initial commit to GitHub
+          fi
+
       - name: Add GitLab remote
         run: |
           git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@version.aalto.fi/gitlab/qcd_labs/measurement_environment/qcodes_qick.git
+          git fetch gitlab
 
       - name: Push to GitLab
         run: |
