@@ -19,6 +19,7 @@ from qcodes_qick.channels_v2 import (
     MultiplexedDacChannel,
     StandardDacChannel,
 )
+from qcodes_qick.geometric_median import geometric_median
 from qcodes_qick.macro_base_v2 import Macro
 from qcodes_qick.parameters_v2 import SweepableParameter
 from qcodes_qick.programs_v2 import AveragerProgram
@@ -186,14 +187,21 @@ class QickInstrument(Instrument):
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_loop_counts: dict[str, int] | None = None,
         acquisition_mode: Literal[
-            "accumulated", "accumulated shots", "decimated", "ddr4"
+            "accumulated",
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+            "decimated",
         ] = "accumulated",
     ) -> int:
-        if acquisition_mode not in ["accumulated", "decimated"]:
+        if acquisition_mode in ["accumulated geometric median", "accumulated shots", "ddr4"]:
             assert self.soft_avgs.get() == 1
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
-        if len(hardware_loop_counts) == 0 and acquisition_mode == "accumulated":
+        if len(hardware_loop_counts) == 0 and acquisition_mode in [
+            "accumulated",
+            "accumulated geometric median",
+        ]:
             paramtype = "numeric"
             paramtype_iq = "complex"
         else:
@@ -257,6 +265,12 @@ class QickInstrument(Instrument):
                 iq_parameters.append(iq_parameter)
                 meas.register_parameter(iq_parameter, setpoints, paramtype=paramtype_iq)
 
+                if acquisition_mode == "accumulated geometric median":
+                    # also save the median absolute deviation (MAD)
+                    mad_parameter = Parameter(name + "_mad")
+                    iq_parameters.append(mad_parameter)
+                    meas.register_parameter(mad_parameter, setpoints, paramtype=paramtype_iq)
+
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
                 self.run_hardware_loops(
@@ -302,7 +316,11 @@ class QickInstrument(Instrument):
         time_parameter: Parameter | None,
         iq_parameters: Sequence[Parameter],
         acquisition_mode: Literal[
-            "accumulated", "accumulated shots", "decimated", "ddr4"
+            "accumulated",
+            "accumulated geometric median",
+            "accumulated shots",
+            "ddr4",
+            "decimated",
         ],
         progress: bool,
     ):
@@ -373,6 +391,17 @@ class QickInstrument(Instrument):
                 # Add acquired data to the result
                 if acquisition_mode == "accumulated":
                     iq = channel_iq[readout_num, ...].dot([1, 1j])
+                elif acquisition_mode == "accumulated geometric median":
+                    # Calculate the geometric median of the single-shot data
+                    iq = program.d_buf[channel_index][..., readout_num, :]
+                    gm = geometric_median(iq).dot([1, 1j])
+                    datasaver.add_result(*param_values, (iq_parameters[iq_index], gm))
+                    iq_index += 1
+                    # Also calculate the median absolute deviation from the geometric mean
+                    mad = np.median(abs(iq.dot([1, 1j]) - gm), axis=0)
+                    datasaver.add_result(*param_values, (iq_parameters[iq_index], mad))
+                    iq_index += 1
+                    continue
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
                     iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
