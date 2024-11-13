@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - mirroring
 jobs:
   mirror:
     runs-on: ubuntu-latest
@@ -23,4 +24,5 @@ jobs:
       - name: Push to GitLab
         run: |
           git push gitlab main
+          git push gitlab mirroring
           git push --tags gitlab
