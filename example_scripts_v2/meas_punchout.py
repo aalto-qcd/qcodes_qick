@@ -5,7 +5,7 @@ readout_adc.length.set(readout_pulse.length.get())
 
 qi.set_macro_list(
     [
-        *readout,
+        *readout(),
     ]
 )
 
