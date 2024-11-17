@@ -539,9 +539,7 @@ class QickInstrument(Instrument):
         population = np.zeros(sweep_shape + num_readouts * (num_states,), dtype=int)
         for sweep_index in np.ndindex(sweep_shape):
             index = (slice(None), *sweep_index, Ellipsis)
-            states, counts = np.unique(
-                classified[index], return_counts=True, axis=0
-            )
+            states, counts = np.unique(classified[index], return_counts=True, axis=0)
             for state, count in zip(states, counts):
                 population[sweep_index + state] = count
 
