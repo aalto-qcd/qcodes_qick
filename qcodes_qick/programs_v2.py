@@ -9,6 +9,8 @@ if TYPE_CHECKING:
     from qcodes_qick.channels_v2 import AdcChannel, DacChannel
     from qcodes_qick.envelope_base_v2 import DacEnvelope
     from qcodes_qick.instrument_v2 import QickInstrument
+    from qcodes_qick.pulse_base_v2 import DacPulse
+    from qcodes_qick.readout_window_v2 import ReadoutWindow
 
 
 class AveragerProgram(qick.asm_v2.AveragerProgramV2):
@@ -29,10 +31,13 @@ class AveragerProgram(qick.asm_v2.AveragerProgramV2):
 
     def _initialize(self, cfg: dict):  # noqa: ARG002
         macros = self.qick_instrument.macro_list
+
+        # remove duplicates from the set of objects to initialize
         dacs: set[DacChannel] = set().union(*(m.dacs for m in macros))
         adcs: set[AdcChannel] = set().union(*(m.adcs for m in macros))
         envelopes: set[DacEnvelope] = set().union(*(m.envelopes for m in macros))
-        pulses: set[DacChannel] = set().union(*(m.pulses for m in macros))
+        pulses: set[DacPulse | ReadoutWindow] = set().union(*(m.pulses for m in macros))
+
         for dac in dacs:
             dac.initialize(self)
         for adc in adcs:
