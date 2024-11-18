@@ -8,7 +8,7 @@ ge_pulse.length.set(QickSweep1D("length", 0.1e-6, 4e-6))
 qi.set_macro_list(
     [
         PlayPulse(qi, ge_pulse),
-        *readout,
+        *readout(),
     ]
 )
 

@@ -8,7 +8,7 @@ ge_pulse.length.set(100e-6)
 qi.set_macro_list(
     [
         PlayPulse(qi, ge_pulse),
-        *readout,
+        *readout(),
     ]
 )
 qi.final_delay.set(100e-6)

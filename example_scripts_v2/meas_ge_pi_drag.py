@@ -25,7 +25,7 @@ qi.set_macro_list(
         PlayPulse(qi, ge_minus_pi_pulse),
         PlayPulse(qi, ge_pi_pulse),
         PlayPulse(qi, ge_minus_pi_pulse),
-        *readout,
+        *readout(),
     ]
 )
 

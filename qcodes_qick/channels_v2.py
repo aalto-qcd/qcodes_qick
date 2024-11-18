@@ -251,7 +251,7 @@ class AdcChannel(InstrumentChannel):
         self.freq = ManualParameter(
             name="freq",
             instrument=self,
-            label="LO frequency for digital downconversion",
+            label="Default frequency for digital downconversion",
             unit="Hz",
             vals=Numbers(),
             initial_value=0,
@@ -280,14 +280,14 @@ class AdcChannel(InstrumentChannel):
             )
             program.add_readoutconfig(
                 ch=self.channel_num,
-                name=self.name,
+                name=self.short_name,
                 freq=self.freq.get() / 1e6,
                 phase=0,
                 gen_ch=self.matching_dac.get(),
             )
             program.send_readoutconfig(
                 ch=self.channel_num,
-                name=self.name,
+                name=self.short_name,
             )
         else:
             program.declare_readout(

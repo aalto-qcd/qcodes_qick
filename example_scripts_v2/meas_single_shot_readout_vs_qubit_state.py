@@ -5,7 +5,7 @@ ge_pi_pulse.gain.set(QickSweep1D("gain", 0, 0.15))
 qi.set_macro_list(
     [
         PlayPulse(qi, ge_pi_pulse),
-        *readout,
+        *readout(),
     ]
 )
 

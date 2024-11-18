@@ -7,7 +7,7 @@ qi.set_macro_list(
         PlayPulse(qi, ge_pi_pulse),
         DelayAuto(qi, QickSweep1D("delay", 0.05e-6, 5e-6)),
         PlayPulse(qi, ge_half_pi_pulse),
-        *readout,
+        *readout(),
     ]
 )
 

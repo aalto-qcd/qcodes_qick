@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from qcodes_qick.envelope_base_v2 import DacEnvelope
     from qcodes_qick.instrument_v2 import QickInstrument
     from qcodes_qick.pulse_base_v2 import DacPulse
+    from qcodes_qick.readout_window_v2 import ReadoutWindow
 
 
 class Macro(InstrumentChannel):
@@ -32,8 +33,8 @@ class Macro(InstrumentChannel):
         ADCs used by this Macro.
     envelopes : Iterable[DacEnvelope], optional
         Pulse envelopes used by this Macro.
-    pulses : Iterable[DacPulse], optional
-        Pulses used by this Macro.
+    pulses : Iterable[DacPulse | ReadoutWindow], optional
+        Pulses and readout windows used by this Macro.
     """
 
     parent: QickInstrument
@@ -46,7 +47,7 @@ class Macro(InstrumentChannel):
         dacs: Iterable[DacChannel] = (),
         adcs: Iterable[AdcChannel] = (),
         envelopes: Iterable[DacEnvelope] = (),
-        pulses: Iterable[DacPulse] = (),
+        pulses: Iterable[DacPulse | ReadoutWindow] = (),
     ) -> None:
         # append a number to the name to make it unique within the program
         name_count = parent.macro_name_counter.get(name, 0)

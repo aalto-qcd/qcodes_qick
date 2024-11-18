@@ -46,12 +46,16 @@ readout_pulse.length.set(10e-6)
 readout_adc.freq.set(readout_pulse.freq.get())
 readout_adc.length.set(readout_pulse.length.get())
 
-readout = [
-    DelayAuto(qi, 10e-9),
-    Trigger(qi, readout_adc, t=450e-9),
-    PlayPulse(qi, readout_pulse),
-    DelayAuto(qi, 10e-9),
-]
+
+def readout():
+    return [
+        DelayAuto(qi, 10e-9),
+        Trigger(qi, readout_adc, t=450e-9),
+        PlayPulse(qi, readout_pulse),
+        DelayAuto(qi, 10e-9),
+    ]
+
+
 qubit_dac = qi.dacs[1]
 qubit_dac.nqz.set(1)
 
