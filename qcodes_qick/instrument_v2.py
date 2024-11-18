@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Literal, Sequence
 
 import numpy as np
@@ -197,6 +198,7 @@ class QickInstrument(Instrument):
         ] = "accumulated",
         num_states: int = 0,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None = None,
+        save_shots_as_npy: bool = False,
     ) -> int:
         if acquisition_mode in [
             "accumulated geometric median",
@@ -312,15 +314,17 @@ class QickInstrument(Instrument):
                     acquisition_mode,
                     num_states,
                     state_classifier,
+                    save_shots_as_npy,
+                    software_sweep_indices=(),
                     progress=True,
                 )
             else:
-                software_sweep_values = [sweep.values for sweep in software_sweeps]
-                for current_values in tqdm_product(*software_sweep_values):
+                software_sweep_ranges = [range(len(sweep.values)) for sweep in software_sweeps]
+                for indices in tqdm_product(*software_sweep_ranges):
                     # update the software sweep parameters
-                    for sweep, value in zip(software_sweeps, current_values):
+                    for sweep, index in zip(software_sweeps, indices):
                         for parameter in sweep.parameters:
-                            parameter.set(value)
+                            parameter.set(sweep.values[index])
 
                     self._run_hardware_loops(
                         datasaver,
@@ -333,6 +337,8 @@ class QickInstrument(Instrument):
                         acquisition_mode,
                         num_states,
                         state_classifier,
+                        save_shots_as_npy,
+                        software_sweep_indices=indices,
                         progress=False,
                     )
 
@@ -357,6 +363,8 @@ class QickInstrument(Instrument):
         ],
         num_states: int,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None,
+        save_shots_as_npy: bool,
+        software_sweep_indices: Sequence[int],
         progress: bool,
     ):
         if acquisition_mode == "ddr4":
@@ -433,6 +441,26 @@ class QickInstrument(Instrument):
                 result_parameters,
                 acquisition_mode,
             )
+
+        if save_shots_as_npy:
+            path = Path(datasaver.dataset.path_to_db).parent / f"{datasaver.run_id}_shots"
+            path.mkdir(exist_ok=True)
+            reads_per_shot = program.reads_per_shot
+            for channel_index in range(len(reads_per_shot)):
+                channel_num = list(program.ro_chs.keys())[channel_index]
+                for readout_num in range(reads_per_shot[channel_index]):
+                    shots = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    name = ""
+                    if len(software_sweep_indices) > 0:
+                        name += "sweep_"
+                        for index in software_sweep_indices:
+                            name += f"{index}_"
+                    name += "iq"
+                    if reads_per_shot[channel_index] > 1:
+                        name += f"{readout_num}"
+                    if len(reads_per_shot) > 1:
+                        name += f"_ch{channel_num}"
+                    np.save(path / name, shots)
 
     def _save_results(
         self,
