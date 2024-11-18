@@ -541,7 +541,7 @@ class QickInstrument(Instrument):
             index = (slice(None), *sweep_index, Ellipsis)
             states, counts = np.unique(classified[index], return_counts=True, axis=0)
             for state, count in zip(states, counts):
-                population[sweep_index + state] = count
+                population[sweep_index + tuple(state)] = count
 
         population = population.reshape(*sweep_shape, -1)
         for i, parameter in enumerate(result_parameters):
