@@ -132,6 +132,7 @@ class CorrectedConstantPulse(DacPulse):
                 xp=self.correctable_freqs.get(),
                 fp=self.phase_offsets.get(),
             )
+        assert abs(self.gain.get() * gain_factor) <= 1
         program.add_pulse(
             ch=self.parent.channel_num,
             name=self.short_name,
