@@ -35,14 +35,16 @@ class PlayPulse(Macro):
         t: float | QickParam | Literal["auto"] = "auto",
     ) -> None:
         assert pulse.parent.parent is parent
+        name = parent.append_counter_to_macro_name("PlayPulse")
         qick_macro = qick.asm_v2.Pulse(
             ch=pulse.parent.channel_num,
             name=pulse.short_name,
             t=t * 1e6 if t != "auto" else "auto",
+            tag=name,
         )
         super().__init__(
             parent,
-            "PlayPulse",
+            name,
             qick_macro,
             dacs=[pulse.parent],
             envelopes=[pulse.envelope] if hasattr(pulse, "envelope") else (),

@@ -46,6 +46,7 @@ class Trigger(Macro):
         if isinstance(adcs, AdcChannel):
             adcs = [adcs]
         assert all(adc.parent is parent for adc in adcs)
+        name = parent.append_counter_to_macro_name("Trigger")
         qick_macro = qick.asm_v2.Trigger(
             ros=[adc.channel_num for adc in adcs],
             pins=pins,
@@ -53,8 +54,9 @@ class Trigger(Macro):
             width=None,
             ddr4=ddr4,
             mr=mr,
+            tag=name,
         )
-        super().__init__(parent, "Trigger", qick_macro, adcs=adcs)
+        super().__init__(parent, name, qick_macro, adcs=adcs)
 
         self.adc_channel_nums = Parameter(
             name="adc_channel_nums",

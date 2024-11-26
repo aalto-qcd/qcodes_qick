@@ -24,7 +24,7 @@ class Macro(InstrumentChannel):
     parent : QickInstrument
         Where this Macro will be run.
     name : str
-        Name of this Macro. A number will be appended to the name to make it unique within the program.
+        Name of this Macro. Should be unique within the program.
     macro : qick.asm_v2.Macro
         The qick.asm_v2.Macro object this object wraps.
     dacs : Iterable[DacChannel], optional
@@ -49,11 +49,6 @@ class Macro(InstrumentChannel):
         envelopes: Iterable[DacEnvelope] = (),
         pulses: Iterable[DacPulse | ReadoutWindow] = (),
     ) -> None:
-        # append a number to the name to make it unique within the program
-        name_count = parent.macro_name_counter.get(name, 0)
-        name += str(name_count)
-        parent.macro_name_counter[name] = name_count + 1
-
         super().__init__(parent, name)
         self.qick_macro = qick_macro
         self.dacs = dacs

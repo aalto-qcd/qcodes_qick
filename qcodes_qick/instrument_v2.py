@@ -164,6 +164,12 @@ class QickInstrument(Instrument):
             min_value=0,
         )
 
+    def append_counter_to_macro_name(self, name: str) -> str:
+        """Append a number to a macro name to make it unique within the program."""
+        counter = self.macro_name_counter.get(name, 0)
+        name += str(counter)
+        self.macro_name_counter[name] = counter + 1
+
     def set_macro_list(self, macro_list: Sequence[Macro]) -> None:
         del self.submodules["macro_list"]
         del self._channel_lists["macro_list"]
