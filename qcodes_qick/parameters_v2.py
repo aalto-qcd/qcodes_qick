@@ -40,7 +40,6 @@ class SweepableParameter(ManualParameter):
         initial_value: float,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
-        settable: bool = True,
         **kwargs,
     ) -> None:
         inst = instrument
@@ -57,7 +56,6 @@ class SweepableParameter(ManualParameter):
             initial_value=initial_value,
             **kwargs,
         )
-        self._settable = settable
 
     def set_parser(self, value: float | QickParam) -> float | QickParam:
         # keep track of all swept parameters of the instrument
@@ -78,7 +76,6 @@ class SweepableOrAutoParameter(ManualParameter):
         initial_value: float,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
-        settable: bool = True,
         **kwargs,
     ) -> None:
         inst = instrument
@@ -95,7 +92,6 @@ class SweepableOrAutoParameter(ManualParameter):
             initial_value=initial_value,
             **kwargs,
         )
-        self._settable = settable
 
     def set_parser(
         self, value: float | QickParam | Literal["auto"]

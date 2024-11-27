@@ -47,16 +47,7 @@ class Trigger(Macro):
             adcs = [adcs]
         assert all(adc.parent is parent for adc in adcs)
         name = parent.append_counter_to_macro_name("Trigger")
-        qick_macro = qick.asm_v2.Trigger(
-            ros=[adc.channel_num for adc in adcs],
-            pins=pins,
-            t=t * 1e6,
-            width=None,
-            ddr4=ddr4,
-            mr=mr,
-            tag=name,
-        )
-        super().__init__(parent, name, qick_macro, adcs=adcs)
+        super().__init__(parent, name, adcs=adcs)
 
         self.adc_channel_nums = Parameter(
             name="adc_channel_nums",
@@ -76,7 +67,6 @@ class Trigger(Macro):
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
         )
         self.ddr4 = Parameter(
             name="ddr4",
@@ -89,4 +79,15 @@ class Trigger(Macro):
             instrument=self,
             label="Multi-rate buffer",
             initial_cache_value=mr,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.Trigger(
+            ros=[adc.channel_num for adc in self.adcs],
+            pins=self.pins.get(),
+            t=self.t.get() * 1e6,
+            width=None,
+            ddr4=self.ddr4.get(),
+            mr=self.mr.get(),
+            tag=self.short_name,
         )

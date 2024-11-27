@@ -38,12 +38,7 @@ class ConfigReadout(Macro):
     ) -> None:
         assert window.parent.parent is parent
         name = parent.append_counter_to_macro_name("ConfigReadout")
-        qick_macro = qick.asm_v2.ConfigReadout(
-            ch=window.parent.channel_num, name=window.short_name, t=t * 1e6, tag=name
-        )
-        super().__init__(
-            parent, name, qick_macro, adcs=[window.parent], pulses=[window]
-        )
+        super().__init__(parent, name, adcs=[window.parent], pulses=[window])
 
         self.window_name = Parameter(
             name="window_name",
@@ -57,5 +52,12 @@ class ConfigReadout(Macro):
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.ConfigReadout(
+            ch=self.adcs[0].channel_num,
+            name=self.pulses[0].short_name,
+            t=self.t.get() * 1e6,
+            tag=self.short_name,
         )

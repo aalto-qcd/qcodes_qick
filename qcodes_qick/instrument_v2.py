@@ -325,7 +325,9 @@ class QickInstrument(Instrument):
                     progress=True,
                 )
             else:
-                software_sweep_ranges = [range(len(sweep.values)) for sweep in software_sweeps]
+                software_sweep_ranges = [
+                    range(len(sweep.values)) for sweep in software_sweeps
+                ]
                 for indices in tqdm_product(*software_sweep_ranges):
                     # update the software sweep parameters
                     for sweep, index in zip(software_sweeps, indices):
@@ -449,13 +451,17 @@ class QickInstrument(Instrument):
             )
 
         if save_shots_as_npy:
-            path = Path(datasaver.dataset.path_to_db).parent / f"{datasaver.run_id}_shots"
+            path = (
+                Path(datasaver.dataset.path_to_db).parent / f"{datasaver.run_id}_shots"
+            )
             path.mkdir(exist_ok=True)
             reads_per_shot = program.reads_per_shot
             for channel_index in range(len(reads_per_shot)):
                 channel_num = list(program.ro_chs.keys())[channel_index]
                 for readout_num in range(reads_per_shot[channel_index]):
-                    shots = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    shots = program.d_buf[channel_index][..., readout_num, :].dot(
+                        [1, 1j]
+                    )
                     name = ""
                     if len(software_sweep_indices) > 0:
                         name += "sweep_"

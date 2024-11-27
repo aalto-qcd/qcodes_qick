@@ -52,4 +52,4 @@ class AveragerProgram(qick.asm_v2.AveragerProgramV2):
 
     def _body(self, cfg: dict):  # noqa: ARG002
         for macro in self.qick_instrument.macro_list:
-            self.append_macro(macro.qick_macro)
+            self.append_macro(macro.create_qick_macro())

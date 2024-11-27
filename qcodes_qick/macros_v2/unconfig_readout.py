@@ -35,13 +35,7 @@ class UnconfigReadout(Macro):
     ) -> None:
         assert adc.parent is parent
         name = parent.append_counter_to_macro_name("UnconfigReadout")
-        qick_macro = qick.asm_v2.ConfigReadout(
-            ch=adc.channel_num,
-            name=adc.short_name,
-            t=t * 1e6,
-            tag=name
-        )
-        super().__init__(parent, name, qick_macro, adcs=[adc])
+        super().__init__(parent, name, adcs=[adc])
 
         self.t = SweepableParameter(
             name="t",
@@ -49,5 +43,12 @@ class UnconfigReadout(Macro):
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.ConfigReadout(
+            ch=self.adcs[0].channel_num,
+            name=self.adcs[0].short_name,
+            t=self.t.get() * 1e6,
+            tag=self.short_name,
         )
