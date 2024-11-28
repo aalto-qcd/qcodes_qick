@@ -29,8 +29,6 @@ from qcodes_qick.programs_v2 import AveragerProgram
 if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
 
-    from qcodes_qick.parameters_v2 import SweepableOrAutoParameter
-
 
 class SoftwareSweep:
     parameters: Sequence[Parameter]
@@ -75,7 +73,7 @@ class QickInstrument(Instrument):
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         # set of all parameters which have been assigned a QickSweep object
-        self.swept_params: set[SweepableParameter | SweepableOrAutoParameter] = set()
+        self.swept_params: set[SweepableParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]

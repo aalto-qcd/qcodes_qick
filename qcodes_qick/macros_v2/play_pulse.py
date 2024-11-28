@@ -6,7 +6,7 @@ import qick.asm_v2
 from qcodes import Parameter
 
 from qcodes_qick.macro_base_v2 import Macro
-from qcodes_qick.parameters_v2 import SweepableOrAutoParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 
 if TYPE_CHECKING:
     from qick.asm_v2 import QickParam
@@ -50,12 +50,13 @@ class PlayPulse(Macro):
             label="Pulse name",
             initial_cache_value=pulse.short_name,
         )
-        self.t = SweepableOrAutoParameter(
+        self.t = SweepableParameter(
             name="t",
             instrument=self,
             label="Time",
             unit="sec",
             initial_value=t,
+            allow_auto=True,
         )
 
     def create_qick_macro(self) -> qick.asm_v2.Macro:

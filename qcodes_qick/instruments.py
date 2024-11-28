@@ -12,7 +12,7 @@ from qick.pyro import make_proxy
 from qcodes_qick.channels import AdcChannel, DacChannel
 
 if TYPE_CHECKING:
-    from qcodes_qick.parameters_v2 import SweepableOrAutoParameter, SweepableParameter
+    from qcodes_qick.parameters_v2 import SweepableParameter
 
 
 class QickInstrument(Instrument):
@@ -25,7 +25,7 @@ class QickInstrument(Instrument):
         self.soc, self.soccfg = make_proxy(ns_host, ns_port)
 
         # set of all parameters which have been assigned a QickSweep object
-        self.swept_params: set[SweepableParameter | SweepableOrAutoParameter] = set()
+        self.swept_params: set[SweepableParameter] = set()
 
         assert len(self.soccfg["tprocs"]) == 1
         tproc_type = self.soccfg["tprocs"][0]["type"]
