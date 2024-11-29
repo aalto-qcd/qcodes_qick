@@ -140,7 +140,7 @@ class CorrectedConstantPulse(DacPulse):
             freq=self.freq.get() / 1e6,
             phase=self.phase.get() + phase_offset,
             gain=self.gain.get() * gain_factor,
-            length=self.length.get() * 1e6,
+            length=self.length.qick_param * 1e6,
             ro_ch=self.parent.matching_adc.get(),
             phrst=self.reset_phase.get(),
             stdysel={False: "zero", True: "last"}[self.hold_last_sample.get()],

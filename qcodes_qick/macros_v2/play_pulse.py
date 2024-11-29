@@ -63,6 +63,6 @@ class PlayPulse(Macro):
         return qick.asm_v2.Pulse(
             ch=self.dacs[0].channel_num,
             name=self.pulse_name.get(),
-            t=self.t.get() * 1e6 if self.t.get() != "auto" else "auto",
+            t=self.t.qick_param * 1e6 if self.t.get() != "auto" else "auto",
             tag=self.short_name,
         )

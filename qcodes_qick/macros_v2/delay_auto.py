@@ -59,7 +59,7 @@ class DelayAuto(Macro):
 
     def create_qick_macro(self) -> qick.asm_v2.Macro:
         return qick.asm_v2.Delay(
-            t=self.t.get() * 1e6,
+            t=self.t.qick_param * 1e6,
             auto=True,
             gens=self.wait_for_dacs.get(),
             ros=self.wait_for_adcs.get(),

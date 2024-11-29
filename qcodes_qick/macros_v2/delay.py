@@ -43,4 +43,6 @@ class Delay(Macro):
         )
 
     def create_qick_macro(self) -> qick.asm_v2.Macro:
-        return qick.asm_v2.Delay(t=self.t.get() * 1e6, auto=False, tag=self.short_name)
+        return qick.asm_v2.Delay(
+            t=self.t.qick_param * 1e6, auto=False, tag=self.short_name
+        )

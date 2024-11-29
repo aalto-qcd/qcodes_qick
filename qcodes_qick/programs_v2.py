@@ -24,9 +24,9 @@ class AveragerProgram(qick.asm_v2.AveragerProgramV2):
         super().__init__(
             qick_instrument.soccfg,
             reps=qick_instrument.hard_avgs.get(),
-            final_delay=qick_instrument.final_delay.get() * 1e6,
-            final_wait=qick_instrument.final_wait.get() * 1e6,
-            initial_delay=qick_instrument.initial_delay.get() * 1e6,
+            final_delay=qick_instrument.final_delay.qick_param * 1e6,
+            final_wait=qick_instrument.final_wait.qick_param * 1e6,
+            initial_delay=qick_instrument.initial_delay.qick_param * 1e6,
         )
 
     def _initialize(self, cfg: dict):  # noqa: ARG002

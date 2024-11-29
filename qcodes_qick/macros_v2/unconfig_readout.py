@@ -49,6 +49,6 @@ class UnconfigReadout(Macro):
         return qick.asm_v2.ConfigReadout(
             ch=self.adcs[0].channel_num,
             name=self.adcs[0].short_name,
-            t=self.t.get() * 1e6,
+            t=self.t.qick_param * 1e6,
             tag=self.short_name,
         )

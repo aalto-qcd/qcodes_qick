@@ -305,6 +305,8 @@ class QickInstrument(Instrument):
                             mad_parameter, setpoints, paramtype=paramtype_iq
                         )
 
+        self.snapshot(update=True)
+
         with meas.run() as datasaver:
             if len(software_sweeps) == 0:
                 self._run_hardware_loops(

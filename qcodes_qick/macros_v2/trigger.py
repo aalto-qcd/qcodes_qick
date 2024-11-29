@@ -85,7 +85,7 @@ class Trigger(Macro):
         return qick.asm_v2.Trigger(
             ros=[adc.channel_num for adc in self.adcs],
             pins=self.pins.get(),
-            t=self.t.get() * 1e6,
+            t=self.t.qick_param * 1e6,
             width=None,
             ddr4=self.ddr4.get(),
             mr=self.mr.get(),
