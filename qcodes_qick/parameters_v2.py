@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Literal
 
-from qcodes import ManualParameter
+from qcodes import Parameter
 from qcodes.instrument import InstrumentModule
 from qcodes.validators import Enum, MultiType, Numbers, Validator
 from qick.asm_v2 import QickParam
@@ -30,7 +31,11 @@ class SweepableNumbers(Validator):
             self.numbers.validate(value, context)
 
 
-class SweepableParameter(ManualParameter):
+class SweepableParameter(Parameter):
+    """Hardware-sweepable parameter. Corresponds to qick.asm_v2.QickParam."""
+
+    qick_param: QickParam | Literal["auto"]
+
     def __init__(
         self,
         name: str,
@@ -40,69 +45,53 @@ class SweepableParameter(ManualParameter):
         initial_value: float,
         min_value: float = -float("inf"),
         max_value: float = float("inf"),
-        settable: bool = True,
+        allow_auto: bool = False,
         **kwargs,
     ) -> None:
+        # get parent of parent until a QickInstrument is reached
         inst = instrument
         while isinstance(inst, InstrumentModule):
             inst = inst.parent
         self.qick_instrument: QickInstrument = inst
+
+        if allow_auto:
+            validator = MultiType(SweepableNumbers(min_value, max_value), Enum("auto"))
+        else:
+            validator = SweepableNumbers(min_value, max_value)
+
         super().__init__(
             name,
             instrument,
             label=label,
             unit=unit,
-            set_parser=self.set_parser,
-            vals=SweepableNumbers(min_value, max_value),
+            vals=validator,
             initial_value=initial_value,
             **kwargs,
         )
-        self._settable = settable
 
-    def set_parser(self, value: float | QickParam) -> float | QickParam:
+    def set_raw(self, value: float | QickParam | Literal["auto"]) -> None:
+        if isinstance(value, (float, int)):
+            # convert scalar value to QickParam
+            self.qick_param = QickParam(value)
+        else:
+            self.qick_param = value
+
         # keep track of all swept parameters of the instrument
-        if isinstance(value, QickParam):
+        if isinstance(value, QickParam) and value.is_sweep():
             self.qick_instrument.swept_params.add(self)
         elif self in self.qick_instrument.swept_params:
             self.qick_instrument.swept_params.remove(self)
-        return value
 
+    def get_raw(self) -> float | QickParam | Literal["auto"]:
+        value = self.qick_param
 
-class SweepableOrAutoParameter(ManualParameter):
-    def __init__(
-        self,
-        name: str,
-        instrument: InstrumentBase,
-        label: str,
-        unit: str,
-        initial_value: float,
-        min_value: float = -float("inf"),
-        max_value: float = float("inf"),
-        settable: bool = True,
-        **kwargs,
-    ) -> None:
-        inst = instrument
-        while isinstance(inst, InstrumentModule):
-            inst = inst.parent
-        self.qick_instrument: QickInstrument = inst
-        super().__init__(
-            name,
-            instrument,
-            label=label,
-            unit=unit,
-            set_parser=self.set_parser,
-            vals=MultiType(SweepableNumbers(min_value, max_value), Enum("auto")),
-            initial_value=initial_value,
-            **kwargs,
-        )
-        self._settable = settable
-
-    def set_parser(
-        self, value: float | QickParam | Literal["auto"]
-    ) -> float | QickParam | Literal["auto"]:
-        # keep track of all swept parameters of the instrument
         if isinstance(value, QickParam):
-            self.qick_instrument.swept_params.add(self)
-        elif self in self.qick_instrument.swept_params:
-            self.qick_instrument.swept_params.remove(self)
+            # if available, get the actual value after rounding to the hardware resolution
+            with contextlib.suppress(RuntimeError):
+                value = value.get_rounded()
+
+            # convert scalar QickParam to float
+            if not value.is_sweep():
+                value = value.start
+
         return value

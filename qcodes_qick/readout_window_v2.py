@@ -53,7 +53,7 @@ class ReadoutWindow(InstrumentModule):
         program.add_readoutconfig(
             ch=self.parent.channel_num,
             name=self.short_name,
-            freq=self.freq.get() / 1e6,
+            freq=self.freq.qick_param / 1e6,
             phase=0,
             gen_ch=self.parent.matching_dac.get(),
         )

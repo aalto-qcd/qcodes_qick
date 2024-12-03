@@ -32,12 +32,10 @@ class DelayAuto(Macro):
         parent: QickInstrument,
         t: float | QickParam = 0,
         wait_for_dacs: bool = True,
-        wait_for_adcs: bool = True,
+        wait_for_adcs: bool = False,
     ) -> None:
-        qick_macro = qick.asm_v2.Delay(
-            t=t * 1e6, auto=True, gens=wait_for_dacs, ros=wait_for_adcs
-        )
-        super().__init__(parent, "DelayAuto", qick_macro)
+        name = parent.append_counter_to_macro_name("DelayAuto")
+        super().__init__(parent, name)
 
         self.t = SweepableParameter(
             name="t",
@@ -45,7 +43,6 @@ class DelayAuto(Macro):
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
         )
         self.wait_for_dacs = Parameter(
             name="wait_for_dacs",
@@ -58,4 +55,13 @@ class DelayAuto(Macro):
             instrument=self,
             label="Wait for ADCs",
             initial_cache_value=wait_for_adcs,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.Delay(
+            t=self.t.qick_param * 1e6,
+            auto=True,
+            gens=self.wait_for_dacs.get(),
+            ros=self.wait_for_adcs.get(),
+            tag=self.short_name,
         )

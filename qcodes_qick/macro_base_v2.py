@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Sequence
 
 from qcodes.instrument import InstrumentChannel
 
@@ -14,26 +15,24 @@ if TYPE_CHECKING:
     from qcodes_qick.readout_window_v2 import ReadoutWindow
 
 
-class Macro(InstrumentChannel):
+class Macro(InstrumentChannel, ABC):
     """Base class for classes wrapping `qick.asm_v2.Macro`.
 
-    The parameters of a Macro object cannot be changed after its creation. Each Macro object can only be used once within a program.
+    Note that each Macro object can be used only once within a program.
 
     Parameters
     ----------
     parent : QickInstrument
         Where this Macro will be run.
     name : str
-        Name of this Macro. A number will be appended to the name to make it unique within the program.
-    macro : qick.asm_v2.Macro
-        The qick.asm_v2.Macro object this object wraps.
-    dacs : Iterable[DacChannel], optional
+        Name of this Macro. Should be unique within the program.
+    dacs : Sequence[DacChannel], optional
         DACs used by this Macro.
-    adcs : Iterable[AdcChannel], optional
+    adcs : Sequence[AdcChannel], optional
         ADCs used by this Macro.
-    envelopes : Iterable[DacEnvelope], optional
+    envelopes : Sequence[DacEnvelope], optional
         Pulse envelopes used by this Macro.
-    pulses : Iterable[DacPulse | ReadoutWindow], optional
+    pulses : Sequence[DacPulse | ReadoutWindow], optional
         Pulses and readout windows used by this Macro.
     """
 
@@ -43,20 +42,17 @@ class Macro(InstrumentChannel):
         self,
         parent: QickInstrument,
         name: str,
-        qick_macro: qick.asm_v2.Macro,
-        dacs: Iterable[DacChannel] = (),
-        adcs: Iterable[AdcChannel] = (),
-        envelopes: Iterable[DacEnvelope] = (),
-        pulses: Iterable[DacPulse | ReadoutWindow] = (),
+        dacs: Sequence[DacChannel] = (),
+        adcs: Sequence[AdcChannel] = (),
+        envelopes: Sequence[DacEnvelope] = (),
+        pulses: Sequence[DacPulse | ReadoutWindow] = (),
     ) -> None:
-        # append a number to the name to make it unique within the program
-        name_count = parent.macro_name_counter.get(name, 0)
-        name += str(name_count)
-        parent.macro_name_counter[name] = name_count + 1
-
         super().__init__(parent, name)
-        self.qick_macro = qick_macro
         self.dacs = dacs
         self.adcs = adcs
         self.pulses = pulses
         self.envelopes = envelopes
+
+    @abstractmethod
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        """Create the qick.asm_v2.Macro object to append to the program."""

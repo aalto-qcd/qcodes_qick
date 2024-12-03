@@ -62,7 +62,7 @@ class MuxedConstantPulse(DacPulse):
             ch=self.parent.channel_num,
             name=self.short_name,
             style="const",
-            length=self.length.get() * 1e6,
+            length=self.length.qick_param * 1e6,
             mask=self.tone_nums.get(),
         )
 

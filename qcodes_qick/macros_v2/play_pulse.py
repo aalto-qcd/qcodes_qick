@@ -6,7 +6,7 @@ import qick.asm_v2
 from qcodes import Parameter
 
 from qcodes_qick.macro_base_v2 import Macro
-from qcodes_qick.parameters_v2 import SweepableOrAutoParameter
+from qcodes_qick.parameters_v2 import SweepableParameter
 
 if TYPE_CHECKING:
     from qick.asm_v2 import QickParam
@@ -35,31 +35,40 @@ class PlayPulse(Macro):
         t: float | QickParam | Literal["auto"] = "auto",
     ) -> None:
         assert pulse.parent.parent is parent
-        qick_macro = qick.asm_v2.Pulse(
-            ch=pulse.parent.channel_num,
-            name=pulse.short_name,
-            t=t * 1e6 if t != "auto" else "auto",
-        )
+        name = parent.append_counter_to_macro_name("PlayPulse")
         super().__init__(
             parent,
-            "PlayPulse",
-            qick_macro,
+            name,
             dacs=[pulse.parent],
             envelopes=[pulse.envelope] if hasattr(pulse, "envelope") else (),
             pulses=[pulse],
         )
 
+        self.dac_channel = Parameter(
+            name="dac_channel",
+            instrument=self,
+            label="DAC channel",
+            initial_cache_value=self.dacs[0].channel_num,
+        )
         self.pulse_name = Parameter(
             name="pulse_name",
             instrument=self,
             label="Pulse name",
             initial_cache_value=pulse.short_name,
         )
-        self.t = SweepableOrAutoParameter(
+        self.t = SweepableParameter(
             name="t",
             instrument=self,
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
+            allow_auto=True,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.Pulse(
+            ch=self.dacs[0].channel_num,
+            name=self.pulse_name.get(),
+            t=self.t.qick_param * 1e6 if self.t.get() != "auto" else "auto",
+            tag=self.short_name,
         )

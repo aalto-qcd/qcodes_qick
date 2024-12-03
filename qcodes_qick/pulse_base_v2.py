@@ -27,3 +27,4 @@ class DacPulse(InstrumentModule):
         name: str,
     ) -> None:
         super().__init__(parent, name)
+        parent.add_submodule(name, self)

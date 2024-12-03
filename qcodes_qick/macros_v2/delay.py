@@ -31,8 +31,8 @@ class Delay(Macro):
         parent: QickInstrument,
         t: float | QickParam,
     ) -> None:
-        qick_macro = qick.asm_v2.Delay(t=t * 1e6, auto=False)
-        super().__init__(parent, "Delay", qick_macro)
+        name = parent.append_counter_to_macro_name("Delay")
+        super().__init__(parent, name)
 
         self.t = SweepableParameter(
             name="t",
@@ -40,5 +40,9 @@ class Delay(Macro):
             label="Time",
             unit="sec",
             initial_value=t,
-            settable=False,
+        )
+
+    def create_qick_macro(self) -> qick.asm_v2.Macro:
+        return qick.asm_v2.Delay(
+            t=self.t.qick_param * 1e6, auto=False, tag=self.short_name
         )
