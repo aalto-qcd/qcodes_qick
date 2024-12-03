@@ -28,6 +28,8 @@ class Trigger(Macro):
         Output pins to trigger (index in output pins list in QickConfig printout).
     t : float | QickParam, default=0
         Time relative to the last Delay or DelayAuto.
+    width : float | QickParam, default=1e-6
+        Pulse width for the triggered output pins.
     ddr4 : bool, default=False
         Trigger the DDR4 buffer
     mr : bool, default=False
@@ -40,6 +42,7 @@ class Trigger(Macro):
         adcs: AdcChannel | Iterable[AdcChannel] = (),
         pins: Iterable[int] = (),
         t: float | QickParam = 0,
+        width: float | QickParam = 1e-6,
         ddr4: bool = False,
         mr: bool = False,
     ) -> None:
@@ -68,6 +71,13 @@ class Trigger(Macro):
             unit="sec",
             initial_value=t,
         )
+        self.width = SweepableParameter(
+            name="width",
+            instrument=self,
+            label="Trigger output pulse width",
+            unit="sec",
+            initial_value=width,
+        )
         self.ddr4 = Parameter(
             name="ddr4",
             instrument=self,
@@ -86,7 +96,7 @@ class Trigger(Macro):
             ros=[adc.channel_num for adc in self.adcs],
             pins=self.pins.get(),
             t=self.t.qick_param * 1e6,
-            width=None,
+            width=self.width.qick_param * 1e6,
             ddr4=self.ddr4.get(),
             mr=self.mr.get(),
             tag=self.short_name,
