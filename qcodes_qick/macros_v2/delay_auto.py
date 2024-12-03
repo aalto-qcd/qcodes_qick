@@ -32,7 +32,7 @@ class DelayAuto(Macro):
         parent: QickInstrument,
         t: float | QickParam = 0,
         wait_for_dacs: bool = True,
-        wait_for_adcs: bool = True,
+        wait_for_adcs: bool = False,
     ) -> None:
         name = parent.append_counter_to_macro_name("DelayAuto")
         super().__init__(parent, name)
