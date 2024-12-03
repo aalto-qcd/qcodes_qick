@@ -44,6 +44,12 @@ class PlayPulse(Macro):
             pulses=[pulse],
         )
 
+        self.dac_channel = Parameter(
+            name="dac_channel",
+            instrument=self,
+            label="DAC channel",
+            initial_cache_value=self.dacs[0].channel_num,
+        )
         self.pulse_name = Parameter(
             name="pulse_name",
             instrument=self,
