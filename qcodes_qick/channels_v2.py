@@ -33,7 +33,7 @@ class DacChannel(InstrumentChannel, ABC):
         super().__init__(parent, name)
         self.channel_num = channel_num
 
-        self.chan_type = Parameter(
+        self.type = Parameter(
             name="type",
             instrument=self,
             label="DAC type",
@@ -216,7 +216,7 @@ class AdcChannel(InstrumentChannel):
         self.channel_num = channel_num
         config = parent.soccfg["readouts"][channel_num]
 
-        self.chan_type = Parameter(
+        self.type = Parameter(
             name="type",
             instrument=self,
             label="ADC type",
