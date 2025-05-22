@@ -20,7 +20,7 @@ class DacChannel(InstrumentChannel):
         super().__init__(parent, name, **kwargs)
         self.channel_num = channel_num
 
-        self.type = Parameter(
+        self.channel_type = Parameter(
             name="type",
             instrument=self,
             label="DAC type",
