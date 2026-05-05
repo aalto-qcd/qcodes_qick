@@ -100,4 +100,5 @@ class Trigger(Macro):
             ddr4=self.ddr4.get(),
             mr=self.mr.get(),
             tag=self.short_name,
+            tts=None,
         )

@@ -266,7 +266,7 @@ class QickInstrument(Instrument):
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
         program = AveragerProgram(self, hardware_loop_counts)
         adc_channel_nums = program.ro_chs.keys()
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert len(adc_channel_nums) == len(reads_per_shot)
         assert sum(reads_per_shot) > 0
 
@@ -380,12 +380,12 @@ class QickInstrument(Instrument):
 
         # run the program
         program = AveragerProgram(self, hardware_loop_counts)
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         if acquisition_mode == "decimated":
             all_iq = qick.qick_asm.AcquireMixin.acquire_decimated(
                 self=program,
                 soc=self.soc,
-                soft_avgs=self.soft_avgs.get(),
+                rounds=self.soft_avgs.get(),
                 progress=progress,
             )
             for channel_index in range(len(reads_per_shot)):
@@ -400,7 +400,7 @@ class QickInstrument(Instrument):
             all_iq = qick.qick_asm.AcquireMixin.acquire(
                 self=program,
                 soc=self.soc,
-                soft_avgs=self.soft_avgs.get(),
+                rounds=self.soft_avgs.get(),
                 progress=progress,
             )
 
@@ -423,7 +423,7 @@ class QickInstrument(Instrument):
 
         # Add hardware sweep parameters to the result
         for parameter in hardware_sweep_parameters:
-            sweep = parameter.get()
+            sweep = parameter.qick_param
             assert isinstance(sweep, qick.asm_v2.QickParam)
             values = sweep.get_actual_values(hardware_loop_counts)
             values = np.broadcast_to(values, shape)
@@ -455,7 +455,7 @@ class QickInstrument(Instrument):
                 Path(datasaver.dataset.path_to_db).parent / f"{datasaver.run_id}_shots"
             )
             path.mkdir(exist_ok=True)
-            reads_per_shot = program.reads_per_shot
+            reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
             for channel_index in range(len(reads_per_shot)):
                 channel_num = list(program.ro_chs.keys())[channel_index]
                 for readout_num in range(reads_per_shot[channel_index]):
@@ -493,7 +493,7 @@ class QickInstrument(Instrument):
         ddr4_channel = self.ddr4_buffer.selected_adc_channel.get()
         ddr4_num_transfers = self.ddr4_buffer.num_transfers.get()
 
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         result_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
@@ -563,7 +563,7 @@ class QickInstrument(Instrument):
         num_states: int,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None,
     ) -> None:
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         num_readouts = sum(reads_per_shot)
         hard_avgs = self.hard_avgs.get()
         sweep_shape = program.d_buf[0].shape[1:-2]
@@ -589,12 +589,12 @@ class QickInstrument(Instrument):
 
     def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
         program = AveragerProgram(self, hardware_loop_counts={})
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert sum(reads_per_shot) > 0
         all_iq = qick.qick_asm.AcquireMixin.acquire(
             self=program,
             soc=self.soc,
-            soft_avgs=self.soft_avgs.get(),
+            rounds=self.soft_avgs.get(),
             progress=progress,
         )
         iqs = {}
