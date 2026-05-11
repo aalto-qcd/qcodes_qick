@@ -169,6 +169,13 @@ class QickInstrument(Instrument):
         return f"{name}_{counter}"
 
     def set_macro_list(self, macro_list: Sequence[Macro]) -> None:
+        """
+        Define chronological sequence of events: pulses, time
+        delays, readout sequence, etc.
+
+        Args: `Macro` type objects such as `PlayPulse`, `DelayAuto`,
+        `Trigger`.
+        """
         del self.submodules["macro_list"]
         del self._channel_lists["macro_list"]
         self.macro_list = ChannelTuple(
