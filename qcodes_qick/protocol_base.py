@@ -228,7 +228,7 @@ class SweepProtocol(ABC, QickProtocol):
         all_iq = AcquireMixin.acquire(
             self=program,
             soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
+            rounds=self.soft_avgs.get(),
             progress=progress,
         )
 
@@ -271,7 +271,7 @@ class SweepProtocol(ABC, QickProtocol):
         all_iq = AcquireMixin.acquire_decimated(
             self=program,
             soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
+            rounds=self.soft_avgs.get(),
             progress=progress,
         )
 
