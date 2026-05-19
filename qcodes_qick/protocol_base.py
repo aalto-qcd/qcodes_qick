@@ -150,7 +150,7 @@ class SweepProtocol(ABC, QickProtocol):
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
         program = self.generate_program(self.parent.soccfg)
         adc_channel_nums = program.ro_chs.keys()
-        reads_per_shot = [ro["trigs] for ro in program.ro_chs.values()]
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert len(adc_channel_nums) == len(reads_per_shot)
         assert sum(reads_per_shot) > 0
 
@@ -232,7 +232,7 @@ class SweepProtocol(ABC, QickProtocol):
             progress=progress,
         )
 
-        reads_per_shot = [ro["trigs] for ro in program.ro_chs.values()]
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
@@ -275,7 +275,7 @@ class SweepProtocol(ABC, QickProtocol):
             progress=progress,
         )
 
-        reads_per_shot = [ro["trigs] for ro in program.ro_chs.values()]
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
             channel_iq = all_iq[channel_index]
