@@ -135,7 +135,7 @@ class SweepProtocol(ABC, QickProtocol):
         for sweep in software_sweeps:
             sweep.parameters[0].set(sweep.values[0])
             setpoints.append(sweep.parameters[0])
-            meas.register_parameter(sweep.parameters[0], paramtype="array")
+            meas.register_parameter(sweep.parameters[0], paramtype="numeric")
             for parameter in sweep.parameters[1:]:
                 parameter.set(sweep.values[0])
         for sweep in hardware_sweeps:
