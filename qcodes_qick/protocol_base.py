@@ -323,7 +323,7 @@ class SweepProgram(NDAveragerProgram):
         )
         cfg = {
             "reps": protocol.hard_avgs.get(),
-            "soft_avgs": protocol.soft_avgs.get(),
+            "rounds": protocol.soft_avgs.get(),
         }
         super().__init__(soccfg, cfg)
 
