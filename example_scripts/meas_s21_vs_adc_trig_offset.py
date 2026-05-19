@@ -1,4 +1,4 @@
-from .header import *
+from header import *
 
 name = os.path.basename(__file__)[:-3]
 
