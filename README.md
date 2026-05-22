@@ -12,7 +12,7 @@ A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github
 Currently, tProc v1 is under maintenance mode where only bug fixes
 will be implemented. tProc v2 is what you should be using.
 
-At some point, tProc v1 is be deprecated.
+At some point, tProc v1 will be deprecated.
 
 ## Getting started
 
