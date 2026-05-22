@@ -245,6 +245,13 @@ class SweepProtocol(ABC, QickProtocol):
             channel_iq = channel_iq.reshape(reads_per_shot[channel_index], -1, 2)
             for readout_num in range(reads_per_shot[channel_index]):
                 iq = channel_iq[readout_num, :, :].dot([1, 1j])
+
+                if len(hardware_sweeps) == 0:
+                    # The simple-averaging case returns a single averaged point per
+                    # readout. Reduce to one scalar regardless of whether the
+                    # remaining axis has length 1 or has been averaged differently.
+                    iq = complex(np.asarray(iq).reshape(-1).mean())
+
                 result = []
 
                 # Add software sweep paramters to the result
