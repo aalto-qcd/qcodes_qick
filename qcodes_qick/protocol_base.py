@@ -135,7 +135,7 @@ class SweepProtocol(ABC, QickProtocol):
         for sweep in software_sweeps:
             sweep.parameters[0].set(sweep.values[0])
             setpoints.append(sweep.parameters[0])
-            meas.register_parameter(sweep.parameters[0], paramtype="array")
+            meas.register_parameter(sweep.parameters[0], paramtype="numeric")
             for parameter in sweep.parameters[1:]:
                 parameter.set(sweep.values[0])
         for sweep in hardware_sweeps:
@@ -150,12 +150,13 @@ class SweepProtocol(ABC, QickProtocol):
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
         program = self.generate_program(self.parent.soccfg)
         adc_channel_nums = program.ro_chs.keys()
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert len(adc_channel_nums) == len(reads_per_shot)
         assert sum(reads_per_shot) > 0
 
         # create and register the parameters representing the acquired data
         iq_parameters = []
+        paramtype = "array" if (len(hardware_sweeps) > 0 or decimated) else "complex"
         for i, channel_num in enumerate(adc_channel_nums):
             for readout_num in range(reads_per_shot[i]):
                 name = "iq"
@@ -167,7 +168,7 @@ class SweepProtocol(ABC, QickProtocol):
                 iq_parameter = Parameter(name)
                 iq_parameters.append(iq_parameter)
                 meas.register_parameter(
-                    iq_parameter, setpoints=setpoints, paramtype="array"
+                    iq_parameter, setpoints=setpoints, paramtype=paramtype
                 )
 
         with meas.run() as datasaver:
@@ -223,22 +224,48 @@ class SweepProtocol(ABC, QickProtocol):
         iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
-        # Run the program
+        # Run the program.
+        # Use NDAveragerProgram.acquire() (the program's own method) rather than
+        # calling AcquireMixin.acquire() directly. The program-level method takes
+        # care of set_reads_per_shot() and the save_experiments/readouts_per_experiment
+        # bookkeeping that AcquireMixin.acquire() does not, and it reads the number of
+        # software repetitions ("rounds") from the program's cfg. Bypassing it is what
+        # required the finish_acquire() workaround and is the source of empty buffers.
         program = self.generate_program(self.parent.soccfg, hardware_sweeps)
-        all_iq = AcquireMixin.acquire(
-            self=program,
+        all_iq = program.acquire(
             soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
+            load_pulses=True,
             progress=progress,
         )
 
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
-            channel_iq = all_iq[channel_index]
+            channel_num = list(program.ro_chs)[channel_index]
+            channel_iq = np.asarray(all_iq[channel_index])
+
+            # Check against an empty acquisition buffer.
+            if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
+                raise RuntimeError(
+                    f"ADC channel {channel_num} returned no data: "
+                    f"acquire shape={channel_iq.shape}, "
+                    f"trigs={reads_per_shot[channel_index]}, "
+                    f"reps={self.hard_avgs.get()}, rounds={self.soft_avgs.get()}. "
+                    "Check that the Readout triggers the same ADC channel that is "
+                    "declared for readout, and that adc_trig_offset / wait_for_adc "
+                    "keep the readout window inside the program."
+                )
+
             channel_iq = channel_iq.reshape(reads_per_shot[channel_index], -1, 2)
             for readout_num in range(reads_per_shot[channel_index]):
                 iq = channel_iq[readout_num, :, :].dot([1, 1j])
+
+                if len(hardware_sweeps) == 0:
+                    # The simple-averaging case returns a single averaged point per
+                    # readout. Reduce to one scalar regardless of whether the
+                    # remaining axis has length 1 or has been averaged differently.
+                    iq = complex(np.asarray(iq).reshape(-1).mean())
+
                 result = []
 
                 # Add software sweep paramters to the result
@@ -266,19 +293,32 @@ class SweepProtocol(ABC, QickProtocol):
         iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
-        # Run the program
+        # Run the program. As in run_hardware_sweeps(), use the program's own
+        # acquire_decimated() rather than calling AcquireMixin.acquire_decimated()
+        # directly, so reads_per_shot / save_experiments bookkeeping is handled.
         program = self.generate_program(self.parent.soccfg, hardware_sweeps)
-        all_iq = AcquireMixin.acquire_decimated(
-            self=program,
+        all_iq = program.acquire_decimated(
             soc=self.parent.soc,
-            soft_avgs=self.soft_avgs.get(),
+            load_pulses=True,
             progress=progress,
         )
 
-        reads_per_shot = program.reads_per_shot
+        reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
-            channel_iq = all_iq[channel_index]
+            channel_num = list(program.ro_chs)[channel_index]
+            channel_iq = np.asarray(all_iq[channel_index])
+
+            if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
+                raise RuntimeError(
+                    f"ADC channel {channel_num} returned no decimated data: "
+                    f"acquire shape={channel_iq.shape}, "
+                    f"trigs={reads_per_shot[channel_index]}, "
+                    f"reps={self.hard_avgs.get()}, rounds={self.soft_avgs.get()}. "
+                    "Check the Readout trigger/readout channel match and the timing "
+                    "(adc_trig_offset / wait_for_adc)."
+                )
+
             length = len(program.get_time_axis(channel_index))
             channel_iq = channel_iq.reshape(
                 self.hard_avgs.get(), -1, reads_per_shot[channel_index], length, 2
@@ -321,11 +361,30 @@ class SweepProgram(NDAveragerProgram):
         self.adcs: set[AdcChannel] = set().union(
             *(instruction.adcs for instruction in self.protocol.instructions)
         )
+
         cfg = {
             "reps": protocol.hard_avgs.get(),
-            "soft_avgs": protocol.soft_avgs.get(),
+            "rounds": protocol.soft_avgs.get(),
         }
         super().__init__(soccfg, cfg)
+
+    def _summarize_accumulated(self, rounds_buf):
+        """Return the flat per-channel IQ format.
+
+        NDAveragerProgram._summarize_accumulated() returns the legacy
+        ``(expt_pts, avg_di, avg_dq)`` triplet, which is NOT what the rest of
+        this driver expects. ``run_hardware_sweeps()`` consumes a list with one
+        array per readout channel, each of shape ``(n_reads, *sweep_dims, 2)``
+        (the format produced by the AcquireMixin base class). We bypass the
+        NDAveragerProgram reformatting and return that base-class format, while
+        still going through NDAveragerProgram.acquire() so that reads_per_shot
+        and save_experiments are configured correctly.
+        """
+        return AcquireMixin._summarize_accumulated(self, rounds_buf)
+
+    def _summarize_decimated(self, rounds_buf):
+        """Return the flat per-channel decimated format (see _summarize_accumulated)."""
+        return AcquireMixin._summarize_decimated(self, rounds_buf)
 
     def initialize(self):
         for dac in self.dacs:
