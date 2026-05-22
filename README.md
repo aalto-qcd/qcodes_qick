@@ -7,6 +7,13 @@ A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github
 - This should be a thin wrapper that directly exposes all features of QICK.
 - Pulses ("[`instructions`](https://github.com/aalto-qcd/qcodes_qick/tree/main/qcodes_qick/instructions)") and pulse sequences ("[`protocols`](https://github.com/aalto-qcd/qcodes_qick/tree/main/qcodes_qick/protocols)") should be parameterized such that they can be fully reproduced based on the [QCoDeS snapshot](https://microsoft.github.io/Qcodes/examples/DataSet/Working%20with%20snapshots.html) that gets saved with every dataset.
 
+## Status between tProc v1 and v2
+
+Currently, tProc v1 is under maintenance mode where only bug fixes
+will be implemented. tProc v2 is what you should be using.
+
+At some point, tProc v1 is be deprecated.
+
 ## Getting started
 
 1. Clone or copy this repository to a local PC.
