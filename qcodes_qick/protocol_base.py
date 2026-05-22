@@ -224,12 +224,17 @@ class SweepProtocol(ABC, QickProtocol):
         iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
-        # Run the program
+        # Run the program.
+        # Use NDAveragerProgram.acquire() (the program's own method) rather than
+        # calling AcquireMixin.acquire() directly. The program-level method takes
+        # care of set_reads_per_shot() and the save_experiments/readouts_per_experiment
+        # bookkeeping that AcquireMixin.acquire() does not, and it reads the number of
+        # software repetitions ("rounds") from the program's cfg. Bypassing it is what
+        # required the finish_acquire() workaround and is the source of empty buffers.
         program = self.generate_program(self.parent.soccfg, hardware_sweeps)
-        all_iq = AcquireMixin.acquire(
-            self=program,
+        all_iq = program.acquire(
             soc=self.parent.soc,
-            rounds=self.soft_avgs.get(),
+            load_pulses=True,
             progress=progress,
         )
 
