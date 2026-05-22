@@ -156,6 +156,7 @@ class SweepProtocol(ABC, QickProtocol):
 
         # create and register the parameters representing the acquired data
         iq_parameters = []
+        paramtype = "array" if (len(hardware_sweeps) > 0 or decimated) else "complex"
         for i, channel_num in enumerate(adc_channel_nums):
             for readout_num in range(reads_per_shot[i]):
                 name = "iq"
@@ -167,7 +168,7 @@ class SweepProtocol(ABC, QickProtocol):
                 iq_parameter = Parameter(name)
                 iq_parameters.append(iq_parameter)
                 meas.register_parameter(
-                    iq_parameter, setpoints=setpoints, paramtype="array"
+                    iq_parameter, setpoints=setpoints, paramtype=paramtype
                 )
 
         with meas.run() as datasaver:
