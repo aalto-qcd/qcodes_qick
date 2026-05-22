@@ -306,7 +306,19 @@ class SweepProtocol(ABC, QickProtocol):
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
-            channel_iq = all_iq[channel_index]
+            channel_num = list(program.ro_chs)[channel_index]
+            channel_iq = np.asarray(all_iq[channel_index])
+
+            if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
+                raise RuntimeError(
+                    f"ADC channel {channel_num} returned no decimated data: "
+                    f"acquire shape={channel_iq.shape}, "
+                    f"trigs={reads_per_shot[channel_index]}, "
+                    f"reps={self.hard_avgs.get()}, rounds={self.soft_avgs.get()}. "
+                    "Check the Readout trigger/readout channel match and the timing "
+                    "(adc_trig_offset / wait_for_adc)."
+                )
+
             length = len(program.get_time_axis(channel_index))
             channel_iq = channel_iq.reshape(
                 self.hard_avgs.get(), -1, reads_per_shot[channel_index], length, 2
