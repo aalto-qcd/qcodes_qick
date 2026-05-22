@@ -361,11 +361,30 @@ class SweepProgram(NDAveragerProgram):
         self.adcs: set[AdcChannel] = set().union(
             *(instruction.adcs for instruction in self.protocol.instructions)
         )
+
         cfg = {
             "reps": protocol.hard_avgs.get(),
             "rounds": protocol.soft_avgs.get(),
         }
         super().__init__(soccfg, cfg)
+
+    def _summarize_accumulated(self, rounds_buf):
+        """Return the flat per-channel IQ format.
+
+        NDAveragerProgram._summarize_accumulated() returns the legacy
+        ``(expt_pts, avg_di, avg_dq)`` triplet, which is NOT what the rest of
+        this driver expects. ``run_hardware_sweeps()`` consumes a list with one
+        array per readout channel, each of shape ``(n_reads, *sweep_dims, 2)``
+        (the format produced by the AcquireMixin base class). We bypass the
+        NDAveragerProgram reformatting and return that base-class format, while
+        still going through NDAveragerProgram.acquire() so that reads_per_shot
+        and save_experiments are configured correctly.
+        """
+        return AcquireMixin._summarize_accumulated(self, rounds_buf)
+
+    def _summarize_decimated(self, rounds_buf):
+        """Return the flat per-channel decimated format (see _summarize_accumulated)."""
+        return AcquireMixin._summarize_decimated(self, rounds_buf)
 
     def initialize(self):
         for dac in self.dacs:
