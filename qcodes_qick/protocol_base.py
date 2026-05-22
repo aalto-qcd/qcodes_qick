@@ -241,7 +241,21 @@ class SweepProtocol(ABC, QickProtocol):
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         iq_index = 0
         for channel_index in range(len(reads_per_shot)):
-            channel_iq = all_iq[channel_index]
+            channel_num = list(program.ro_chs)[channel_index]
+            channel_iq = np.asarray(all_iq[channel_index])
+
+            # Check against an empty acquisition buffer.
+            if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
+                raise RuntimeError(
+                    f"ADC channel {channel_num} returned no data: "
+                    f"acquire shape={channel_iq.shape}, "
+                    f"trigs={reads_per_shot[channel_index]}, "
+                    f"reps={self.hard_avgs.get()}, rounds={self.soft_avgs.get()}. "
+                    "Check that the Readout triggers the same ADC channel that is "
+                    "declared for readout, and that adc_trig_offset / wait_for_adc "
+                    "keep the readout window inside the program."
+                )
+
             channel_iq = channel_iq.reshape(reads_per_shot[channel_index], -1, 2)
             for readout_num in range(reads_per_shot[channel_index]):
                 iq = channel_iq[readout_num, :, :].dot([1, 1j])
