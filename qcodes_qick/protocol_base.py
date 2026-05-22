@@ -293,12 +293,13 @@ class SweepProtocol(ABC, QickProtocol):
         iq_parameters: Sequence[Parameter],
         progress: bool = True,
     ):
-        # Run the program
+        # Run the program. As in run_hardware_sweeps(), use the program's own
+        # acquire_decimated() rather than calling AcquireMixin.acquire_decimated()
+        # directly, so reads_per_shot / save_experiments bookkeeping is handled.
         program = self.generate_program(self.parent.soccfg, hardware_sweeps)
-        all_iq = AcquireMixin.acquire_decimated(
-            self=program,
+        all_iq = program.acquire_decimated(
             soc=self.parent.soc,
-            rounds=self.soft_avgs.get(),
+            load_pulses=True,
             progress=progress,
         )
 
