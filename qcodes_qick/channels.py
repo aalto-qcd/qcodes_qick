@@ -89,7 +89,9 @@ class AdcChannel(InstrumentChannel):
             name="avgbuf_fullpath",
             instrument=self,
             label="Full path (in the firmware) of the average buffer driven by this channel.",
-            initial_cache_value=self.parent.soccfg["readouts"][channel_num].get("avgbuf_fullpath", ""),
+            initial_cache_value=self.parent.soccfg["readouts"][channel_num].get(
+                "avgbuf_fullpath", ""
+            ),
         )
         self.matching_dac = ManualParameter(
             name="matching_dac",
