@@ -8,9 +8,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Ruff linter
-        uses: chartboost/ruff-action@v1
+        uses: astral-sh/ruff-action@v3
       - name: Run Ruff formatter
-        uses: chartboost/ruff-action@v1
+        uses: astral-sh/ruff-action@v3
         with:
           args: "format --check"
 
