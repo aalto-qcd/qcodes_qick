@@ -2,6 +2,8 @@ import importlib
 import pkgutil
 from pathlib import Path
 
+import qcodes_qick
+
 
 def import_submodules(module_name: str, module_path: Path):
     for _, name, _ in pkgutil.iter_modules([str(module_path)]):
@@ -13,6 +15,5 @@ def import_submodules(module_name: str, module_path: Path):
 
 
 def test_import_all_modules():
-    import qcodes_qick
 
     import_submodules("qcodes_qick", Path(qcodes_qick.__path__[0]))

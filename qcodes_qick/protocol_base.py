@@ -246,7 +246,7 @@ class SweepProtocol(ABC, QickProtocol):
 
             # Check against an empty acquisition buffer.
             if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
-                raise RuntimeError(
+                msg = (
                     f"ADC channel {channel_num} returned no data: "
                     f"acquire shape={channel_iq.shape}, "
                     f"trigs={reads_per_shot[channel_index]}, "
@@ -255,6 +255,7 @@ class SweepProtocol(ABC, QickProtocol):
                     "declared for readout, and that adc_trig_offset / wait_for_adc "
                     "keep the readout window inside the program."
                 )
+                raise RuntimeError(msg)
 
             channel_iq = channel_iq.reshape(reads_per_shot[channel_index], -1, 2)
             for readout_num in range(reads_per_shot[channel_index]):
@@ -310,7 +311,7 @@ class SweepProtocol(ABC, QickProtocol):
             channel_iq = np.asarray(all_iq[channel_index])
 
             if channel_iq.size == 0 or reads_per_shot[channel_index] == 0:
-                raise RuntimeError(
+                msg = (
                     f"ADC channel {channel_num} returned no decimated data: "
                     f"acquire shape={channel_iq.shape}, "
                     f"trigs={reads_per_shot[channel_index]}, "
@@ -318,6 +319,7 @@ class SweepProtocol(ABC, QickProtocol):
                     "Check the Readout trigger/readout channel match and the timing "
                     "(adc_trig_offset / wait_for_adc)."
                 )
+                raise RuntimeError(msg)
 
             length = len(program.get_time_axis(channel_index))
             channel_iq = channel_iq.reshape(

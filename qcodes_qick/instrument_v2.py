@@ -169,9 +169,10 @@ class QickInstrument(Instrument):
         return f"{name}_{counter}"
 
     def set_macro_list(self, macro_list: Sequence[Macro]) -> None:
-        """
-        Define chronological sequence of events: pulses, time
-        delays, readout sequence, etc.
+        """Define chronological sequence of events.
+
+        The sequence consists of pulses, time delays, the readout
+        sequence, etc.
 
         Args: `Macro` type objects such as `PlayPulse`, `DelayAuto`,
         `Trigger`.
@@ -244,7 +245,7 @@ class QickInstrument(Instrument):
                 parameter.set(sweep.values[0])
 
         # register the shot axis if necessary
-        if acquisition_mode in ["accumulated shots"]:
+        if acquisition_mode == "accumulated shots":
             shot_parameter = Parameter("shot", label="Shot", unit="")
             meas.register_parameter(shot_parameter, paramtype=paramtype)
             setpoints.append(shot_parameter)
@@ -418,7 +419,7 @@ class QickInstrument(Instrument):
             param_values.append((sweep.parameters[0], sweep.parameters[0].get()))
 
         # Add the shot axis to the result if necessary
-        if acquisition_mode in ["accumulated shots"]:
+        if acquisition_mode == "accumulated shots":
             shape = (self.hard_avgs.get(), *hardware_loop_counts.values())
             values = np.arange(self.hard_avgs.get())
             for _ in range(len(hardware_loop_counts)):
