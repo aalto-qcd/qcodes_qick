@@ -22,6 +22,12 @@ class TestSoftwareSweep(unittest.TestCase):
         self.assertEqual(len(sweep.values), 21)
         np.testing.assert_allclose(np.asarray(sweep.values)[[0, -1]], [0, 1])
 
+    def test_multiple_parameters_share_units(self):
+        a = ManualParameter("a", unit="Hz")
+        b = ManualParameter("b", unit="Hz")
+        sweep = SoftwareSweep([a, b], 0, 1, 5)
+        self.assertEqual(sweep.parameters, [a, b])
+
 
 if __name__ == "__main__":
     unittest.main()
