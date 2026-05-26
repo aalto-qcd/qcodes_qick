@@ -9,6 +9,9 @@ dependencies = [
     "qick>=0.2.255",
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [tool.setuptools]
 packages = ["qcodes_qick"]
 
