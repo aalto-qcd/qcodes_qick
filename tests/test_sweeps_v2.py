@@ -75,7 +75,7 @@ def test_sweepable_numbers_rejects_sweep_exceeding_range():
 
 # SweepableParameter tests: create a fake hardware to run these tests.
 class FakeQickInstrument(Instrument):
-    """Hardware-free replacement for `QickInstrument`. """
+    """Hardware-free replacement for `QickInstrument`."""
 
     def __init__(self, name: str):
         super().__init__(name)
