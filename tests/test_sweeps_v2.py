@@ -112,3 +112,18 @@ def test_sweepable_parameter_scalar_set_not_tracked(instrument):
     p.set(7.0)
     assert p.get() == 7.0
     assert p not in instrument.swept_params
+
+
+def test_sweepable_parameter_sweep_set_is_tracked(instrument):
+    p = _sweepable(instrument)
+    p.set(QickSweep1D("loop", 4.0, 7.0))
+    assert p in instrument.swept_params
+
+
+def test_sweepable_parameter_scalar_after_sweep_is_untracked(instrument):
+    p = _sweepable(instrument)
+    p.set(QickSweep1D("loop", 4.0, 7.0))
+    assert p in instrument.swept_params
+    # Switching back to a scalar should remove it from the sweep object
+    p.set(3.0)
+    assert p not in instrument.swept_params
