@@ -28,6 +28,12 @@ class TestSoftwareSweep(unittest.TestCase):
         sweep = SoftwareSweep([a, b], 0, 1, 5)
         self.assertEqual(sweep.parameters, [a, b])
 
+    def test_mismatched_units(self):
+        a = ManualParameter("a", unit="Hz")
+        b = ManualParameter("b", unit="V")
+        with self.assertRaises(AssertionError):
+            SoftwareSweep([a, b], 0, 1, 5)
+
 
 if __name__ == "__main__":
     unittest.main()
