@@ -14,6 +14,7 @@ from qcodes_qick.protocol_base import SoftwareSweep
 def _param(unit: str = "") -> ManualParameter:
     return ManualParameter("p", unit=unit)
 
+
 def test_triplet_start_stop():
     sweep = SoftwareSweep(_param(), 0, 1, 11)
     assert len(sweep.values) == 11

@@ -56,7 +56,7 @@ def test_software_sweep_mismatched_units():
 
 # SweepableNumbers validator tests
 def test_sweepable_numbers_accepts_scalar_in_range():
-    SweepableNumbers(0, 10).validate(5.0)       # should not raise
+    SweepableNumbers(0, 10).validate(5.0)  # should not raise
 
 
 def test_sweepable_numbers_rejects_scalar_out_of_range():
@@ -80,7 +80,6 @@ class FakeQickInstrument(Instrument):
     def __init__(self, name: str):
         super().__init__(name)
         self.swept_params: set = set()
-
 
 
 @pytest.fixture
