@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 import qick.asm_v2
 from qcodes import Parameter
@@ -10,6 +10,8 @@ from qcodes_qick.macro_base_v2 import Macro
 from qcodes_qick.parameters_v2 import SweepableParameter
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from qick.asm_v2 import QickParam
 
     from qcodes_qick.instrument_v2 import QickInstrument

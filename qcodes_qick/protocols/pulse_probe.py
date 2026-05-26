@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from qcodes import ManualParameter
 from qcodes.validators import Ints
@@ -8,6 +8,8 @@ from qcodes.validators import Ints
 from qcodes_qick.protocol_base import HardwareSweep, SweepProgram, SweepProtocol
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from qick.qick_asm import QickConfig
 
     from qcodes_qick.instruction_base import QickInstruction
