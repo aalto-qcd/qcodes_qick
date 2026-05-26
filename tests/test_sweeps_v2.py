@@ -62,3 +62,12 @@ def test_sweepable_numbers_accepts_scalar_in_range():
 def test_sweepable_numbers_rejects_scalar_out_of_range():
     with pytest.raises(ValueError, match="must be between"):
         SweepableNumbers(0, 10).validate(20.0)
+
+
+def test_sweepable_numbers_accepts_sweep_within_range():
+    SweepableNumbers(0, 10).validate(QickSweep1D("loop", 2.0, 8.0))
+
+
+def test_sweepable_numbers_rejects_sweep_exceeding_range():
+    with pytest.raises(ValueError, match="must be between"):
+        SweepableNumbers(0, 10).validate(QickSweep1D("loop", 2.0, 50.0))
