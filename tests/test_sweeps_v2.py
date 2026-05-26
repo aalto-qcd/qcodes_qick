@@ -71,3 +71,44 @@ def test_sweepable_numbers_accepts_sweep_within_range():
 def test_sweepable_numbers_rejects_sweep_exceeding_range():
     with pytest.raises(ValueError, match="must be between"):
         SweepableNumbers(0, 10).validate(QickSweep1D("loop", 2.0, 50.0))
+
+
+# SweepableParameter tests: create a fake hardware to run these tests.
+class FakeQickInstrument(Instrument):
+    """Hardware-free replacement for `QickInstrument`. """
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.swept_params: set = set()
+
+
+
+@pytest.fixture
+def instrument():
+    inst = FakeQickInstrument("fake")
+    yield inst
+    inst.close()
+
+
+def _sweepable(inst: Instrument) -> SweepableParameter:
+    return SweepableParameter(
+        name="freq",
+        instrument=inst,
+        label="Frequency",
+        unit="Hz",
+        initial_value=5.0,
+        min_value=0,
+        max_value=10,
+    )
+
+
+def test_sweepable_parameter_initial_value(instrument):
+    p = _sweepable(instrument)
+    assert p.get() == 5.0
+
+
+def test_sweepable_parameter_scalar_set_not_tracked(instrument):
+    p = _sweepable(instrument)
+    p.set(7.0)
+    assert p.get() == 7.0
+    assert p not in instrument.swept_params
