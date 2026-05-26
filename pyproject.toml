@@ -15,6 +15,11 @@ test = ["pytest"]
 [tool.setuptools]
 packages = ["qcodes_qick"]
 
+[tool.ruff]
+# Pin the Ruff version so CI (astral-sh/ruff-action auto-detects this) matches
+# the version developers run locally.
+required-version = "==0.15.14"
+
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
