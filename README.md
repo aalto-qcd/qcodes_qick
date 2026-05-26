@@ -1,6 +1,8 @@
 # qcodes_qick
 
-A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github.com/openquantumhardware/qick). Usable but still under active development. Pull requests are welcomed!
+A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github.com/openquantumhardware/qick). Usable but still under active development. Pull requests are welcome!
+
+Supports Python 3.9+
 
 ## Development goals
 
@@ -12,7 +14,8 @@ A [QCoDeS](https://github.com/microsoft/qcodes) driver for [QICK](https://github
 Currently, tProc v1 is under maintenance mode where only bug fixes
 will be implemented. tProc v2 is what you should be using.
 
-At some point, tProc v1 will be deprecated.
+At some point, tProc v1 will be deprecated. If you find some bugs,
+please do report them in the [issue tracker](https://github.com/aalto-qcd/qcodes_qick/issues).
 
 ## Getting started
 
