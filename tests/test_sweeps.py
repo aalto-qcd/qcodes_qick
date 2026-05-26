@@ -5,12 +5,12 @@ These tests run without the hardware. These cover just the logic of
 SoftwareSweep, which is purely pythonic.
 """
 
-import pytest
-
 import numpy as np
+import pytest
 from qcodes import ManualParameter
 
 from qcodes_qick.protocol_base import SoftwareSweep
+
 
 def _param(unit: str = "") -> ManualParameter:
     return ManualParameter("p", unit=unit)
