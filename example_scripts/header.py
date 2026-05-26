@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 from qcodes import (
     Measurement,
     Station,
