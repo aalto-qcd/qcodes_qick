@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from qcodes.instrument import InstrumentChannel
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import qick.asm_v2
 
     from qcodes_qick.channels_v2 import AdcChannel, DacChannel

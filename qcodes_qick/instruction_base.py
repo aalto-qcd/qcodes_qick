@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 from qcodes.instrument import InstrumentModule
 from qcodes.parameters import Parameter
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from qcodes_qick.channels import AdcChannel, DacChannel
     from qcodes_qick.instruments import QickInstrument
     from qcodes_qick.protocol_base import HardwareSweep, SweepProgram
