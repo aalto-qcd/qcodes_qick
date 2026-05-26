@@ -127,3 +127,9 @@ def test_sweepable_parameter_scalar_after_sweep_is_untracked(instrument):
     # Switching back to a scalar should remove it from the sweep object
     p.set(3.0)
     assert p not in instrument.swept_params
+
+
+def test_sweepable_parameter_rejects_out_of_range(instrument):
+    p = _sweepable(instrument)
+    with pytest.raises(ValueError, match="must be between"):
+        p.set(70.0)
