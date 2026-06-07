@@ -533,7 +533,9 @@ class QickInstrument(Instrument):
                     result_index += 1
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
-                    iq = program.acc_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    iq = program.acc_buf[channel_index][..., readout_num, :].dot(
+                        [1, 1j]
+                    )
                     datasaver.add_result(
                         *param_values, (result_parameters[result_index], iq)
                     )
