@@ -468,7 +468,7 @@ class QickInstrument(Instrument):
             for channel_index in range(len(reads_per_shot)):
                 channel_num = list(program.ro_chs.keys())[channel_index]
                 for readout_num in range(reads_per_shot[channel_index]):
-                    shots = program.d_buf[channel_index][..., readout_num, :].dot(
+                    shots = program.acc_buf[channel_index][..., readout_num, :].dot(
                         [1, 1j]
                     )
                     name = ""
@@ -519,7 +519,7 @@ class QickInstrument(Instrument):
                     result_index += 1
                 elif acquisition_mode == "accumulated geometric median":
                     # Calculate the geometric median of the single-shot data
-                    iq = program.d_buf[channel_index][..., readout_num, :]
+                    iq = program.acc_buf[channel_index][..., readout_num, :]
                     gm = geometric_median(iq).dot([1, 1j])
                     datasaver.add_result(
                         *param_values, (result_parameters[result_index], gm)
@@ -533,7 +533,7 @@ class QickInstrument(Instrument):
                     result_index += 1
                 elif acquisition_mode == "accumulated shots":
                     # Accumulate over readout window and save single-shot data
-                    iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                    iq = program.acc_buf[channel_index][..., readout_num, :].dot([1, 1j])
                     datasaver.add_result(
                         *param_values, (result_parameters[result_index], iq)
                     )
@@ -575,13 +575,13 @@ class QickInstrument(Instrument):
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         num_readouts = sum(reads_per_shot)
         hard_avgs = self.hard_avgs.get()
-        sweep_shape = program.d_buf[0].shape[1:-2]
+        sweep_shape = program.acc_buf[0].shape[1:-2]
 
         classified = np.empty((hard_avgs, *sweep_shape, num_readouts), dtype=int)
         readout_index = 0
         for channel_index in range(len(reads_per_shot)):
             for readout_num in range(reads_per_shot[channel_index]):
-                iq = program.d_buf[channel_index][..., readout_num, :].dot([1, 1j])
+                iq = program.acc_buf[channel_index][..., readout_num, :].dot([1, 1j])
                 classified[..., readout_index] = state_classifier(iq)
                 readout_index += 1
 
