@@ -212,6 +212,7 @@ class QickInstrument(Instrument):
         num_states: int = 0,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None = None,
         save_shots_as_npy: bool = False,
+        reps_innermost: bool | None = None,
     ) -> int:
         if acquisition_mode in [
             "accumulated geometric median",
@@ -223,6 +224,20 @@ class QickInstrument(Instrument):
         if acquisition_mode == "state population":
             assert num_states >= 2
             assert state_classifier is not None
+
+        # Choose where the "reps" (single-shot) loop sits. For shot-resolved modes we
+        # want the reps loop innermost, so all shots at a given sweep point are taken
+        # consecutively (tighter single-shot IQ clouds, valid shot-to-shot statistics).
+        # For averaged modes we keep reps outermost so slow drift averages out across
+        # the sweep. Pass reps_innermost explicitly to override this default.
+        # `reps_innermost' defaults to True for shot-resolved modes and false for everything else
+        # (averaged/decimated).
+        if reps_innermost is None:
+            reps_innermost = acquisition_mode in [
+                "accumulated shots",
+                "accumulated geometric median",
+                "state population",
+            ]
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
         if len(hardware_loop_counts) == 0 and acquisition_mode in [
@@ -273,7 +288,7 @@ class QickInstrument(Instrument):
             time_parameter = None
 
         # generate the program just to obtain the ADC channel numbers and the number of readouts per shot
-        program = AveragerProgram(self, hardware_loop_counts)
+        program = AveragerProgram(self, hardware_loop_counts, reps_innermost)
         adc_channel_nums = program.ro_chs.keys()
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert len(adc_channel_nums) == len(reads_per_shot)
@@ -330,6 +345,7 @@ class QickInstrument(Instrument):
                     num_states,
                     state_classifier,
                     save_shots_as_npy,
+                    reps_innermost,
                     software_sweep_indices=(),
                     progress=True,
                 )
@@ -355,6 +371,7 @@ class QickInstrument(Instrument):
                         num_states,
                         state_classifier,
                         save_shots_as_npy,
+                        reps_innermost,
                         software_sweep_indices=indices,
                         progress=False,
                     )
@@ -381,6 +398,7 @@ class QickInstrument(Instrument):
         num_states: int,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None,
         save_shots_as_npy: bool,
+        reps_innermost: bool,
         software_sweep_indices: Sequence[int],
         progress: bool,
     ):
@@ -388,7 +406,7 @@ class QickInstrument(Instrument):
             self.ddr4_buffer.arm()
 
         # run the program
-        program = AveragerProgram(self, hardware_loop_counts)
+        program = AveragerProgram(self, hardware_loop_counts, reps_innermost)
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         if acquisition_mode == "decimated":
             all_iq = qick.qick_asm.AcquireMixin.acquire_decimated(
