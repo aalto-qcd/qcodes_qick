@@ -216,7 +216,7 @@ class QickInstrument(Instrument):
         if len(self.macro_list) == 0:
             msg = (
                 "`macro_list` is empty. Please define the sequence with"
-                "`QickInstrument.set_macro_list([...]) before running the measurement."
+                "`QickInstrument.set_macro_list([...])` before running the measurement."
             )
             raise RuntimeError(msg)
         if acquisition_mode in [
@@ -286,7 +286,7 @@ class QickInstrument(Instrument):
         if sum(reads_per_shot) == 0:
             msg = (
                 "The macro_list contains no readout triggers, so no data is acquired."
-                "Include a readout macro with `QickInstrument.set_macro_list()."
+                "Include a readout macro with `QickInstrument.set_macro_list()`."
             )
             raise RuntimeError(msg)
 
