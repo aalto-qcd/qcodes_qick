@@ -213,6 +213,12 @@ class QickInstrument(Instrument):
         state_classifier: Callable[[np.ndarray], np.ndarray] | None = None,
         save_shots_as_npy: bool = False,
     ) -> int:
+        if len(self.macro_list) == 0:
+            msg = (
+                "`macro_list` is empty. Please define the sequence with"
+                "`QickInstrument.set_macro_list([...]) before running the measurement."
+            )
+            raise RuntimeError(msg)
         if acquisition_mode in [
             "accumulated geometric median",
             "accumulated shots",
@@ -277,7 +283,12 @@ class QickInstrument(Instrument):
         adc_channel_nums = program.ro_chs.keys()
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
         assert len(adc_channel_nums) == len(reads_per_shot)
-        assert sum(reads_per_shot) > 0
+        if sum(reads_per_shot) == 0:
+            msg = (
+                "The macro_list contains no readout triggers, so no data is acquired."
+                "Include a readout macro with `QickInstrument.set_macro_list()."
+            )
+            raise RuntimeError(msg)
 
         # create and register the parameters representing the acquired data
         result_parameters = []
