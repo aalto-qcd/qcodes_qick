@@ -5,7 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qcodes_qick"
 version = "0.1.5"
+description = "QCoDeS driver for QICK"
+readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Yoshiki Sunada", email = "ysunada@stanford.edu" },
+  { name = "Jonatan Albanese", email = "jonatan.albanese@aalto.fi" },
+  { name = "Ashish Panigrahi", email = "ashish.panigrahi@aalto.fi" },
+]
+maintainers = [
+  { name = "Ashish Panigrahi", email = "ashish.panigrahi@aalto.fi" },
+]
 dependencies = [
     "geom-median",
     "pyro4",
