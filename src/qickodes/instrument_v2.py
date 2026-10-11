@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, get_args
 
 import numpy as np
 import qick
@@ -31,6 +31,15 @@ from qickodes.programs_v2 import AveragerProgram
 
 if TYPE_CHECKING:
     from qcodes.dataset.measurements import DataSaver
+
+AcquisitionMode = Literal[
+    "accumulated",
+    "accumulated geometric median",
+    "accumulated shots",
+    "ddr4",
+    "decimated",
+    "state population",
+]
 
 
 @contextmanager
@@ -220,18 +229,14 @@ class QickInstrument(Instrument):
         meas: Measurement,
         software_sweeps: Sequence[SoftwareSweep] = (),
         hardware_loop_counts: dict[str, int] | None = None,
-        acquisition_mode: Literal[
-            "accumulated",
-            "accumulated geometric median",
-            "accumulated shots",
-            "ddr4",
-            "decimated",
-            "state population",
-        ] = "accumulated",
+        acquisition_mode: AcquisitionMode = "accumulated",
         num_states: int = 0,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None = None,
         save_shots_as_npy: bool = False,
     ) -> int:
+        if acquisition_mode not in get_args(AcquisitionMode):
+            msg = f"Unknown acquisition_mode {acquisition_mode!r}. Valid modes: {', '.join(map(repr, get_args(AcquisitionMode)))}."
+            raise ValueError(msg)
         if len(self.macro_list) == 0:
             msg = (
                 "`macro_list` is empty. Please define the sequence with"
@@ -404,14 +409,7 @@ class QickInstrument(Instrument):
         hardware_sweep_parameters: Sequence[SweepableParameter],
         time_parameter: Parameter | None,
         result_parameters: Sequence[Parameter],
-        acquisition_mode: Literal[
-            "accumulated",
-            "accumulated geometric median",
-            "accumulated shots",
-            "ddr4",
-            "decimated",
-            "state population",
-        ],
+        acquisition_mode: AcquisitionMode
         num_states: int,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None,
         save_shots_as_npy: bool,
