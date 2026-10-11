@@ -409,7 +409,7 @@ class QickInstrument(Instrument):
         hardware_sweep_parameters: Sequence[SweepableParameter],
         time_parameter: Parameter | None,
         result_parameters: Sequence[Parameter],
-        acquisition_mode: AcquisitionMode
+        acquisition_mode: AcquisitionMode,
         num_states: int,
         state_classifier: Callable[[np.ndarray], np.ndarray] | None,
         save_shots_as_npy: bool,
