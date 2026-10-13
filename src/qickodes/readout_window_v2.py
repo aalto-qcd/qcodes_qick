@@ -50,12 +50,15 @@ class ReadoutWindow(InstrumentModule):
         program : qick.asm_v2.QickProgramV2
             The program which uses this readout window.
         """
+        kwargs = {}
+        if self.parent.matching_dac.get() is not None:
+            kwargs["gen_ch"] = self.parent.matching_dac.get()
         program.add_readoutconfig(
             ch=self.parent.channel_num,
             name=self.short_name,
             freq=self.freq.qick_param / 1e6,
             phase=0,
-            gen_ch=self.parent.matching_dac.get(),
+            **kwargs,
         )
 
     def copy(self, name: str, parent: AdcChannel | None = None) -> ReadoutWindow:
