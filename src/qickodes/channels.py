@@ -57,8 +57,6 @@ class DacChannel(InstrumentChannel):
     def hz2reg(self, hz: float) -> int:
         """Convert a DAC frequency from Hz to the register value (int)."""
         adc_channel = self.matching_adc.get()
-        if adc_channel == -1:
-            adc_channel = None
         return self.parent.soccfg.freq2reg(hz / 1e6, self.channel_num, adc_channel)
 
     def reg2deg(self, reg: int) -> float:
