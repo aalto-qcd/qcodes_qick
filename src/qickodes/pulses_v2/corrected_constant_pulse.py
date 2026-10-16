@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qcodes import ManualParameter
+from qcodes.parameters import ManualParameter
 from qcodes.validators import Arrays, Bool, Numbers
 
 from qickodes.parameters_v2 import SweepableParameter

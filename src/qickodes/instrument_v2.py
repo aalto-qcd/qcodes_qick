@@ -11,8 +11,8 @@ import numpy as np
 import qick
 import qick.asm_v2
 import qick.qick_asm
-from qcodes import ChannelTuple, Instrument, ManualParameter, Measurement, Parameter
-from qcodes.instrument import InstrumentModule
+from qcodes.instrument import ChannelTuple, Instrument, InstrumentModule
+from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Enum, Ints
 from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
@@ -30,6 +30,7 @@ from qickodes.parameters_v2 import SweepableParameter
 from qickodes.programs_v2 import AveragerProgram
 
 if TYPE_CHECKING:
+    from qcodes.dataset import Measurement
     from qcodes.dataset.measurements import DataSaver
 
 AcquisitionMode = Literal[

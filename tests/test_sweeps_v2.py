@@ -6,7 +6,7 @@ the `SweepableParameter' get/set behaviour.
 
 import numpy as np
 import pytest
-from qcodes import Instrument, ManualParameter
+from qcodes.parameters import Instrument, ManualParameter
 from qick.asm_v2 import QickSweep1D
 
 from qickodes.instrument_v2 import SoftwareSweep

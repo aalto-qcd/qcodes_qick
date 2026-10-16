@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from qcodes import ManualParameter
+from qcodes.parameters import ManualParameter
 from qcodes.validators import Numbers
 
 if TYPE_CHECKING:

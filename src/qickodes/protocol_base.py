@@ -5,8 +5,8 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qcodes import ManualParameter, Measurement, Parameter
 from qcodes.instrument import InstrumentModule
+from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Ints
 from qick.averager_program import NDAveragerProgram
 from qick.qick_asm import AcquireMixin
@@ -15,6 +15,7 @@ from tqdm.contrib.itertools import product as tqdm_product
 from qickodes.instruction_base import QickInstruction
 
 if TYPE_CHECKING:
+    from qcodes.dataset import Measurement
     from qcodes.dataset.measurements import DataSaver
     from qick.qick_asm import QickConfig
 

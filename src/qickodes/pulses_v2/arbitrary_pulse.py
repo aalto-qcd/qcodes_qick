@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes import ManualParameter, Parameter
+from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Bool
 
 from qickodes.parameters_v2 import SweepableParameter

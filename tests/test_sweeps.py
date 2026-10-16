@@ -6,7 +6,7 @@ SoftwareSweep, which is purely pythonic.
 
 import numpy as np
 import pytest
-from qcodes import ManualParameter
+from qcodes.parameters import ManualParameter
 
 from qickodes.protocol_base import SoftwareSweep
 

@@ -1,12 +1,12 @@
 import os
 
 import numpy as np
-from qcodes import (
+from qcodes.dataset import (
     Measurement,
-    Station,
     initialise_or_create_database_at,
     load_or_create_experiment,
 )
+from qcodes.station import Station
 
 from qickodes import HardwareSweep, QickInstrument, SoftwareSweep
 from qickodes.instructions import *

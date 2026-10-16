@@ -3,8 +3,8 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING, Literal
 
-from qcodes import Parameter
 from qcodes.instrument import InstrumentModule
+from qcodes.parameters import Parameter
 from qcodes.validators import Enum, MultiType, Numbers, Validator
 from qick.asm_v2 import QickParam
 
