@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qcodes.instrument import InstrumentChannel
+from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Enum
 
-from qickodes.parameters import HzParameter, ManualParameter, Parameter, SecParameter
+from qickodes.parameters import HzParameter, SecParameter
 
 if TYPE_CHECKING:
     from qick.qick_asm import AbsQickProgram
