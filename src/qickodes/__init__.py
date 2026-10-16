@@ -1,6 +1,7 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from qickodes.instruments import QickInstrument
 from qickodes.protocol_base import HardwareSweep, SoftwareSweep
-from importlib.metadata import PackageNotFoundError, version
 
 __all__ = ["HardwareSweep", "QickInstrument", "SoftwareSweep"]
 
