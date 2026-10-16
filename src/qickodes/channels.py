@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes import InstrumentChannel, ManualParameter, Parameter
+from qcodes.instrument import InstrumentChannel
 from qcodes.validators import Enum
 
-from qickodes.parameters import HzParameter, SecParameter
+from qickodes.parameters import HzParameter, ManualParameter, Parameter, SecParameter
 
 if TYPE_CHECKING:
     from qick.qick_asm import AbsQickProgram

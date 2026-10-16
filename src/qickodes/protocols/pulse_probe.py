@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qcodes import ManualParameter
+from qcodes.parameters import ManualParameter
 from qcodes.validators import Ints
 
 from qickodes.protocol_base import HardwareSweep, SweepProgram, SweepProtocol

@@ -3,7 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from qcodes import ChannelTuple, InstrumentChannel, ManualParameter, Parameter
+from qcodes.dataset import ChannelTuple, InstrumentChannel
+from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Bool, Enum, Numbers
 
 if TYPE_CHECKING:

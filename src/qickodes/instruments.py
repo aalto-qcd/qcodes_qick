@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import qick
-from qcodes import ChannelTuple, Instrument
-from qcodes.instrument import InstrumentModule
+from qcodes.instrument import ChannelTuple, Instrument, InstrumentModule
 from qcodes.parameters import ManualParameter, Parameter
 from qcodes.validators import Enum, Ints
 from qick.pyro import make_proxy

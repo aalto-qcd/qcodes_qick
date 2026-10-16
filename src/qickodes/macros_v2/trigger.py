@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import qick.asm_v2
-from qcodes import Parameter
+from qcodes.parameters import Parameter
 
 from qickodes.channels_v2 import AdcChannel
 from qickodes.macro_base_v2 import Macro
