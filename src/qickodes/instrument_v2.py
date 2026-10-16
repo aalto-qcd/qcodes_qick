@@ -51,7 +51,7 @@ def _silence_paramtype_warning():
         def filter(self, record):
             return "already has paramtype" not in record.getMessage()
 
-    root = logging.getLogger()
+    root = logging.getLogger("qcodes.parameters.parameter_base")
     log_filter = _Filter()
     root.addFilter(log_filter)
     try:
