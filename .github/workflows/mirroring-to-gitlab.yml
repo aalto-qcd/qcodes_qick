@@ -3,25 +3,23 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all commit history
 
-      - name: Set up Git
-        run: |
-          git config --global user.name "QCD Labs"
-
       - name: Add GitLab remote
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@version.aalto.fi/gitlab/qcd_labs/qickodes.git
-          git fetch gitlab
+          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@version.aalto.fi/gitlab/qcd_labs/qickodes.git
 
       - name: Push to GitLab
         run: |
-          git push gitlab main
-          git push --tags gitlab
+          git push gitlab "${GITHUB_REF}"
