@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, get_args
 
 import numpy as np
+import xarray as xr
 import qick
 import qick.asm_v2
 import qick.qick_asm
@@ -587,14 +588,26 @@ class QickInstrument(Instrument):
                 elif acquisition_mode == "ddr4":
                     if channel_num == ddr4_channel:
                         assert time_parameter is not None
-                        iq = self.soc.get_ddr4(ddr4_num_transfers).dot([1, 1j])
-                        time = program.get_time_axis_ddr4(ddr4_channel, iq) / 1e6
-                        datasaver.add_result(
-                            *param_values,
-                            (time_parameter, time),
-                            (result_parameters[result_index], iq),
-                        )
-                        result_index += 1
+                        raw = self.soc.get_ddr4(ddr4_num_transfers)
+                        time = program.get_time_axis_ddr4(ddr4_channel, raw[:, 0]) / 1e6
+                        save_dir = self.ddr4_buffer.save_dir.get()
+                        if save_dir is None:
+                            iq = (raw[:, 0] + 1j * raw[:, 1]).astype(np.complex64)
+                            datasaver.add_result(
+                                *param_values,
+                                (time_parameter, time),
+                                (result_parameters[result_index], iq),
+                            )
+                        else:
+                            save_dir = Path(save_dir)
+                            save_dir.mkdir(parents=True, exist_ok=True)
+                            path = Path(save_dir) / f"{datasaver.run_id}.nc"
+                            xr.Dataset(
+                                {"i": ("time", raw[:, 0]), "q": ("time", raw[:, 1])},
+                                coords={"time": ("time", time, {"units": "s"})},
+                            ).to_netcdf(path, engine="h5netcdf")
+                            datasaver.dataset.add_metadata("ddr4_file", str(path))
+                    result_index += 1
                 else:
                     raise NotImplementedError
 
@@ -689,6 +702,13 @@ class Ddr4Buffer(InstrumentModule):
             label="Duration of data acquisition expressed as the number of data transfers",
             vals=Ints(min_value=1),
             initial_value=1,
+        )
+        self.save_dir = Parameter(
+            name="save_dir",
+            instrument=self,
+            label="Directory for DDR4 records (None: store in the QCoDeS database)",
+            initial_value=None,
+            set_cmd=None,
         )
 
     def arm(self):
