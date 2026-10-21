@@ -34,7 +34,12 @@ class ArbitraryPulse(DacPulse):
         name: str,
         envelope: DacEnvelope,
     ) -> None:
-        assert envelope.parent is parent
+        if envelope.parent is not parent:
+            msg = (
+                f"Envelope {envelope.full_name} belongs to {envelope.parent.full_name}, "
+                f"but the pulse is being created on {parent.full_name}."
+            )
+            raise ValueError(msg)
         super().__init__(parent, name)
         self.envelope = envelope
 
@@ -91,6 +96,9 @@ class ArbitraryPulse(DacPulse):
             initial_value=False,
         )
 
+    def _copy_args(self) -> tuple:
+        return (self.envelope,)
+
     def initialize(self, program: qick.asm_v2.QickProgramV2) -> None:
         """Add this pulse to the program's pulse library.
 
@@ -112,24 +120,3 @@ class ArbitraryPulse(DacPulse):
             mode={False: "oneshot", True: "periodic"}[self.periodic.get()],
             envelope=self.envelope_name.get(),
         )
-
-    def copy(self, name: str, parent: DacChannel | None = None) -> ArbitraryPulse:
-        """Make a copy of this pulse.
-
-        Parameters
-        ----------
-        name : str
-            Name for the new pulse.
-        parent : DacChannel, optional
-            Specify a different DAC for the copied pulse.
-        """
-        if parent is None:
-            parent = self.parent
-        new_pulse = ArbitraryPulse(parent, name, self.envelope)
-        new_pulse.freq.set(self.freq.get())
-        new_pulse.phase.set(self.phase.get())
-        new_pulse.gain.set(self.gain.get())
-        new_pulse.reset_phase.set(self.reset_phase.get())
-        new_pulse.hold_last_sample.set(self.hold_last_sample.get())
-        new_pulse.periodic.set(self.periodic.get())
-        return new_pulse

@@ -9,8 +9,9 @@ from qcodes.validators import Bool, Enum, Numbers
 
 if TYPE_CHECKING:
     import qick.asm_v2
+    from qick.asm_v2 import QickParam
 
-    from qickodes.instruments import QickInstrument
+    from qickodes.instrument_v2 import QickInstrument
 
 
 class DacChannel(InstrumentChannel, ABC):
@@ -76,6 +77,12 @@ class DacChannel(InstrumentChannel, ABC):
             The program to add this DAC to.
         """
 
+    def mixer_freq_mhz(self) -> float | None:
+        """Digital mixer frequency in MHz, or None if this DAC has no mixer."""
+        if not hasattr(self, "digital_mixer_freq"):
+            return None
+        return self.digital_mixer_freq.get() / 1e6
+
 
 class StandardDacChannel(DacChannel):
     """A non-frequency-multiplexed DAC channel.
@@ -101,10 +108,7 @@ class StandardDacChannel(DacChannel):
         program : AbsQickProgram
             The program to add this DAC to.
         """
-        if hasattr(self, "digital_mixer_freq"):
-            mixer_freq = self.digital_mixer_freq.get() / 1e6
-        else:
-            mixer_freq = None
+        mixer_freq = self.mixer_freq_mhz()
         program.declare_gen(self.channel_num, self.nqz.get(), mixer_freq)
 
 
@@ -181,10 +185,7 @@ class MultiplexedDacChannel(DacChannel):
         program : AbsQickProgram
             The program to add this DAC to.
         """
-        if hasattr(self, "digital_mixer_freq"):
-            mixer_freq = self.digital_mixer_freq.get() / 1e6
-        else:
-            mixer_freq = None
+        mixer_freq = self.mixer_freq_mhz()
         program.declare_gen(
             ch=self.channel_num,
             nqz=self.nqz.get(),
@@ -279,16 +280,7 @@ class AdcChannel(InstrumentChannel):
                 ch=self.channel_num,
                 length=self.length.get() * 1e6,
             )
-            kwargs = {}
-            if self.matching_dac.get() is not None:
-                kwargs["gen_ch"] = self.matching_dac.get()
-            program.add_readoutconfig(
-                ch=self.channel_num,
-                name=self.short_name,
-                freq=self.freq.get() / 1e6,
-                phase=0,
-                **kwargs,
-            )
+            self.add_readoutconfig(program, self.short_name, self.freq.get() / 1e6)
             program.send_readoutconfig(
                 ch=self.channel_num,
                 name=self.short_name,
@@ -301,3 +293,30 @@ class AdcChannel(InstrumentChannel):
                 length=self.length.get() * 1e6,
                 gen_ch=self.matching_dac.get(),
             )
+
+    def add_readoutconfig(
+        self, program: qick.asm_v2.QickProgramV2, name: str, freq: float | QickParam
+    ) -> None:
+        """Add a readout config for this ADC to the program.
+
+        Parameters
+        ----------
+        program : qick.asm_v2.QickProgramV2
+            The program to add the readout config to.
+        name : str
+            Name of the readout config within the program.
+        freq : float | QickParam
+            Downconversion frequency in MHz, as QICK expects it.
+        """
+        # Older QICK versions (<0.2.436) fail on gen_ch=None, so only pass it when set.
+        # See https://github.com/openquantumhardware/qick/pull/436 for more details.
+        kwargs = {}
+        if self.matching_dac.get() is not None:
+            kwargs["gen_ch"] = self.matching_dac.get()
+        program.add_readoutconfig(
+            ch=self.channel_num,
+            name=name,
+            freq=freq,
+            phase=0,
+            **kwargs,
+        )

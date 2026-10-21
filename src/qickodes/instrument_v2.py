@@ -12,8 +12,8 @@ import qick
 import qick.asm_v2
 import qick.qick_asm
 import xarray as xr
-from qcodes.instrument import ChannelTuple, Instrument, InstrumentModule
-from qcodes.parameters import ManualParameter, Parameter
+from qcodes.instrument import ChannelList, ChannelTuple, Instrument, InstrumentModule
+from qcodes.parameters import ManualParameter, Parameter, ParameterBase
 from qcodes.validators import Enum, Ints
 from qick.asm_v2 import MultiplexedGenManager, QickProgramV2, StandardGenManager
 from qick.pyro import make_proxy
@@ -52,7 +52,7 @@ def _silence_paramtype_warning():
         def filter(self, record):
             return "already has paramtype" not in record.getMessage()
 
-    root = logging.getLogger("qcodes.parameters.parameter_base")
+    root = logging.getLogger(ParameterBase.__module__)
     log_filter = _Filter()
     root.addFilter(log_filter)
     try:
@@ -79,8 +79,13 @@ class SoftwareSweep:
         else:
             self.parameters = parameters
 
-        # make sure that all parameters have the same unit
-        assert len({parameter.unit for parameter in self.parameters}) == 1
+        units = {parameter.unit for parameter in self.parameters}
+        if len(units) != 1:
+            msg = (
+                "All parameters of a SoftwareSweep must have the same unit, "
+                f"got {sorted(units)}."
+            )
+            raise ValueError(msg)
 
         if isinstance(start, (Sequence, np.ndarray)):
             self.values = start
@@ -106,7 +111,10 @@ class QickInstrument(Instrument):
         # set of all parameters which have been assigned a QickSweep object
         self.swept_params: set[SweepableParameter] = set()
 
-        assert len(self.soccfg["tprocs"]) == 1
+        n_tprocs = len(self.soccfg["tprocs"])
+        if n_tprocs != 1:
+            msg = f"Expected exactly one tProc on the board, found {n_tprocs}."
+            raise NotImplementedError(msg)
         tproc_type = self.soccfg["tprocs"][0]["type"]
         if tproc_type != "qick_processor":
             raise NotImplementedError(f"unsupported tProc type: {tproc_type}")
@@ -143,15 +151,16 @@ class QickInstrument(Instrument):
         self.ddr4_buffer = Ddr4Buffer(self, "ddr4_buffer")
         self.add_submodule("ddr4_buffer", self.ddr4_buffer)
 
-        self.macro_list = ChannelTuple(
+        self.macro_list = ChannelList(
             parent=self,
             name="macro_list",
             chan_type=Macro,
-            chan_list=[],
         )
         self.add_submodule("macro_list", self.macro_list)
 
         # Counters to make sure every Macro in the macro_list has a unique name
+        # Deliberately never reset: macros can be reused across set_macro_list()
+        # calls, so restarting the count could produce duplicate names.
         self.macro_name_counter: dict[str, int] = {}
 
         self.hard_avgs = ManualParameter(
@@ -208,15 +217,8 @@ class QickInstrument(Instrument):
         Args: `Macro` type objects such as `PlayPulse`, `DelayAuto`,
         `Trigger`.
         """
-        del self.submodules["macro_list"]
-        del self._channel_lists["macro_list"]
-        self.macro_list = ChannelTuple(
-            parent=self,
-            name="macro_list",
-            chan_type=Macro,
-            chan_list=macro_list,
-        )
-        self.add_submodule("macro_list", self.macro_list)
+        self.macro_list.clear()
+        self.macro_list.extend(macro_list)
 
     def get_idn(self) -> dict[str, str | None]:
         return {
@@ -241,20 +243,32 @@ class QickInstrument(Instrument):
             raise ValueError(msg)
         if len(self.macro_list) == 0:
             msg = (
-                "`macro_list` is empty. Please define the sequence with"
+                "`macro_list` is empty. Please define the sequence with "
                 "`QickInstrument.set_macro_list([...])` before running the measurement."
             )
             raise RuntimeError(msg)
-        if acquisition_mode in [
-            "accumulated geometric median",
-            "accumulated shots",
-            "ddr4",
-            "state population",
-        ]:
-            assert self.soft_avgs.get() == 1
+        if (
+            acquisition_mode
+            in [
+                "accumulated geometric median",
+                "accumulated shots",
+                "ddr4",
+                "state population",
+            ]
+            and self.soft_avgs.get() != 1
+        ):
+            msg = (
+                f"acquisition_mode={acquisition_mode!r} requires soft_avgs=1, "
+                f"got {self.soft_avgs.get()}. Use hard_avgs for the number of shots."
+            )
+            raise ValueError(msg)
         if acquisition_mode == "state population":
-            assert num_states >= 2
-            assert state_classifier is not None
+            if num_states < 2:
+                msg = f"num_states must be atleast 2, got {num_states}."
+                raise ValueError(msg)
+            if state_classifier is None:
+                msg = "acquisition_mode='state population' requires a state_classifier."
+                raise ValueError(msg)
         if hardware_loop_counts is None:
             hardware_loop_counts = {}
         if len(hardware_loop_counts) == 0 and acquisition_mode in [
@@ -312,10 +326,9 @@ class QickInstrument(Instrument):
             program = AveragerProgram(self, hardware_loop_counts)
             adc_channel_nums = program.ro_chs.keys()
             reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
-            assert len(adc_channel_nums) == len(reads_per_shot)
             if sum(reads_per_shot) == 0:
                 msg = (
-                    "The macro_list contains no readout triggers, so no data is acquired."
+                    "The macro_list contains no readout triggers, so no data is acquired. "
                     "Include a readout macro with `QickInstrument.set_macro_list()`."
                 )
                 raise RuntimeError(msg)
@@ -352,7 +365,7 @@ class QickInstrument(Instrument):
                             mad_parameter = Parameter(name + "_mad")
                             result_parameters.append(mad_parameter)
                             meas.register_parameter(
-                                mad_parameter, setpoints, paramtype=paramtype_iq
+                                mad_parameter, setpoints, paramtype=paramtype
                             )
 
         self.snapshot(update=True)
@@ -647,7 +660,12 @@ class QickInstrument(Instrument):
     def run_without_saving(self, progress: bool = False) -> dict[str, complex]:
         program = AveragerProgram(self, hardware_loop_counts={})
         reads_per_shot = [ro["trigs"] for ro in program.ro_chs.values()]
-        assert sum(reads_per_shot) > 0
+        if sum(reads_per_shot) == 0:
+            msg = (
+                "The macro_list contains no readout triggers, so no data is acquired. "
+                "Include a readout macro with `QickInstrument.set_macro_list()`."
+            )
+            raise RuntimeError(msg)
         all_iq = qick.qick_asm.AcquireMixin.acquire(
             self=program,
             soc=self.soc,
